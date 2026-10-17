@@ -17,6 +17,7 @@ local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
 local CalloutService = require(script.Parent.CalloutService)
+local DataService = require(script.Parent.DataService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
 local Participants = require(script.Parent.Participants)
@@ -176,7 +177,10 @@ local function pickBombers(list: { Participant }, count: number): { [Participant
 		if RC.BOMBER_REPEAT_GUARD and lastBombers[p.id] then
 			score += 10
 		end
-		if not p.isBot and (p.data.roundsPlayed or 0) < 2 then
+		-- F-ONB-03: a new player is never a starting Bomber in their first 2 rounds ever (lifetime, from the profile)
+		local profile = if p.isBot then nil else DataService.get(p)
+		local lifetime = if profile then profile.stats.rounds else (p.data.roundsPlayed or 0)
+		if not p.isBot and lifetime < 2 then
 			score += 20
 		end
 		table.insert(scored, { p = p, score = score })
@@ -482,7 +486,7 @@ function RoundService.init()
 	-- the next READY).
 	PlayerService.spawnResolver = function(p: Participant)
 		local t = os.clock()
-		while not Arena.current and os.clock() - t < 10 do
+		while not Arena.current and os.clock() - t < 30 do -- boot can take a while (avatar loading runs first)
 			task.wait(0.1)
 		end
 		if not Arena.current then

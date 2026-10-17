@@ -16,6 +16,7 @@ Net.ClientToServer = {
 	MovementTech = 6,
 	SaveSettings = 1,
 	Admin = 4,
+	DailyAction = 4, -- { kind = ClaimLogin | ClaimGift | Reroll | ClaimDailyCrate | RulesSeen | Tip | Funnel, … } (P4)
 }
 
 Net.ServerToClient = {
@@ -23,7 +24,9 @@ Net.ServerToClient = {
 	"BombFx", -- { kind = Stick | Pass | Boom | Defuse, bomb, from?, who, … } (BombService, GDD §22.4)
 	"FieldFx", -- { kind = Warn | Detonate | Clear, crossing, at } (RoundService, F-FUSE-02/03)
 	"RoundFx", -- { kind = Intro | LastStand | Results, … } (RoundService)
-	"Callout", -- { key, n?, at } to one player (CalloutService, GDD §11.1)
+	"Callout", -- { key, n?, xp?, stars?, at } to one player (CalloutService + RewardService, GDD §11.1)
+	"Progress", -- the player's progression snapshot: level, xp, stars, streak, quests, calendar, gift (P4)
+	"Reward", -- { kind = LevelUp | Round | Quest | Login | Gift | DailyCrate | Group, … } to one player (P4)
 }
 
 local FOLDER_NAME = "Net"

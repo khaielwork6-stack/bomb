@@ -336,6 +336,23 @@ function DataService.start()
 			load(p)
 			return "reloaded " .. p.id
 		end)
+		-- datareset <id>: a fresh v1 profile (keeps purchase receipts) — puts a tester back to a new player after a
+		-- play-test touched their real save.
+		AdminService.register("datareset", function(args)
+			local p = Participants.get(args[1])
+			local prof = p and profiles[p.id]
+			if not p or not prof then
+				return "need a loaded player id"
+			end
+			local fresh = ProfileSchema.new()
+			fresh.receipts = prof.data.receipts
+			fresh.createdAt, fresh.firstJoin, fresh.lastJoin = os.time(), prof.data.firstJoin, os.time()
+			fresh.saveCount = prof.data.saveCount
+			prof.data = fresh
+			DataService.Loaded:Fire(p, fresh)
+			DataService.save(p, false)
+			return "reset " .. p.id
+		end)
 		-- dataset <id> <field> <number>: change a number for tests: top-level (level / xp / stars / hotStreak) or a
 		-- nested number (stats.wins, daily.playSec, login.lastDay…), so a play-test's progress can be put back exactly.
 		AdminService.register("dataset", function(args)

@@ -21,8 +21,11 @@ local CC = Config.Callouts
 local R = Types.Role
 
 local CalloutService = {
-	-- (participant, key, n?) every callout, bots included (rewards treat bots by their own rules).
+	-- (participant, key, n?, other?) every callout, bots included. `other` = the counterpart (the tagged Runner, the
+	-- pass receiver, the boomed Runner) — anti-farm needs it (F-CALL-02).
 	Fired = Signal.new(),
+	-- RewardService sets this: what a callout pays, so the word and its numbers arrive together.
+	payer = nil :: ((Participant, string, number?, Participant?) -> (number, number))?,
 }
 
 local recentBooms: { [string]: { number } } = {}
@@ -31,13 +34,18 @@ local function now(): number
 	return workspace:GetServerTimeNow()
 end
 
-function CalloutService.fire(p: Participant?, key: string, n: number?)
+function CalloutService.fire(p: Participant?, key: string, n: number?, other: Participant?)
 	if not p or not CC.List[key] then
 		return
 	end
-	CalloutService.Fired:Fire(p, key, n)
+	local xp, stars = 0, 0
+	local payer = CalloutService.payer
+	if payer then
+		xp, stars = payer(p, key, n, other)
+	end
+	CalloutService.Fired:Fire(p, key, n, other)
 	if p.player then
-		Net.fire(p.player, "Callout", { key = key, n = n, at = now() })
+		Net.fire(p.player, "Callout", { key = key, n = n, xp = xp, stars = stars, at = now() })
 	end
 end
 
@@ -75,27 +83,27 @@ function CalloutService.lastStand(runner: Participant)
 end
 
 function CalloutService.start()
-	BombService.Tagged:Connect(function(bomber: Participant)
-		CalloutService.fire(bomber, "Tagged")
+	BombService.Tagged:Connect(function(bomber: Participant, target: Participant)
+		CalloutService.fire(bomber, "Tagged", nil, target)
 	end)
 	BombService.Passed:Connect(function(from: Participant, to: Participant, bomb: BombRules.Bomb, remaining: number)
 		if to.role == R.Bomber then
 			from.stats.revenges += 1
-			CalloutService.fire(from, "RevengePass")
+			CalloutService.fire(from, "RevengePass", nil, to)
 			if to.id == bomb.origin then
-				CalloutService.fire(from, "Revenge")
+				CalloutService.fire(from, "Revenge", nil, to)
 			end
 		elseif remaining <= Config.Bomb.CLOSE_PASS_WINDOW then
-			CalloutService.fire(from, "CloseOne")
+			CalloutService.fire(from, "CloseOne", nil, to)
 		else
-			CalloutService.fire(from, "Pass")
+			CalloutService.fire(from, "Pass", nil, to)
 		end
 	end)
 	BombService.Defused:Connect(function(p: Participant, bomb: BombRules.Bomb, clutch: boolean)
 		CalloutService.fire(p, if clutch then "ClutchDefuse" else "Defused")
 		chainEnded(bomb)
 	end)
-	BombService.RunnerBoomed:Connect(function(_p: Participant, bomb: BombRules.Bomb?, credit: Participant?)
+	BombService.RunnerBoomed:Connect(function(boomed: Participant, bomb: BombRules.Bomb?, credit: Participant?)
 		if not bomb then
 			return -- a field detonation: nobody's credit (F-FUSE-05)
 		end
@@ -106,7 +114,7 @@ function CalloutService.start()
 			CalloutService.fire(giver, "Betrayal")
 		end
 		if credit then
-			CalloutService.fire(credit, "Boom")
+			CalloutService.fire(credit, "Boom", nil, boomed)
 			local t = now()
 			local list = recentBooms[credit.id] or {}
 			local kept = {}

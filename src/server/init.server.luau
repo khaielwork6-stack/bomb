@@ -25,6 +25,10 @@ local ORDER = {
 	"CalloutService",
 	"RoundService",
 	"BotService",
+	"ProgressionService",
+	"DailyService",
+	"LeaderboardService",
+	"OnboardingService",
 }
 
 Net.init()

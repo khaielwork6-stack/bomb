@@ -14,6 +14,10 @@ export type MatchStats = {
 	tags: number, -- bombs stuck on Runners (as a Bomber)
 	passes: number,
 	passesPaid: number, -- PASS rewards paid this round (capped, F-CALL-02)
+	paidPairs: { [string]: boolean }, -- "giver>receiver#crossing" passes already paid (F-CALL-02)
+	lastPassPaid: boolean, -- the latest pass paid (a REVENGE bonus rides on it)
+	starsPaid: number, -- callout Stars paid this round (the round cap counts them, F-ECO-03)
+	xpPaid: number, -- callout XP paid this round (the results receipt)
 	defuses: number,
 	clutches: number,
 	revenges: number,
@@ -67,6 +71,10 @@ function Participants.newStats(): MatchStats
 		tags = 0,
 		passes = 0,
 		passesPaid = 0,
+		paidPairs = {},
+		lastPassPaid = false,
+		starsPaid = 0,
+		xpPaid = 0,
 		defuses = 0,
 		clutches = 0,
 		revenges = 0,
