@@ -16,15 +16,17 @@ Phase plan and Definitions of Done: GDD §26. Tick a task only when its DoD pass
 - [x] P0-12 GitHub: https://github.com/khaielwork6-stack/bomb
 
 ## P1 Core loop — "a playable round"
-- [ ] P1-01 `Types.Phase` → the GDD §5.2 phases; `Config.Round`, `Config.Bomb`
-- [ ] P1-02 RoundService state machine (§5) + ending conditions (§5.3) + mid-round joins as Bomber
-- [ ] P1-03 ArenaService adaptation: Safe Strip soft walls (§6.1), Bomber band
-- [ ] P1-04 `Logic/BombRules` (pure) + specs: eligibility, no-passback, receive grace, closest target, every §7.7 edge case
-- [ ] P1-05 BombService: tag, pass, fuse, boom (Runner → Bomber, Bomber stun), splash, defuse (§7)
-- [ ] P1-06 FieldFuseService: per-crossing fuse, warnings, field detonation (§6.2)
-- [ ] P1-07 Last Stand (§8.2) + win conditions (§8.1)
-- [ ] P1-08 Grey-box client: the bomb on backs (simple, but to the Quality Bar), fuse ring, HUD fuse, team counter
-- [ ] P1-09 DoD: a full round end to end with 2+ players (Studio Team Test); specs pass
+- [x] P1-01 `Types.Phase` → the GDD §5.2 phases; `Config.Round`, `Config.Bomb`
+- [x] P1-02 RoundService state machine (§5) + ending conditions (§5.3) + mid-round joins as Bomber
+- [x] P1-03 Arena adaptation: Safe Strip line walls (Bombers out, safe Runners in), `bomberBand`
+- [x] P1-04 `Logic/BombRules` (pure) + 15 specs: eligibility, no-passback, receive grace, closest target, revenge, locked bombs on Bombers, every §7.7 edge case — **53/53 specs pass** (with the transferred MovementCore specs)
+- [x] P1-05 BombService: tag, pass, fuse, boom (Runner → Bomber after 1.6 s, Bomber stunned 3 s), splash shove, defuse/clutch, leaver rules (§7)
+- [x] P1-06 Field Fuse (in RoundService): per-crossing lengths, 5 s warning, detonation of everyone not in the destination strip, ALL CLEAR (§6.2)
+- [x] P1-07 Last Stand (§8.2) + win conditions (§8.1): verified LastStand → Bombers win with MVP
+- [x] P1-08 Client: the bomb on every Carrier's back (12-segment fuse that burns as the true time, LIT/HOT/CRITICAL lamps + glowing seams, sprung clamp, stick slam, pass arc), overhead fuse ring, FX (booms, defuse, field detonation, camera shake), round HUD (crossing chip, HUD fuse, team counter in the phone top-bar row, headlines, MOVE!, carrier vignette)
+- [~] P1-09 DoD: full rounds verified end to end in Studio with 1 human + 9 Studio dummies (tag → pass → defuse → boom → get up as Bomber → field detonation → Last Stand → results), 0 script errors. **Pending: a 2-human Team Test** (needs a second person)
+
+Studio test tools: `CG_Debug:Invoke("dummies", n)`, `"bomb", id, seconds`, `"role", id, Runner|Bomber`, `"tp", id, x, y, z, lookX, lookZ`, `"skip"`, `"state"`, `"cfg", Section, KEY, value`.
 
 ## P2 Bots · P3 Feel & hero assets · P4 Retention · P5 Store · P6 Event & launch
 See GDD §26.1. Tasks get broken down at the start of each phase.
