@@ -45,3 +45,4 @@ __pycache__/
 art/out/**/*.blend
 art/out/**/*.blend1
 art/out/**/contact_sheet.html
+art/out/Review/
