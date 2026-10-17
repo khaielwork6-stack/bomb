@@ -1,5 +1,5 @@
 --!strict
--- Remote contract. GDD §21.4 / §22.1. Server creates remotes at boot; clients wait for them.
+-- Remote contract. GDD §22.4 / §24.1. Server creates remotes at boot; clients wait for them.
 -- Client->server handlers are rate-limited per player with a token bucket (rate = events/sec, burst = 2x rate).
 
 local Players = game:GetService("Players")
@@ -11,66 +11,15 @@ local Net = {}
 -- name -> events per second allowed
 Net.ClientToServer = {
 	ClientReady = 1,
-	RequestSwing = 4,
-	RequestDive = 1.5,
 	RequestDash = 2,
 	Look = 12, -- head look (camera vs body), ≈10 / s while it changes
 	MovementTech = 6,
-	RequestAbility = 2,
-	PickRunner = 2,
-	ChooseBraveBail = 2,
-	VoteMap = 2,
-	SetAFK = 3,
-	CrowdReact = 1.34,
-	EquipItem = 5,
-	BuyWithStars = 1,
-	CourseEvent = 2,
-	TipSeen = 2,
-	BuyRobux = 1,
-	SkipCinematic = 2,
 	SaveSettings = 1,
 	Admin = 4,
-	Spin = 1,
-	RewardClaim = 1,
-	RewardCheck = 0.5,
-	CrateOpen = 1,
-	TitanSlam = 3, -- the Titan's slam request (TitanService)
-	TitanStomp = 3, -- the Titan's stomp request (TitanService)
-	TitanCharge = 15, -- the Titan's charge request + steering while it runs (TitanService)
-	TitanDev = 1, -- dev button: summon a hunt now (allowlisted)
 }
 
 Net.ServerToClient = {
-	"Feed",
-	"Headline",
-	"Popup",
-	"Toast",
-	"CatchConfirmed",
-	"ActionFx",
-	"AbilityFx",
-	"StatusChanged",
-	"Ragdoll",
-	"ModifierRevealed",
-	"HazardSchedule",
-	"TierChanged",
-	"Cinematic",
-	"ModifierEvent",
-	"ReplayData",
-	"Results",
-	"ProfileSync",
-	"PickerOpen",
-	"ChooserOpen",
-	"Sfx",
-	"Stars",
-	"Leaderboards",
-	"Rival",
-	"DashCourse",
-	"Onboarding",
-	"Spin",
-	"Rewards",
-	"Crate",
-	"BotChat", -- a bot says a line (BotChatService): { id, text }
-	"TitanFx", -- TITAN HUNT moments: { kind, ... } (TitanService → TitanController)
+	"ActionFx", -- another player's movement technique (MoveService → MoveFxController)
 }
 
 local FOLDER_NAME = "Net"

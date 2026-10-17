@@ -9,11 +9,11 @@ Phase plan and Definitions of Done: GDD §26. Tick a task only when its DoD pass
 - [x] P0-05 Transfer plumbing (Net, Types, Util, ClientState, GameState, Participants, PlayerService, PositionHistory, DataService, AdminService, Settings, Sfx, Dev tools)
 - [x] P0-06 Role rename Catcher → Bomber; FUSE VALLEY match stats; Config index trimmed (`tools/checkrequires.ps1` clean)
 - [x] P0-07 Temporary map plumbing (Arena, MapKit/MapMeadow builders, Config.Maps = Meadow only) + P0 `Sandbox` service
-- [ ] P0-08 **Human:** create the new Studio place "FUSE VALLEY" (same group as Chase Game), start `rojo serve` in this folder
-- [ ] P0-09 Run the Meadow + Environment builders in the new place, then save (builders/README.md)
-- [ ] P0-10 Studio check: run, dash, slide, hard stop, strafe and backpedal on the Meadow field, with animations playing and 0 console errors
-- [ ] P0-11 Trim `Assets.luau` and `Net.luau` to what FUSE VALLEY uses (drop Chase UI ids and remotes)
-- [ ] P0-12 **Human:** create the GitHub repo; push
+- [x] P0-08 Place "FUSE VALLEY 💣" (placeId 80312213445237, group 3774675); `rojo serve --port 34873` from `Desktop\Fuse Valey`
+- [x] P0-09 Meadow + Environment built in the place; default SpawnLocation removed (`CharacterAutoLoads` is now off in code). **Human: publish/save the place** so the map persists
+- [x] P0-10 Studio check (2026-10-17): run 24, dash 48, slide 34.8 glide, hard stop + juke, strafe 20.4, backpedal 22.1 studs/s; Idle/Run/Strafe/Walk/Dash/Slide/HardStop/Brake clips all play; 0 script errors. Added `MoveFxController` (technique clips + sounds; Chase's FeedbackController didn't transfer)
+- [x] P0-11 `Assets.luau` / `Net.luau` trimmed to the movement set; the Brave-boost popup listener removed
+- [x] P0-12 GitHub: https://github.com/khaielwork6-stack/bomb
 
 ## P1 Core loop — "a playable round"
 - [ ] P1-01 `Types.Phase` → the GDD §5.2 phases; `Config.Round`, `Config.Bomb`

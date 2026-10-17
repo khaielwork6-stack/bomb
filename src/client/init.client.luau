@@ -30,6 +30,7 @@ local ORDER: { string } = {
 	"MovementController",
 	"CameraController",
 	"PoseController",
+	"MoveFxController",
 	"FootstepController",
 }
 

@@ -49,6 +49,9 @@ local function onPlayerRemoving(player: Player)
 end
 
 function PlayerService.init()
+	-- We spawn every character ourselves (Characters.spawnHuman). Code enforces it, so a new place's default
+	-- CharacterAutoLoads (spawn on the SpawnLocation first) never matters.
+	Players.CharacterAutoLoads = false
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 end

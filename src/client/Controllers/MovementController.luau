@@ -422,12 +422,6 @@ function MovementController.start()
 	InputController.on("Primary", onPrimary)
 	InputController.on("HardStop", onHardStop)
 	InputController.on("Slide", onSlide)
-	-- Brave boost / server-driven boosts.
-	Net.listen("Popup", function(payload)
-		if type(payload) == "table" and payload.kind == "BraveBoost" then
-			MovementCore.boost(state, Config.Movement.BRAVE_BOOST_TIME)
-		end
-	end)
 	local bindToken = 0
 	local function bindLocomotion(char: Model)
 		if loco then
