@@ -32,6 +32,15 @@ local current: string? = nil
 local heartbeat: Sound? = nil
 local crowd: Sound? = nil
 local tickAcc = 0
+local tockNext = false
+-- The in-house tick set is used once all four files have ids (Assets: "" = not uploaded yet).
+local inHouseTicks = true
+for _, k in ipairs({ "BombTickA", "BombTickB", "BombTickHotA", "BombTickHotB" }) do
+	local def = (Assets.SFX :: any)[k]
+	if not def or def.id == "" then
+		inHouseTicks = false
+	end
+end
 
 local MUSIC_VOLUME = 0.8
 
@@ -122,12 +131,19 @@ local function step(dt: number)
 	if hb then
 		hb.PlaybackSpeed = ({ 1.05, 1.35, 1.75 })[stage]
 	end
-	-- Your own tick, paced by stage, the pitch rising (§7.2: 2 / 4 / 10 Hz).
+	-- Your own tick, paced by stage (§7.2: 2 / 4 / 10 Hz): the in-house escapement alternates tick / tock and turns
+	-- to its brighter, tighter pair at CRITICAL; until those files are uploaded, the fallback tick is pitched up.
 	local hz = ({ 2, 4, 10 })[stage]
 	tickAcc += dt
 	if tickAcc >= 1 / hz then
 		tickAcc = 0
-		Sfx.play("BombTick", if stage == 3 then 0.8 else 1, ({ 1.0, 1.12, 1.3 })[stage])
+		tockNext = not tockNext
+		if inHouseTicks then
+			local key = (if stage == 3 then "BombTickHot" else "BombTick") .. (if tockNext then "B" else "A")
+			Sfx.play(key, if stage == 3 then 0.85 else 1, ({ 1.0, 1.04, 1.0 })[stage])
+		else
+			Sfx.play("BombTick", if stage == 3 then 0.8 else 1, ({ 1.0, 1.12, 1.3 })[stage])
+		end
 	end
 end
 

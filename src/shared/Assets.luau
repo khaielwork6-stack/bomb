@@ -1,6 +1,8 @@
 --!strict
 -- Every asset reference goes through this table (Asset Bible §10.5): code uses keys, never raw ids.
--- src: R = Roblox official, PSE = ProSoundEffects, APM = APMOfficial, C = verified community, BI = built-in.
+-- src: R = Roblox official, PSE = ProSoundEffects, APM = APMOfficial, C = verified community, BI = built-in,
+-- FV = sound-designed in-house (art/audio).
+-- An id of "" means the in-house file is waiting to be uploaded; code falls back until it lands.
 -- P0: only what the transferred movement uses (from Chase Game). The FUSE VALLEY sound stacks (Asset Bible §9) and
 -- the bomb's assets are added as their phases land.
 
@@ -45,7 +47,13 @@ Assets.SFX = {
 	-- The bomb (Asset Bible §9.2; licensed APM / Pro Sound Effects / Roblox, most already shipped by Chase Game).
 	-- Each moment is a STACK of layers (AudioController), never one stock sound.
 	FuseHiss = s(1841092807, 0.32, "APM", { looped = true }), -- "Burning Fuse (a)": the cord's loop on every bomb
-	BombTick = s(12221990, 0.55, "R"), -- one tick; AudioController paces it 2 / 4 / 10 Hz by stage, pitch rising
+	BombTick = s(12221990, 0.55, "R"), -- fallback single tick (until the in-house set below is uploaded)
+	-- The in-house escapement (art/audio/make_ticks.py): tick / tock alternate like a real movement; the HOT pair is
+	-- brighter and tighter for CRITICAL, so escalation changes timbre instead of pitching one sample up.
+	BombTickA = s("", 0.6, "FV"), -- bomb_tick.wav
+	BombTickB = s("", 0.6, "FV"), -- bomb_tock.wav
+	BombTickHotA = s("", 0.62, "FV"), -- bomb_tick_hot.wav
+	BombTickHotB = s("", 0.62, "FV"), -- bomb_tock_hot.wav
 	BombClamp = s(9125782643, 0.6, "PSE", { pitch = { 1.05, 1.2 } }), -- a heavy metal lid set down: the clamp biting
 	PassWhoosh = s(9126229255, 0.55, "PSE", { pitch = { 1.25, 1.4 } }), -- the flight between backs
 	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
