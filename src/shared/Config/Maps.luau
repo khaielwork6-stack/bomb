@@ -11,8 +11,14 @@ for _, fx in ipairs({ -0.32, -0.11, 0.11, 0.32 }) do
 end
 
 return {
-	Order = { "Meadow" }, -- P0: the temporary map only (GDD §23.1); the Fireworks Yard replaces it in P3
+	-- P3 (2026-10-17): the Fireworks Yard is the launch map (builders/MapYard); the Meadow stays parked as a fallback.
+	Order = { "Yard", "Meadow" },
 	List = {
+		Yard = {
+			displayName = "The Fireworks Yard",
+			hazards = {},
+			sockets = SOCKETS_4x4,
+		},
 		-- 2026-10-09 v2 (builders/MapMeadow): the home farm stadium. Its round hay bales roll (Templates.Roller), its
 		-- square hay bales rise (Templates.BlockTemplate), the sheep stampede stays.
 		Meadow = {

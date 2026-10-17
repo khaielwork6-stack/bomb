@@ -58,4 +58,19 @@ return function(t)
 		t.expect(BombBrain.startDelay(20, 0.2)).toBe(0)
 		t.expect(BombBrain.startDelay(20, 1)).near(20 * BC.START_DELAY_MAX)
 	end)
+
+	t.it("cover in the way bends the line round it, still heading forward", function()
+		local crate = { { pos = Vector3.new(0, 0, -8), r = 2.2 } }
+		local out = BombBrain.avoid(Vector3.new(0.3, 0, 0), Vector3.new(0, 0, -1), crate, 1.5, 10)
+		t.expect(out.Z < 0).truthy() -- still going forward
+		t.expect(out.X > 0.2).truthy() -- slips past on the side it was already on (+X)
+	end)
+
+	t.it("cover behind or well off the line changes nothing", function()
+		local fwd = Vector3.new(0, 0, -1)
+		local behind = { { pos = Vector3.new(0, 0, 8), r = 2.2 } }
+		local aside = { { pos = Vector3.new(9, 0, -6), r = 2.2 } }
+		t.expect(BombBrain.avoid(Vector3.zero, fwd, behind, 1.5, 10).Z).near(-1)
+		t.expect(BombBrain.avoid(Vector3.zero, fwd, aside, 1.5, 10).Z).near(-1)
+	end)
 end

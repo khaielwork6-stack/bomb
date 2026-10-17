@@ -63,6 +63,46 @@ function BombBrain.intercept(targetPos: Vector3, targetVel: Vector3, lead: numbe
 	return targetPos + targetVel * Vector3.new(1, 0, 1) * lead
 end
 
+export type Obstacle = { pos: Vector3, r: number }
+
+-- Steer `dir` round the map's cover (crates, hand-trucks): an obstacle on the path within `lookahead` bends the line
+-- to the side it's already slipping past, harder the closer and more central it is; inside the clearance ring it
+-- also pushes straight out. With nothing in the way `dir` comes back unchanged (flat, unit).
+function BombBrain.avoid(
+	pos: Vector3,
+	dir: Vector3,
+	obstacles: { Obstacle },
+	clearance: number,
+	lookahead: number
+): Vector3
+	local flat = dir * Vector3.new(1, 0, 1)
+	if flat.Magnitude < 0.05 then
+		return dir
+	end
+	local d = flat.Unit
+	local out = d
+	for _, o in ipairs(obstacles) do
+		local to = (o.pos - pos) * Vector3.new(1, 0, 1)
+		local reach = o.r + clearance
+		local along = to:Dot(d)
+		if along > -reach and along < lookahead + reach then
+			local lateral = to - d * along -- from the path to the obstacle's centre, across the path
+			local miss = lateral.Magnitude
+			if miss < reach and along > 0 then
+				local side = if miss > 1e-3 then -lateral.Unit else Vector3.new(-d.Z, 0, d.X)
+				local w = (1 - miss / reach) * math.clamp(1 - along / (lookahead + reach), 0, 1)
+				out += side * w * 2.2
+			end
+			local dist = to.Magnitude
+			if dist > 1e-3 and dist < reach then
+				out -= to.Unit * (1 - dist / reach) * 1.5
+			end
+		end
+	end
+	local m = out * Vector3.new(1, 0, 1)
+	return if m.Magnitude > 1e-3 then m.Unit else d
+end
+
 -- A Runner's start delay this crossing (F-BOT-02): some go at once, some wait for a gap, none past the cap.
 function BombBrain.startDelay(fuse: number, r: number): number
 	if r < 0.45 then

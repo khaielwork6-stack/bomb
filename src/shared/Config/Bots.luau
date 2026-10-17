@@ -27,6 +27,8 @@ return {
 	TAG_DASH_RANGE = 7, -- dash to close the last stretch
 	SHARE_PENALTY = 14, -- studs added to a target another Bomber already chases (spreads them out)
 	CARRIER_FEAR = 6, -- Bombers keep this far from a Carrier (no revenge passes)
+	COVER_CLEARANCE = 1.6, -- studs bots keep off a map's cover (crates, hand-trucks), beyond its radius
+	COVER_LOOKAHEAD = 10, -- how far ahead a bot starts bending its line round cover
 	-- Names: bots keep generated names (an avatar's look may be borrowed, never its name).
 	NAME_A = {
 		"Rocket",

@@ -407,6 +407,26 @@ local function bomberDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 	end
 end
 
+-- The active map's cover (parts the builder tagged `Cover`), gathered once per map.
+local coverOf: Model? = nil
+local cover: { BombBrain.Obstacle } = {}
+local function mapCover(): { BombBrain.Obstacle }
+	local f = Arena.current
+	if not f then
+		return {}
+	end
+	if coverOf ~= f.model then
+		coverOf = f.model
+		cover = {}
+		for _, d in ipairs(f.model:GetDescendants()) do
+			if d:IsA("BasePart") and d:GetAttribute("Cover") then
+				table.insert(cover, { pos = d.Position, r = math.max(d.Size.X, d.Size.Z) * 0.72 })
+			end
+		end
+	end
+	return cover
+end
+
 local function decide(p: Participant, brain: Brain)
 	local root = p.root
 	if frozen or not root or not Arena.current or not liveRun() then
@@ -423,6 +443,10 @@ local function decide(p: Participant, brain: Brain)
 		bomberDecide(p, brain, root, seen)
 	else
 		brain.desired = Vector3.zero
+	end
+	if brain.desired.Magnitude > 0.05 then
+		brain.desired =
+			BombBrain.avoid(root.Position, brain.desired, mapCover(), BC.COVER_CLEARANCE, BC.COVER_LOOKAHEAD)
 	end
 	-- A tier's error: now and then the line is a little off.
 	if brain.desired.Magnitude > 0 and rng:NextNumber() < brain.tier.error * 0.5 then
