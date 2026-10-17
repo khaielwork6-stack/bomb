@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CosmeticLooks = require(ReplicatedStorage.Shared.CosmeticLooks)
 local Participants = require(script.Parent.Participants)
+local Arena = require(script.Parent.Arena)
 
 type Participant = Participants.Participant
 
@@ -149,6 +150,10 @@ function Characters.lobbyCFrame(): CFrame
 		local off =
 			Vector3.new(r:NextNumber(-half.X, half.X), spawnPart.Size.Y / 2 + 3.5, r:NextNumber(-half.Z, half.Z))
 		return CFrame.new(spawnPart.Position + off) * CFrame.Angles(0, r:NextNumber(0, math.pi * 2), 0)
+	end
+	-- No lobby until P6 (The Depot): wait on the start dock, never in the air over the field.
+	if Arena.current then
+		return Arena.runnerLine(-1, 1, Random.new())[1]
 	end
 	return CFrame.new(0, 20, 0)
 end

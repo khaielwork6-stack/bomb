@@ -97,15 +97,15 @@ local function flipbook(props: { [string]: any }): { [string]: any }
 	return props
 end
 
--- A scorch mark on the ground under the blast: holds, then fades (Asset Bible §5.1, step 6).
-local function scorch(pos: Vector3, s: number)
+-- The map's floor under `pos`: the highest of five probes, so a seam between floor strips can't bury what's laid
+-- on it (decals) or what lands on it (debris) under its neighbours.
+local function groundUnder(pos: Vector3): RaycastResult?
 	local params = RaycastParams.new()
 	local maps = workspace:FindFirstChild("Maps")
 	if maps then
 		params.FilterType = Enum.RaycastFilterType.Include
 		params.FilterDescendantsInstances = { maps, workspace.Terrain }
 	end
-	-- the highest of five probes, so a seam between turf strips can't bury the decal under its neighbours
 	local hit: RaycastResult? = nil
 	for _, o in ipairs({ Vector3.zero, Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis }) do
 		local h = workspace:Raycast(pos + o * 1.5 + Vector3.new(0, 1, 0), Vector3.new(0, -8, 0), params)
@@ -113,6 +113,99 @@ local function scorch(pos: Vector3, s: number)
 			hit = h
 		end
 	end
+	return hit
+end
+
+-- Debris (Asset Bible §5.1, t = 0.10): four iron shell shards and two brass rivets thrown out of the blast. The
+-- shards leave white-hot and cool to iron in flight; everything bounces on the floor and is gone after ~1.4 s.
+-- Client-side and kinematic (no physics bodies), so nothing can ever shove a player.
+local IRON = Color3.fromRGB(46, 44, 51)
+local BRASS = Color3.fromRGB(201, 151, 63)
+local function debris(pos: Vector3, floorY: number, s: number)
+	type Piece = { part: BasePart, vel: Vector3, spin: Vector3, half: number, hot: boolean }
+	local pieces: { Piece } = {}
+	for i = 1, 6 do
+		local rivet = i > 4
+		local size = if rivet
+			then Vector3.one * 0.38
+			else Vector3.new(0.55 + math.random() * 0.45, 0.22, 0.6 + math.random() * 0.5) * s
+		local part = new(if rivet then "Part" else "WedgePart", {
+			Name = "FV_Debris",
+			Anchored = true,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			CastShadow = false,
+			Size = size,
+			Shape = if rivet then Enum.PartType.Ball else nil,
+			Material = if rivet then Enum.Material.Metal else Enum.Material.Neon,
+			Color = if rivet then BRASS else P.Ember,
+			CFrame = CFrame.new(pos + Vector3.new(0, 1.5 * s, 0))
+				* CFrame.Angles(math.random() * 6.28, math.random() * 6.28, math.random() * 6.28),
+			Parent = workspace,
+		}) :: BasePart
+		Debris:AddItem(part, 2) -- a safety net: the flight below removes it at ~1.4 s
+		if not rivet and i <= 2 then -- two of the shards trail embers
+			local a = new("Attachment", { Parent = part })
+			new("ParticleEmitter", {
+				Texture = Assets.Vfx.Ember,
+				Color = ColorSequence.new(P.Spark, P.Fuse),
+				LightEmission = 1,
+				LightInfluence = 0,
+				Size = keys({ { 0, 0.35 }, { 1, 0 } }),
+				Lifetime = NumberRange.new(0.25, 0.4),
+				Rate = 26,
+				Speed = NumberRange.new(0),
+				Parent = a,
+			})
+		end
+		local ang = math.random() * math.pi * 2
+		local out = (12 + math.random() * 14) * s
+		table.insert(pieces, {
+			part = part,
+			vel = Vector3.new(math.cos(ang) * out, (16 + math.random() * 14) * s, math.sin(ang) * out),
+			spin = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 24,
+			half = math.min(size.X, size.Y, size.Z) / 2,
+			hot = not rivet,
+		})
+	end
+	local t0 = os.clock()
+	local conn: RBXScriptConnection
+	conn = RunService.Heartbeat:Connect(function(dt)
+		local age = os.clock() - t0
+		for _, p in ipairs(pieces) do
+			local part = p.part
+			p.vel += Vector3.new(0, -80, 0) * dt
+			local cf = part.CFrame + p.vel * dt
+			local floor = floorY + p.half
+			if cf.Position.Y < floor then
+				cf = cf + Vector3.new(0, floor - cf.Position.Y, 0)
+				p.vel = Vector3.new(p.vel.X * 0.55, math.abs(p.vel.Y) * 0.32, p.vel.Z * 0.55)
+				p.spin *= 0.5
+			end
+			part.CFrame = cf * CFrame.Angles(p.spin.X * dt, p.spin.Y * dt, p.spin.Z * dt)
+			if p.hot then -- white-hot → iron
+				local k = math.clamp(age / 0.45, 0, 1)
+				part.Color = P.Ember:Lerp(IRON, k)
+				if k >= 1 and part.Material == Enum.Material.Neon then
+					part.Material = Enum.Material.Metal
+				end
+			end
+			if age > 1.0 then
+				part.Transparency = math.clamp((age - 1.0) / 0.4, 0, 1)
+			end
+		end
+		if age > 1.4 then
+			conn:Disconnect()
+			for _, p in ipairs(pieces) do
+				p.part:Destroy()
+			end
+		end
+	end)
+end
+
+-- A scorch mark on the ground under the blast: holds, then fades (Asset Bible §5.1, step 6).
+local function scorch(pos: Vector3, s: number, hit: RaycastResult?)
 	if not hit then
 		return
 	end
@@ -254,9 +347,11 @@ function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 			})
 		)
 	end)
-	-- 6. the scorch it leaves behind
+	-- 6. debris thrown out, and the scorch it leaves behind
 	if not lite then
-		scorch(pos, s)
+		local ground = groundUnder(pos)
+		debris(pos, if ground then ground.Position.Y else pos.Y - 3, s)
+		scorch(pos, s, ground)
 	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
@@ -328,6 +423,30 @@ local function fieldDetonation(fromSide: number, sweep: number)
 				local x = -halfWidth + (c + 0.5) / cols * halfWidth * 2 + (math.random() - 0.5) * 6
 				local pos = (frame * CFrame.new(x, 1, -z)).Position
 				FxController.boom(pos, 0.55, true)
+			end
+			-- the dust sheet: low, wide puffs kicked up along the row, lingering as a haze for ~2 s (§5.4)
+			for c = 0, 4 do
+				local x = -halfWidth + (c + 0.5) / 5 * halfWidth * 2
+				local dust = burstAt((frame * CFrame.new(x, 1.5, -z)).Position, 3.2)
+				emit(
+					dust,
+					1,
+					flipbook({
+						Texture = Assets.Vfx.Smoke,
+						Color = ColorSequence.new(Color3.fromRGB(214, 196, 170), Color3.fromRGB(186, 174, 160)),
+						LightInfluence = 0.4,
+						Size = keys({ { 0, 10 }, { 1, 18 } }),
+						Transparency = keys({ { 0, 0.3 }, { 0.6, 0.5 }, { 1, 1 } }),
+						Lifetime = NumberRange.new(2, 2.6),
+						Speed = NumberRange.new(2, 4),
+						SpreadAngle = Vector2.new(60, 60),
+						EmissionDirection = Enum.NormalId.Top,
+						Acceleration = Vector3.new(0, 0.8, 0),
+						Rotation = NumberRange.new(-30, 30),
+						RotSpeed = NumberRange.new(-10, 10),
+						ZOffset = -2,
+					})
+				)
 			end
 		end)
 	end
