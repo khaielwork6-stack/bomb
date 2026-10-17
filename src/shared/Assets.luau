@@ -50,10 +50,10 @@ Assets.SFX = {
 	BombTick = s(12221990, 0.55, "R"), -- fallback single tick (until the in-house set below is uploaded)
 	-- The in-house escapement (art/audio/make_ticks.py): tick / tock alternate like a real movement; the HOT pair is
 	-- brighter and tighter for CRITICAL, so escalation changes timbre instead of pitching one sample up.
-	BombTickA = s("", 0.6, "FV"), -- bomb_tick.wav
-	BombTickB = s("", 0.6, "FV"), -- bomb_tock.wav
-	BombTickHotA = s("", 0.62, "FV"), -- bomb_tick_hot.wav
-	BombTickHotB = s("", 0.62, "FV"), -- bomb_tock_hot.wav
+	BombTickA = s(91973479747444, 0.6, "FV"), -- bomb_tick.wav
+	BombTickB = s(81248435015876, 0.6, "FV"), -- bomb_tock.wav
+	BombTickHotA = s(132119182630967, 0.62, "FV"), -- bomb_tick_hot.wav
+	BombTickHotB = s(114523246396813, 0.62, "FV"), -- bomb_tock_hot.wav (ids matched by spectrum: the uploads were renamed)
 	BombClamp = s(9125782643, 0.6, "PSE", { pitch = { 1.05, 1.2 } }), -- a heavy metal lid set down: the clamp biting
 	PassWhoosh = s(9126229255, 0.55, "PSE", { pitch = { 1.25, 1.4 } }), -- the flight between backs
 	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
