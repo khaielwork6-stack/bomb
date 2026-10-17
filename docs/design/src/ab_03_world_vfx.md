@@ -12,7 +12,7 @@ Chase Game's Meadow field transfers unchanged as a playable placeholder for the 
 | **The field** = **the yard** | Weathered concrete slabs (a trim sheet with expansion joints, oil stains and chalk marks), plus painted hazard lanes that light up during the Field Fuse warning. | `Zones/Field`, 140 × 90 studs [TUNE] |
 | **Field Fuse cords** | Two thick fuses run in steel gutters along both long edges, with a spark racing along them. | Driven by FuseController |
 | **Cover & lanes** | 4–6 low firework crate stacks (waist-high, 3 × 3 studs) and 2 hand-trucks. Movement-friendly: rounded corners, no snags. | `Gameplay/` folder; collision boxes simplified |
-| **Backdrop** (non-playable) | The factory facade with a hand-painted "TICK TAG FIREWORKS Co." sign in neon tubes, two chimneys with a warm glow, a gantry crane with bunting, a water tower, distant hills. Fireworks pop in the sky on round wins. | Out of bounds |
+| **Backdrop** (non-playable) | The factory facade with a hand-painted "FUSE VALLEY FIREWORKS Co." sign in neon tubes, two chimneys with a warm glow, a gantry crane with bunting, a water tower, distant hills. Fireworks pop in the sky on round wins. | Out of bounds |
 
 **Signature moment — field detonation:** the hazard lanes flash in sequence from one end, then a rolling chain of small charges pops up through the concrete joints (VFX §5.4). It's the yard "going off".
 

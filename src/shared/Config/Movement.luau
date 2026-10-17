@@ -1,5 +1,5 @@
 --!strict
--- Locomotion and techniques. Transferred unchanged from Chase Game (TICK TAG GDD §9.1), Appendix A. [TUNE]
+-- Locomotion and techniques. Transferred unchanged from Chase Game (FUSE VALLEY GDD §9.1), Appendix A. [TUNE]
 
 return {
 	MAX_SPEED = 24,
@@ -127,7 +127,7 @@ return {
 		Lobby = { speed = 1, accel = 1, decel = 1, turn = 1, dash = 1 },
 	},
 
-	-- Dive (kept from Chase Game's MovementCore; TICK TAG's Bombers don't dive, GDD §9.3) and the giant stride the
+	-- Dive (kept from Chase Game's MovementCore; FUSE VALLEY's Bombers don't dive, GDD §9.3) and the giant stride the
 	-- Locomotion "Titan" variant uses (the MEGA BOMBER in P6, GDD §16).
 	DIVE_DIST = 14,
 	DIVE_TIME = 0.35,

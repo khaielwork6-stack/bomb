@@ -83,7 +83,7 @@
 
 ### 7.1 Loading screen
 - **Background:** dusk sky.
-- **Centre:** the logo, "TICK TAG". The two Ts are fuse-cord letters, the dot is the bomb, and the logo has its own lit fuse.
+- **Centre:** the logo, "FUSE VALLEY". The F's crossbar is a lit fuse cord and the V cradles the bomb; the fuse spark burns along the lettering.
 - **The fuse burns as loading progresses**, and the spark races to the bomb as it finishes.
 - **Below:** a rotating tip.
 - **Exit:** the bomb "pops" into the game camera with a wipe.

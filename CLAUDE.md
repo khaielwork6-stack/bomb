@@ -1,6 +1,6 @@
-# CLAUDE.md — TICK TAG (Roblox)
+# CLAUDE.md — FUSE VALLEY (Roblox)
 
-You are building **TICK TAG**: Huss Valley-style crossing tag where a tag sticks a ticking bomb on your back. Bump to pass it; the fuse never resets.
+You are building **FUSE VALLEY**: Huss Valley-style crossing tag where a tag sticks a ticking bomb on your back. Bump to pass it; the fuse never resets.
 
 ## Source of truth (read in this order every session)
 1. `docs/PROGRESS.md`: what's done, and the next unchecked task.

@@ -23,7 +23,7 @@ The bomb is on screen more than anything else in the game, and it's the face of 
 | **Fuse socket** | A glazed porcelain cup sitting in the collar | Ø 0.42, 0.18 tall | Porcelain with crackle glaze; a soot ring at the rim |
 | **Fuse** | A braided cord in **12 segments**, gently curved (an S-bend), tapering 0.11 → 0.08 | 1.25 long at full | A braided cord texture (real 3-strand braid normal), charring along the burn |
 | **Spark** | At the burning tip: a ParticleEmitter, a PointLight and a tiny bright core sprite | — | §5.2 |
-| **Stencil** | A small stencilled "TT" mark and the hazard pictogram on the back, low contrast (painted, chipped) | 0.35 | A decal baked into the colour map |
+| **Stencil** | A small stencilled "FV" mark and the hazard pictogram on the back, low contrast (painted, chipped) | 0.35 | A decal baked into the colour map |
 | **Clamp** | A sprung steel claw that grips the bomb, with a **visible coil spring** to a small leather-and-buckle back plate | Plate 0.9 × 1.1 | Painted steel (`Ink2`, chipped), leather, a brass buckle |
 
 **Mount:** the back plate sits on the Torso back, 0.4 studs out. The bomb hangs on the claw, centred 0.15 studs above the torso's centre line.

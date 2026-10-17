@@ -33,7 +33,7 @@ local ORDER: { string } = {
 	"FootstepController",
 }
 
--- No Backpack tools exist in TICK TAG (the bomb is a welded model, GDD §7.2).
+-- No Backpack tools exist in FUSE VALLEY (the bomb is a welded model, GDD §7.2).
 pcall(function()
 	game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 end)

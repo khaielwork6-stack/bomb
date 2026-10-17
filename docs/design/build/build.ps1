@@ -1,4 +1,4 @@
-# Builds MASTER_GDD.md / ASSET_BIBLE.md from src parts, then renders styled PDFs via headless Edge.
+﻿# Builds MASTER_GDD.md / ASSET_BIBLE.md from src parts, then renders styled PDFs via headless Edge.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot          # ...\design
 $src  = Join-Path $root 'src'
@@ -14,11 +14,11 @@ function Join-Parts($pattern, $dest) {
 }
 
 $docs = @(
-  @{ pattern='gdd_*.md'; md='MASTER_GDD.md'; html='MASTER_GDD.html'; pdf='TICK_TAG_Master_GDD.pdf';
-     title='Master Game Design Document'; short='TICK TAG  |  Master GDD v1.0';
+  @{ pattern='gdd_*.md'; md='MASTER_GDD.md'; html='MASTER_GDD.html'; pdf='FUSE_VALLEY_Master_GDD.pdf';
+     title='Master Game Design Document'; short='FUSE VALLEY  |  Master GDD v1.0';
      kicker='Master Game Design Document'; subtitle='Tag, but you&#39;re holding a bomb. Pass it on. The fuse never resets.' },
-  @{ pattern='ab_*.md'; md='ASSET_BIBLE.md'; html='ASSET_BIBLE.html'; pdf='TICK_TAG_Asset_Bible.pdf';
-     title='Asset Bible'; short='TICK TAG  |  Asset Bible v1.0';
+  @{ pattern='ab_*.md'; md='ASSET_BIBLE.md'; html='ASSET_BIBLE.html'; pdf='FUSE_VALLEY_Asset_Bible.pdf';
+     title='Asset Bible'; short='FUSE VALLEY  |  Asset Bible v1.0';
      kicker='Asset Bible · Bomb · VFX · UI · World · Audio'; subtitle='Premium or nothing. Every asset, specified to the Quality Bar.' }
 )
 

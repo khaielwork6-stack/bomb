@@ -45,14 +45,14 @@ Types.Sub = {
 }
 
 Types.Collision = {
-	Runner = "TT_Runner",
-	Bomber = "TT_Bomber",
-	SafeRunner = "TT_SafeRunner",
-	Lobby = "TT_Lobby",
-	Ragdoll = "TT_Ragdoll",
-	LineWall = "TT_LineWall",
-	Bounds = "TT_Bounds",
-	Prop = "TT_Prop",
+	Runner = "FV_Runner",
+	Bomber = "FV_Bomber",
+	SafeRunner = "FV_SafeRunner",
+	Lobby = "FV_Lobby",
+	Ragdoll = "FV_Ragdoll",
+	LineWall = "FV_LineWall",
+	Bounds = "FV_Bounds",
+	Prop = "FV_Prop",
 }
 
 return Types

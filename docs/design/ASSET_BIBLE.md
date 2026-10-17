@@ -1,8 +1,8 @@
-# TICK TAG — Asset Bible
+# FUSE VALLEY — Asset Bible
 
 **Version 1.0 · 2026-10-17 · Companion to the Master GDD**
 
-> Every model, texture, effect, sound and screen in TICK TAG is specified here. The user's standard is the rule this document enforces: **"EVERY ASSET, EVEN THE BOMB, HAS TO BE EXTREMELY RICH, PREMIUM AND HIGH QUALITY. ABSOLUTELY ZERO AI SLOP."**
+> Every model, texture, effect, sound and screen in FUSE VALLEY is specified here. The user's standard is the rule this document enforces: **"EVERY ASSET, EVEN THE BOMB, HAS TO BE EXTREMELY RICH, PREMIUM AND HIGH QUALITY. ABSOLUTELY ZERO AI SLOP."**
 
 ### 0.1 Document map
 | § | Section |
@@ -169,7 +169,7 @@ The bomb is on screen more than anything else in the game, and it's the face of 
 | **Fuse socket** | A glazed porcelain cup sitting in the collar | Ø 0.42, 0.18 tall | Porcelain with crackle glaze; a soot ring at the rim |
 | **Fuse** | A braided cord in **12 segments**, gently curved (an S-bend), tapering 0.11 → 0.08 | 1.25 long at full | A braided cord texture (real 3-strand braid normal), charring along the burn |
 | **Spark** | At the burning tip: a ParticleEmitter, a PointLight and a tiny bright core sprite | — | §5.2 |
-| **Stencil** | A small stencilled "TT" mark and the hazard pictogram on the back, low contrast (painted, chipped) | 0.35 | A decal baked into the colour map |
+| **Stencil** | A small stencilled "FV" mark and the hazard pictogram on the back, low contrast (painted, chipped) | 0.35 | A decal baked into the colour map |
 | **Clamp** | A sprung steel claw that grips the bomb, with a **visible coil spring** to a small leather-and-buckle back plate | Plate 0.9 × 1.1 | Painted steel (`Ink2`, chipped), leather, a brass buckle |
 
 **Mount:** the back plate sits on the Torso back, 0.4 studs out. The bomb hangs on the claw, centred 0.15 studs above the torso's centre line.
@@ -241,7 +241,7 @@ Chase Game's Meadow field transfers unchanged as a playable placeholder for the 
 | **The field** = **the yard** | Weathered concrete slabs (a trim sheet with expansion joints, oil stains and chalk marks), plus painted hazard lanes that light up during the Field Fuse warning. | `Zones/Field`, 140 × 90 studs [TUNE] |
 | **Field Fuse cords** | Two thick fuses run in steel gutters along both long edges, with a spark racing along them. | Driven by FuseController |
 | **Cover & lanes** | 4–6 low firework crate stacks (waist-high, 3 × 3 studs) and 2 hand-trucks. Movement-friendly: rounded corners, no snags. | `Gameplay/` folder; collision boxes simplified |
-| **Backdrop** (non-playable) | The factory facade with a hand-painted "TICK TAG FIREWORKS Co." sign in neon tubes, two chimneys with a warm glow, a gantry crane with bunting, a water tower, distant hills. Fireworks pop in the sky on round wins. | Out of bounds |
+| **Backdrop** (non-playable) | The factory facade with a hand-painted "FUSE VALLEY FIREWORKS Co." sign in neon tubes, two chimneys with a warm glow, a gantry crane with bunting, a water tower, distant hills. Fireworks pop in the sky on round wins. | Out of bounds |
 
 **Signature moment — field detonation:** the hazard lanes flash in sequence from one end, then a rolling chain of small charges pops up through the concrete joints (VFX §5.4). It's the yard "going off".
 
@@ -426,7 +426,7 @@ Same timing and 7-stud splash ring as the default (GDD §10.4):
 
 ### 7.1 Loading screen
 - **Background:** dusk sky.
-- **Centre:** the logo, "TICK TAG". The two Ts are fuse-cord letters, the dot is the bomb, and the logo has its own lit fuse.
+- **Centre:** the logo, "FUSE VALLEY". The F's crossbar is a lit fuse cord and the V cradles the bomb; the fuse spark burns along the lettering.
 - **The fuse burns as loading progresses**, and the spark races to the bomb as it finishes.
 - **Below:** a rotating tip.
 - **Exit:** the bomb "pops" into the game camera with a wipe.

@@ -91,7 +91,7 @@ The user's rule: bring over **movement, animations and the map (temporary)**; ev
 Combat rules, Titan Hunt (as designed), abilities, modifiers, hazards, blocks, Brave or Bail, the cosmetics catalogue, the store UI, the crates' content, Theme/Style UI tokens, every UI controller, every texture and model, the Art3D library, the studded look.
 
 ### 23.3 Transfer procedure (Phase P0)
-1. Create the new place (Studio → New → Baseplate) and save it as "TICK TAG".
+1. Create the new place (Studio → New → Baseplate) and save it as "FUSE VALLEY".
 2. Copy the files in §23.1 into the new repo with the **same relative paths**.
 3. Trim the ORDER lists, `Config/init`, `Net` remote names and `Assets` to what exists. Run `selene` and fix every unresolved require.
 4. Run the map builders in the new place (builders/README snippet), then save.
@@ -221,7 +221,7 @@ Built on Roblox `AnalyticsService`:
 ## Appendix A. Config index
 | Module | Key values (defaults in this document) |
 |---|---|
-| `Config.Game` | `NAME = "TICK TAG"`, `MAX_PLAYERS = 20` |
+| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 20` |
 | `Config.Round` | `INTERMISSION = 12`, `INTRO = 4`, `READY = 2`, `RESOLVE = 1.5`, `RESULTS = 8`, `MAX_CROSSINGS = 8`, `FIELD_FUSE = {20,16,13,11,10,10,10,10}`, `LAST_STAND_FUSE = 12`, `LAST_STAND_SPEED = 1.08`, `LAST_STAND_MIN_RUNNERS = 4`, `BOMBERS_PER = 8`, `BOMBERS_MAX = 3`, `BOMBER_REPEAT_GUARD = true`, `IDLE_WARN = 5`, `FUSE_WARN = 5`, `FUSE_PULSE = 3` |
 | `Config.Bomb` | §7.8 |
 | `Config.Movement` | Transferred unchanged (§9.1); `Profiles.Bomber` |

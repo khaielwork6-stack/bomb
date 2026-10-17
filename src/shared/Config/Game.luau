@@ -2,7 +2,7 @@
 -- Server-level rules. GDD §2, §5, Appendix A.
 
 return {
-	NAME = "TICK TAG",
+	NAME = "FUSE VALLEY",
 	MAX_PLAYERS = 20, -- D2
 	MIN_HUMANS_TO_START = 1,
 	SHOW_BOT_TAG = false,

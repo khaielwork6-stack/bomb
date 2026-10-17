@@ -3,7 +3,7 @@
 -- numbers (GDD §0, Appendix A). Add a submodule here when its phase lands (Round/Bomb: P1, Bots: P2, Economy…: P4).
 
 local Config = {
-	GameName = "TICK TAG", -- D1: working title; change only here (GDD §2)
+	GameName = "FUSE VALLEY", -- D1; change only here (GDD §2)
 
 	Game = require(script.Game),
 	Movement = require(script.Movement),

@@ -1,6 +1,6 @@
-# TICK TAG — Master Game Design Document
+# FUSE VALLEY — Master Game Design Document
 
-**Version 1.0 · 2026-10-17 · Working title: TICK TAG (rename = change `Config.Game.NAME` + store page)**
+**Version 1.0 · 2026-10-17 · Name: FUSE VALLEY (rename = change `Config.Game.NAME` + store page)**
 
 > A 20-player Roblox tag game with a ticking bomb. Runners sprint across a field to the opposite safe side while Bombers hunt them. A Bomber's touch sticks a live bomb to your back. You can pass it on with a bump, but **the fuse never resets**. If it blows on you, you join the Bombers. The last runner standing wins.
 >
@@ -84,7 +84,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 
 | # | Decision | Value | Config |
 |---|---|---|---|
-| D1 | Working title | **TICK TAG** | `Config.Game.NAME` |
+| D1 | Name | **FUSE VALLEY** (was the working title FUSE VALLEY; the user named the place on 2026-10-17) | `Config.Game.NAME` |
 | D2 | Max players per server | **20** | `Config.Game.MAX_PLAYERS` |
 | D3 | Bots fill each round to | **16 participants** | `Config.Bots.FILL_TARGET` |
 | D4 | Starting Bombers | **1 per 8 participants** (min 1, max 3) → 2 in a 16-player round | `Config.Round.BOMBERS_PER` |

@@ -1,4 +1,4 @@
-# PROGRESS — TICK TAG
+# PROGRESS — FUSE VALLEY
 Phase plan and Definitions of Done: GDD §26. Tick a task only when its DoD passes (CLAUDE.md).
 
 ## P0 Setup — "the foundations run"
@@ -7,12 +7,12 @@ Phase plan and Definitions of Done: GDD §26. Tick a task only when its DoD pass
 - [x] P0-03 Extract the movement remotes from Chase's Combat into `MoveService`
 - [x] P0-04 Transfer animations (Locomotion with self-heal, PoseController, FootstepController, `tools/anim` baker)
 - [x] P0-05 Transfer plumbing (Net, Types, Util, ClientState, GameState, Participants, PlayerService, PositionHistory, DataService, AdminService, Settings, Sfx, Dev tools)
-- [x] P0-06 Role rename Catcher → Bomber; TICK TAG match stats; Config index trimmed (`tools/checkrequires.ps1` clean)
+- [x] P0-06 Role rename Catcher → Bomber; FUSE VALLEY match stats; Config index trimmed (`tools/checkrequires.ps1` clean)
 - [x] P0-07 Temporary map plumbing (Arena, MapKit/MapMeadow builders, Config.Maps = Meadow only) + P0 `Sandbox` service
-- [ ] P0-08 **Human:** create the new Studio place "TICK TAG" (same group as Chase Game), start `rojo serve` in this folder
+- [ ] P0-08 **Human:** create the new Studio place "FUSE VALLEY" (same group as Chase Game), start `rojo serve` in this folder
 - [ ] P0-09 Run the Meadow + Environment builders in the new place, then save (builders/README.md)
 - [ ] P0-10 Studio check: run, dash, slide, hard stop, strafe and backpedal on the Meadow field, with animations playing and 0 console errors
-- [ ] P0-11 Trim `Assets.luau` and `Net.luau` to what TICK TAG uses (drop Chase UI ids and remotes)
+- [ ] P0-11 Trim `Assets.luau` and `Net.luau` to what FUSE VALLEY uses (drop Chase UI ids and remotes)
 - [ ] P0-12 **Human:** create the GitHub repo; push
 
 ## P1 Core loop — "a playable round"

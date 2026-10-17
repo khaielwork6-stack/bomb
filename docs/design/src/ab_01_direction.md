@@ -1,8 +1,8 @@
-# TICK TAG — Asset Bible
+# FUSE VALLEY — Asset Bible
 
 **Version 1.0 · 2026-10-17 · Companion to the Master GDD**
 
-> Every model, texture, effect, sound and screen in TICK TAG is specified here. The user's standard is the rule this document enforces: **"EVERY ASSET, EVEN THE BOMB, HAS TO BE EXTREMELY RICH, PREMIUM AND HIGH QUALITY. ABSOLUTELY ZERO AI SLOP."**
+> Every model, texture, effect, sound and screen in FUSE VALLEY is specified here. The user's standard is the rule this document enforces: **"EVERY ASSET, EVEN THE BOMB, HAS TO BE EXTREMELY RICH, PREMIUM AND HIGH QUALITY. ABSOLUTELY ZERO AI SLOP."**
 
 ### 0.1 Document map
 | § | Section |

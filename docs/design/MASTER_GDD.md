@@ -1,6 +1,6 @@
-# TICK TAG — Master Game Design Document
+# FUSE VALLEY — Master Game Design Document
 
-**Version 1.0 · 2026-10-17 · Working title: TICK TAG (rename = change `Config.Game.NAME` + store page)**
+**Version 1.0 · 2026-10-17 · Name: FUSE VALLEY (rename = change `Config.Game.NAME` + store page)**
 
 > A 20-player Roblox tag game with a ticking bomb. Runners sprint across a field to the opposite safe side while Bombers hunt them. A Bomber's touch sticks a live bomb to your back. You can pass it on with a bump, but **the fuse never resets**. If it blows on you, you join the Bombers. The last runner standing wins.
 >
@@ -84,7 +84,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 
 | # | Decision | Value | Config |
 |---|---|---|---|
-| D1 | Working title | **TICK TAG** | `Config.Game.NAME` |
+| D1 | Name | **FUSE VALLEY** (was the working title FUSE VALLEY; the user named the place on 2026-10-17) | `Config.Game.NAME` |
 | D2 | Max players per server | **20** | `Config.Game.MAX_PLAYERS` |
 | D3 | Bots fill each round to | **16 participants** | `Config.Bots.FILL_TARGET` |
 | D4 | Starting Bombers | **1 per 8 participants** (min 1, max 3) → 2 in a 16-player round | `Config.Round.BOMBERS_PER` |
@@ -913,7 +913,7 @@ The user's rule: bring over **movement, animations and the map (temporary)**; ev
 Combat rules, Titan Hunt (as designed), abilities, modifiers, hazards, blocks, Brave or Bail, the cosmetics catalogue, the store UI, the crates' content, Theme/Style UI tokens, every UI controller, every texture and model, the Art3D library, the studded look.
 
 ### 23.3 Transfer procedure (Phase P0)
-1. Create the new place (Studio → New → Baseplate) and save it as "TICK TAG".
+1. Create the new place (Studio → New → Baseplate) and save it as "FUSE VALLEY".
 2. Copy the files in §23.1 into the new repo with the **same relative paths**.
 3. Trim the ORDER lists, `Config/init`, `Net` remote names and `Assets` to what exists. Run `selene` and fix every unresolved require.
 4. Run the map builders in the new place (builders/README snippet), then save.
@@ -1043,7 +1043,7 @@ Built on Roblox `AnalyticsService`:
 ## Appendix A. Config index
 | Module | Key values (defaults in this document) |
 |---|---|
-| `Config.Game` | `NAME = "TICK TAG"`, `MAX_PLAYERS = 20` |
+| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 20` |
 | `Config.Round` | `INTERMISSION = 12`, `INTRO = 4`, `READY = 2`, `RESOLVE = 1.5`, `RESULTS = 8`, `MAX_CROSSINGS = 8`, `FIELD_FUSE = {20,16,13,11,10,10,10,10}`, `LAST_STAND_FUSE = 12`, `LAST_STAND_SPEED = 1.08`, `LAST_STAND_MIN_RUNNERS = 4`, `BOMBERS_PER = 8`, `BOMBERS_MAX = 3`, `BOMBER_REPEAT_GUARD = true`, `IDLE_WARN = 5`, `FUSE_WARN = 5`, `FUSE_PULSE = 3` |
 | `Config.Bomb` | §7.8 |
 | `Config.Movement` | Transferred unchanged (§9.1); `Profiles.Bomber` |
