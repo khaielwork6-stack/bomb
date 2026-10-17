@@ -234,8 +234,8 @@ end
 
 -- The explosion stack at `pos` (scale 1 = a full bomb boom), Asset Bible §5.1: flash → fireball + shockwave →
 -- sparks + embers → smoke that takes over as the fireball burns out → scorch. The pre-swell is the bomb's own.
--- `lite` is the §5.1 light variant for many booms at once (the field detonation): flash + fireball + 8 sparks +
--- 3 smoke puffs, no light, lumps, embers or scorch.
+-- `lite` is the §5.1 light variant for many booms at once (the field detonation): flash + fireball + 5 sparks +
+-- 3 smoke puffs; no light, lumps, ring, embers, debris or scorch (30 of them at once must hold on a phone).
 function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 	local s = scale or 1
 	local att = burstAt(pos, 3.5)
@@ -286,7 +286,7 @@ function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 		})
 	)
 	-- 3. the shockwave ring, flat on the ground
-	emit(att, 1, {
+	emit(att, if lite then 0 else 1, {
 		Texture = Assets.Vfx.Ring,
 		Color = ColorSequence.new(P.Paper),
 		LightEmission = 0.5,
@@ -299,7 +299,7 @@ function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 		EmissionDirection = Enum.NormalId.Top,
 	})
 	-- 4. spark streaks (velocity-aligned) and slow embers
-	emit(att, if lite then 8 else math.floor(26 * s), {
+	emit(att, if lite then 5 else math.floor(26 * s), {
 		Texture = Assets.Vfx.Streak,
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,

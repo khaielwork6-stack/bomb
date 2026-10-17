@@ -1141,7 +1141,13 @@ return function(ctx, parent)
 				{ deco = true }
 			)
 		end
-		for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+		-- labels only on faces anyone sees: the yard looks at the strip crates' backs and the near-side crates' fronts
+		local faces = opts.faces
+			or if into.Name == "Strip"
+				then { Enum.NormalId.Back }
+				elseif into.Name == "NearSide" then { Enum.NormalId.Front }
+				else { Enum.NormalId.Front, Enum.NormalId.Back }
+		for _, face in ipairs(faces) do
 			label(body, face, "FIREWORKS\nHANDLE WITH CARE", C.Ink, { pps = 30, t = 0.18, font = HEAVY, pad = 0.1 })
 		end
 		if not opts.closed then -- rockets poking out of the open top
