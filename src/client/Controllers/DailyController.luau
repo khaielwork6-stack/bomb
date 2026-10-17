@@ -104,6 +104,17 @@ local function panel(name: string, title: string, size: Vector2, accent: Color3,
 	})
 	local holder = face.Parent :: Frame
 	holder.ZIndex = 5
+	-- clicks inside the panel (previews, gaps) must not reach the backdrop and close it: an Active Frame doesn't
+	-- stop a GuiButton underneath, so an invisible button behind the content takes them
+	new("TextButton", {
+		Name = "Sink",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 0,
+		Parent = holder,
+	})
 	local v = Screen.size()
 	local fit = math.min(1, (v.Y - 70) / size.Y, (v.X - 40) / size.X)
 	new("UIScale", { Name = "Fit", Scale = fit, Parent = holder })

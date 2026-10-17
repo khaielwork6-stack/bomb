@@ -48,13 +48,16 @@ local pushQueued: { [Participant]: boolean } = {}
 local friendCache: { [string]: boolean } = {} -- "a:b" (user ids, a < b) -> friends?
 
 -- Economy soak (Config.Debug.ECON_SIM, Studio): what each bot would have earned.
-local econ: { [string]: { stars: number, xp: number, rounds: number, cStars: number, cXp: number } } = {}
+local econ: {
+	[string]: { stars: number, xp: number, rounds: number, cStars: number, cXp: number, bonus: number, first: number },
+} =
+	{}
 local econStart = 0
 local function econSim(p: Participant): boolean
 	return p.isBot and RunService:IsStudio() and Config.Debug.ECON_SIM == true
 end
 local function econAdd(p: Participant, xp: number, stars: number, round: boolean)
-	local e = econ[p.id] or { stars = 0, xp = 0, rounds = 0, cStars = 0, cXp = 0 }
+	local e = econ[p.id] or { stars = 0, xp = 0, rounds = 0, cStars = 0, cXp = 0, bonus = 0, first = 0 }
 	e.stars += stars
 	e.xp += xp
 	if round then
@@ -405,6 +408,7 @@ function ProgressionService.start()
 					xp += E.Rounds[key].xp
 					stars += E.Rounds[key].stars
 				end
+				local first = if firstWin then E.Rounds.FirstWinOfDay.stars else 0
 				local st = p.stats
 				local reached = if st.crossings > 0 then st.crossings + 1 else 0
 				p.data.simStreak = HotStreak.after(p.data.simStreak or 0, w, reached)
@@ -412,6 +416,8 @@ function ProgressionService.start()
 				local base = st.starsPaid + stars
 				local bonus = math.max(0, Rewards.roundStars(base, HotStreak.mult(p.data.simStreak), 0) - base)
 				econAdd(p, xp, stars + bonus, true)
+				econ[p.id].bonus += bonus
+				econ[p.id].first += first
 			end
 		end
 	end)
@@ -430,8 +436,10 @@ function ProgressionService.start()
 		if econStart == 0 or hours <= 0 then
 			return "run `econ start` first"
 		end
-		local n, stars, xp, rounds, cStars, cXp = 0, 0, 0, 0, 0, 0
+		local n, stars, xp, rounds, cStars, cXp, bonus, first = 0, 0, 0, 0, 0, 0, 0, 0
 		for _, e in pairs(econ) do
+			bonus += e.bonus
+			first += e.first
 			n += 1
 			stars += e.stars
 			xp += e.xp
@@ -442,11 +450,14 @@ function ProgressionService.start()
 		if n == 0 then
 			return "no payouts yet"
 		end
-		return ("%d bots · %.2f game-hours · avg %.0f Stars/h (callouts %.0f), %.0f XP/h (callouts %.0f) · %.1f rounds each, %.1f min/round · quests, gifts, logins and level-ups come on top"):format(
+		-- FirstWinOfDay pays once a day, so a short soak overstates it: it's also reported on its own
+		return ("%d bots · %.2f game-hours · avg %.0f Stars/h (callouts %.0f, Hot Streak bonus %.0f, first win %.0f), %.0f XP/h (callouts %.0f) · %.1f rounds each, %.1f min/round · quests, gifts, logins and level-ups come on top"):format(
 			n,
 			hours,
 			stars / n / hours,
 			cStars / n / hours,
+			bonus / n / hours,
+			first / n / hours,
 			xp / n / hours,
 			cXp / n / hours,
 			rounds / n,

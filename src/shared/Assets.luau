@@ -224,6 +224,370 @@ Assets.Skins = {
 			metal = "rbxassetid://80308395174292",
 		},
 	},
+	Skin_Clockwork = {
+		Body = {
+			color = "rbxassetid://89989126463492",
+			normal = "rbxassetid://129474811620826",
+			rough = "rbxassetid://88004014817394",
+			metal = "rbxassetid://128440482522492",
+		},
+		Brass = {
+			color = "rbxassetid://74458909808918",
+			normal = "rbxassetid://129650849198625",
+			rough = "rbxassetid://121074705633821",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://106998507168831",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://137066501712699",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://72497606022908",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Delft = {
+		Body = {
+			color = "rbxassetid://134798372861854",
+			normal = "rbxassetid://133760821193740",
+			rough = "rbxassetid://122762333012186",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://131512853839054",
+			normal = "rbxassetid://115145050855897",
+			rough = "rbxassetid://86891168428141",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://140169166133187",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://125653093237979",
+			metal = "rbxassetid://125653093237979",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Disco = {
+		Body = {
+			color = "rbxassetid://101510860476893",
+			normal = "rbxassetid://126585097549375",
+			rough = "rbxassetid://121372652304303",
+			metal = "rbxassetid://75894075999696",
+		},
+		Brass = {
+			color = "rbxassetid://113575132944567",
+			normal = "rbxassetid://139478592018336",
+			rough = "rbxassetid://139486171081381",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://120516351676964",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://117952128291405",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_DragonEgg = {
+		Body = {
+			color = "rbxassetid://74975175334148",
+			normal = "rbxassetid://95746353599925",
+			rough = "rbxassetid://78086858276675",
+			metal = "rbxassetid://87827013798753",
+		},
+		Brass = {
+			color = "rbxassetid://80526336904624",
+			normal = "rbxassetid://74712055390209",
+			rough = "rbxassetid://86891168428141",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://111436224686684",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://137066501712699",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://84412865744173",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://80104843955863",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Frostbite = {
+		Body = {
+			color = "rbxassetid://91288882030011",
+			normal = "rbxassetid://89182415021895",
+			rough = "rbxassetid://110436578355930",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://115930022518294",
+			normal = "rbxassetid://115145050855897",
+			rough = "rbxassetid://121074705633821",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://90995186986712",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://85206954204422",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://116485293601201",
+			normal = "rbxassetid://131732672524269",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Galaxy = {
+		Body = {
+			color = "rbxassetid://134233655923853",
+			normal = "rbxassetid://78773354470847",
+			rough = "rbxassetid://134649737480433",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://92153747927654",
+			normal = "rbxassetid://113649115232392",
+			rough = "rbxassetid://103007937978251",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://86360029539779",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://102399066706967",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://115115366080437",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Gilded = {
+		Body = {
+			color = "rbxassetid://130724799117511",
+			normal = "rbxassetid://85130256980415",
+			rough = "rbxassetid://132961935204789",
+			metal = "rbxassetid://128440482522492",
+		},
+		Brass = {
+			color = "rbxassetid://121040563889230",
+			normal = "rbxassetid://83498420863694",
+			rough = "rbxassetid://138632665660305",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://79356435718856",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://121018052132242",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Gumball = {
+		Body = {
+			color = "rbxassetid://71565834298055",
+			normal = "rbxassetid://77778008814157",
+			rough = "rbxassetid://103178710317367",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://75126586845477",
+			normal = "rbxassetid://75496281220704",
+			rough = "rbxassetid://73390170138149",
+			metal = "rbxassetid://86562060599954",
+		},
+		Clamp = {
+			color = "rbxassetid://121932342154533",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://125653093237979",
+			metal = "rbxassetid://76515368952838",
+		},
+		Socket = {
+			color = "rbxassetid://116863392861430",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://135596118486715",
+			metal = "rbxassetid://77393583835028",
+		},
+	},
+	Skin_JackOFuse = {
+		Body = {
+			color = "rbxassetid://106601739978074",
+			normal = "rbxassetid://79825100459180",
+			rough = "rbxassetid://108116028480497",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://90093899593807",
+			normal = "rbxassetid://91104953821631",
+			rough = "rbxassetid://137538118201995",
+			metal = "rbxassetid://71920310683255",
+		},
+		Clamp = {
+			color = "rbxassetid://103272798408483",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://108352840391960",
+			metal = "rbxassetid://80308395174292",
+		},
+		Socket = {
+			color = "rbxassetid://112559716435315",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://81204930831354",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_LavaForge = {
+		Body = {
+			color = "rbxassetid://94502687701854",
+			normal = "rbxassetid://116456232841522",
+			rough = "rbxassetid://74387367641536",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://87153881522195",
+			normal = "rbxassetid://117010285059244",
+			rough = "rbxassetid://78282050709427",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://125895833283730",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://119615214774022",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://117364727329915",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://115364691133129",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Meteorite = {
+		Body = {
+			color = "rbxassetid://106152831175962",
+			normal = "rbxassetid://91120063712577",
+			rough = "rbxassetid://76877856013902",
+			metal = "rbxassetid://128440482522492",
+		},
+		Brass = {
+			color = "rbxassetid://78003520833558",
+			normal = "rbxassetid://131988847021862",
+			rough = "rbxassetid://75317718410187",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://104253099179932",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://119615214774022",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://86101986319806",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://108744940356802",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_PaperLantern = {
+		Body = {
+			color = "rbxassetid://126936632358562",
+			normal = "rbxassetid://106801606746232",
+			rough = "rbxassetid://94915187645254",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://118546104835379",
+			normal = "rbxassetid://86360489768525",
+			rough = "rbxassetid://105748091670428",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://129464882502610",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://76515368952838",
+			metal = "rbxassetid://80308395174292",
+		},
+		Socket = {
+			color = "rbxassetid://130647089754503",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Tempered = {
+		Body = {
+			color = "rbxassetid://85117167779377",
+			normal = "rbxassetid://133972725714845",
+			rough = "rbxassetid://122897080085626",
+			metal = "rbxassetid://128440482522492",
+		},
+		Brass = {
+			color = "rbxassetid://78680544757148",
+			normal = "rbxassetid://115145050855897",
+			rough = "rbxassetid://121074705633821",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://71344413291613",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://85206954204422",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_ThunderEgg = {
+		Body = {
+			color = "rbxassetid://123227827148684",
+			normal = "rbxassetid://127880611258545",
+			rough = "rbxassetid://74403304965957",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://74353038708390",
+			normal = "rbxassetid://117010285059244",
+			rough = "rbxassetid://110564543404651",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://92351600589518",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://98339927263720",
+			metal = "rbxassetid://100027963931407",
+		},
+		Socket = {
+			color = "rbxassetid://114880402361492",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://115364691133129",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
 } :: { [string]: { [string]: { color: string, normal: string, rough: string, metal: string } } }
 
 return Assets

@@ -540,6 +540,9 @@ confirmBuy = function(id: string)
 	end
 	confirmOpen = true
 	local gui = (Players.LocalPlayer :: Player):WaitForChild("PlayerGui"):FindFirstChild("FV_Daily") :: ScreenGui
+	-- dims the shop behind (its cards otherwise read through the box); a tap outside cancels
+	local back = Widgets.backdrop(gui, 0.35)
+	back.ZIndex = 45
 	local box = Theme.panel(gui, {
 		Name = "Confirm",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -565,9 +568,14 @@ confirmBuy = function(id: string)
 		ZIndex = 60,
 	})
 	local function done()
-		confirmOpen = false
 		holder:Destroy()
 	end
+	-- also when the panel closes under it (a round starting clears the whole modal gui)
+	holder.Destroying:Connect(function()
+		confirmOpen = false
+		back:Destroy()
+	end)
+	back.MouseButton1Click:Connect(done)
 	local _, setOn = Widgets.button(box, "BUY", "green", UDim2.fromOffset(130, 44), function()
 		Net.send("StoreAction", { kind = "Buy", id = id })
 		done()
