@@ -391,14 +391,7 @@ local function step()
 		local id = gs:GetAttribute("LastStandId") or ""
 		local _, model = ClientState.byId(id)
 		show("LAST STAND", if model then model.Name else "", P.Gold)
-	elseif phase == Ph.Results then
-		local outcome = gs:GetAttribute("Outcome")
-		show(
-			gs:GetAttribute("Headline") or "",
-			gs:GetAttribute("HeadlineSub") or "",
-			if outcome == "Bombers" then P.Bomber else P.Gold
-		)
-	elseif carrying then
+	elseif carrying and phase ~= Ph.Results then -- (RESULTS belongs to the results card, ResultsController)
 		show("BUMP SOMEONE!", "or run to a safe side", P.Detonate)
 	else
 		show("", nil)

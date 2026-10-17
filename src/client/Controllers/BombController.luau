@@ -50,6 +50,7 @@ type Visual = {
 	wobbleVel: Vector3,
 	lastVel: Vector3,
 	stuckAt: number, -- os.clock() of the stick slam (the wobble waits for it to land)
+	artFuse: boolean, -- the imported hero bomb's fuse segments stand along Y (the part-built ones along X)
 }
 
 local visuals: { [Instance]: Visual } = {}
@@ -211,6 +212,81 @@ local function build(torso: BasePart): (Model, BasePart, { BasePart }, { BasePar
 	return model, mount, segments, lamps, seams, sparkAtt
 end
 
+-- The approved hero bomb (Asset Bible §3, art/bomb/export.py → imported by the user into
+-- ReplicatedStorage.FV_Art.Bomb): textured MeshParts Body / Brass / Socket / Clamp, glass LensF/B, LampF/B and
+-- SeamGlow1/2 (set to Neon and animated here), and Fuse1..12 (bottom → top). Returns nil while it isn't imported,
+-- so the part-built bomb above stands in.
+local function artTemplate(): Model?
+	local folder = ReplicatedStorage:FindFirstChild("FV_Art")
+	local m = folder and folder:FindFirstChild("Bomb")
+	return if m and m:IsA("Model") then m else nil
+end
+
+local function buildFromArt(
+	torso: BasePart,
+	template: Model
+): (Model, BasePart, { BasePart }, { BasePart }, { BasePart }, Attachment)
+	local model = template:Clone()
+	model.Name = "FV_Bomb"
+	local body = model:FindFirstChild("Body", true) :: BasePart?
+	local clamp = model:FindFirstChild("Clamp", true) :: BasePart?
+	-- Orientation: the clamp must face the torso (the bomb's -Z in Torso space). Exports can arrive turned round.
+	local centre = if body then body.Position else model:GetPivot().Position
+	local turn = CFrame.identity
+	if clamp then
+		local towardClamp = (clamp.Position - centre) * Vector3.new(1, 0, 1)
+		if towardClamp.Magnitude > 1e-3 then
+			-- rotate so the clamp direction becomes -Z
+			local yaw = math.atan2(towardClamp.X, towardClamp.Z) - math.pi
+			turn = CFrame.Angles(0, -yaw, 0)
+		end
+	end
+	local mount = new("Part", {
+		Name = "Mount",
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Massless = true,
+		Parent = model,
+	})
+	model.PrimaryPart = mount
+	mount.CFrame = CFrame.new(centre)
+	model:PivotTo(torso.CFrame * MOUNT * turn)
+	local segments: { BasePart } = {}
+	local lamps: { BasePart } = {}
+	local seams: { BasePart } = {}
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") and d ~= mount then
+			d.Anchored = false
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			d.Massless = true
+			new("WeldConstraint", { Part0 = mount, Part1 = d, Parent = d })
+			local n = d.Name
+			if string.match(n, "^Fuse%d+$") then
+				segments[tonumber(string.sub(n, 5)) :: number] = d
+			elseif n == "LampF" or n == "LampB" then
+				d.Material = Enum.Material.Neon
+				d.Color = P.Spark
+				table.insert(lamps, d)
+			elseif string.match(n, "^SeamGlow") then
+				d.Material = Enum.Material.Neon
+				d.Color = P.Ember
+				d.Transparency = 1
+				table.insert(seams, d)
+			elseif n == "LensF" or n == "LensB" then
+				d.Material = Enum.Material.Glass
+				d.Transparency = 0.45
+			end
+		end
+	end
+	mount.Anchored = false
+	local sparkAtt = new("Attachment", { Name = "Spark", Parent = mount })
+	return model, mount, segments, lamps, seams, sparkAtt
+end
 local function buildRing(adornee: BasePart): (BillboardGui, { Frame })
 	local gui = new("BillboardGui", {
 		Name = "FV_FuseRing",
@@ -284,7 +360,13 @@ local function attach(host: Instance): Visual?
 	if not char or not torso then
 		return nil
 	end
-	local model, mount, segments, lamps, seams, sparkAtt = build(torso)
+	local template = artTemplate()
+	local model, mount, segments, lamps, seams, sparkAtt
+	if template then
+		model, mount, segments, lamps, seams, sparkAtt = buildFromArt(torso, template)
+	else
+		model, mount, segments, lamps, seams, sparkAtt = build(torso)
+	end
 	local weld = new("Weld", { Part0 = torso, Part1 = mount, C0 = MOUNT, Parent = mount })
 	local spark = new("ParticleEmitter", {
 		Texture = "rbxasset://textures/particles/sparkles_main.dds",
@@ -322,6 +404,7 @@ local function attach(host: Instance): Visual?
 		wobbleVel = Vector3.zero,
 		lastVel = Vector3.zero,
 		stuckAt = os.clock(),
+		artFuse = template ~= nil,
 	}
 	visuals[host] = v
 	-- Stick: the bomb slams onto the back with a squash and a snap (GDD §10.3).
@@ -354,7 +437,7 @@ local function update(v: Visual, dt: number, t: number)
 		end
 	end
 	local tip = v.segments[math.clamp(tipY, 1, FUSE_SEGMENTS)]
-	v.sparkAtt.WorldPosition = tip.Position + Vector3.new(0, tip.Size.X * 0.5, 0)
+	v.sparkAtt.WorldPosition = tip.Position + Vector3.new(0, (if v.artFuse then tip.Size.Y else tip.Size.X) * 0.5, 0)
 	-- Spark, lamps, seams by stage.
 	v.spark.Rate = if stage == "CRITICAL" then 120 elseif stage == "HOT" then 70 else 40
 	local hz = if stage == "CRITICAL" then 10 elseif stage == "HOT" then 4 else 2

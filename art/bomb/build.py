@@ -706,92 +706,94 @@ def orbit(angle_deg, dist=10.0, height=2.6):
     return (math.sin(a) * dist, -math.cos(a) * dist, height)
 
 
-# Hero (3/4 front, LIT) and the three stages.
-set_stage("LIT")
-aim(orbit(148, 9.4, 2.7))
-render("hero", 1400, 1400)
-for st in ("LIT", "HOT", "CRITICAL"):
-    set_stage(st)
+NO_RENDER = "--no-render" in argv  # art/bomb/export.py builds the model without the review renders
+if not NO_RENDER:
+    # Hero (3/4 front, LIT) and the three stages.
+    set_stage("LIT")
     aim(orbit(148, 9.4, 2.7))
-    render(f"stage_{st}", 640)
-set_stage("LIT")
-# 8 turntable angles
-for i in range(8):
-    aim(orbit(i * 45, 10.0, 2.2))
-    render(f"turn_{i * 45:03d}", 512)
-# Material close-up: belt, rivet, lamp, hammered iron
-ground.rotation_euler = (0, 0, math.radians(199))
-aim((-0.9, 2.6, 0.45), Vector((-0.15, 1.05, 0.05)), 85)
-render("detail", 900)
-# Silhouette: everything black on white
-for o in bomb.objects:
-    if o.type in ("MESH", "CURVE"):
-        o.hide_render = False
-sil = bpy.data.materials.new("Silhouette")
-sil.use_nodes = True
-sil.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0, 0, 0, 1)
-sil.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1
-saved = {}
-for o in bomb.objects:
-    if o.type in ("MESH", "CURVE") and o.data.materials:
-        saved[o.name] = list(o.data.materials)
-        o.data.materials.clear()
-        o.data.materials.append(sil)
-ground.hide_render = True
-spark_core.hide_render = True
-for lk in list(world.node_tree.links):
-    if lk.to_node == bg:
-        world.node_tree.links.remove(lk)
-bg.inputs["Color"].default_value = (1, 1, 1, 1)
-bg.inputs["Strength"].default_value = 1.0
-for l in (key, fill, rim, spark):
-    l.hide_render = True
-aim(orbit(-90, 10.5, 0.7))
-render("silhouette", 512)
-for o in bomb.objects:
-    if o.name in saved:
-        o.data.materials.clear()
-        for m in saved[o.name]:
-            o.data.materials.append(m)
-ground.hide_render = False
-spark_core.hide_render = False
-world.node_tree.links.new(sky.outputs["Color"], bg.inputs["Color"])
-bg.inputs["Strength"].default_value = 0.12
-for l in (key, fill, rim, spark):
-    l.hide_render = False
+    render("hero", 1400, 1400)
+    for st in ("LIT", "HOT", "CRITICAL"):
+        set_stage(st)
+        aim(orbit(148, 9.4, 2.7))
+        render(f"stage_{st}", 640)
+    set_stage("LIT")
+    # 8 turntable angles
+    for i in range(8):
+        aim(orbit(i * 45, 10.0, 2.2))
+        render(f"turn_{i * 45:03d}", 512)
+    # Material close-up: belt, rivet, lamp, hammered iron
+    ground.rotation_euler = (0, 0, math.radians(199))
+    aim((-0.9, 2.6, 0.45), Vector((-0.15, 1.05, 0.05)), 85)
+    render("detail", 900)
+    # Silhouette: everything black on white
+    for o in bomb.objects:
+        if o.type in ("MESH", "CURVE"):
+            o.hide_render = False
+    sil = bpy.data.materials.new("Silhouette")
+    sil.use_nodes = True
+    sil.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0, 0, 0, 1)
+    sil.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1
+    saved = {}
+    for o in bomb.objects:
+        if o.type in ("MESH", "CURVE") and o.data.materials:
+            saved[o.name] = list(o.data.materials)
+            o.data.materials.clear()
+            o.data.materials.append(sil)
+    ground.hide_render = True
+    spark_core.hide_render = True
+    for lk in list(world.node_tree.links):
+        if lk.to_node == bg:
+            world.node_tree.links.remove(lk)
+    bg.inputs["Color"].default_value = (1, 1, 1, 1)
+    bg.inputs["Strength"].default_value = 1.0
+    for l in (key, fill, rim, spark):
+        l.hide_render = True
+    aim(orbit(-90, 10.5, 0.7))
+    render("silhouette", 512)
+    for o in bomb.objects:
+        if o.name in saved:
+            o.data.materials.clear()
+            for m in saved[o.name]:
+                o.data.materials.append(m)
+    ground.hide_render = False
+    spark_core.hide_render = False
+    world.node_tree.links.new(sky.outputs["Color"], bg.inputs["Color"])
+    bg.inputs["Strength"].default_value = 0.12
+    for l in (key, fill, rim, spark):
+        l.hide_render = False
 
-# R6 scale view: a 5-stud R6 figure (blocks) wearing the bomb on its back (§3.2 mount).
-r6 = bpy.data.collections.new("R6")
-scene.collection.children.link(r6)
-skin = mat_emit("R6", srgb("#B9B4AC"), 0.0)
-skin.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.7
-
-
-def block(name, size, loc):
-    bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1)
-    o = mesh_obj(name, bm)
-    bomb.objects.unlink(o)
-    r6.objects.link(o)
-    o.scale = size
-    o.location = loc
-    give(o, skin)
-    return o
+    # R6 scale view: a 5-stud R6 figure (blocks) wearing the bomb on its back (§3.2 mount).
+    r6 = bpy.data.collections.new("R6")
+    scene.collection.children.link(r6)
+    skin = mat_emit("R6", srgb("#B9B4AC"), 0.0)
+    skin.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.7
 
 
-feet = -R - 0.02
-# torso centre at 3 studs up; the bomb sits behind it (+Y) per the mount
-torso_c = Vector((0, -(1.0 / 2 + 0.4 + R), 0.15))
-block("Torso", (2, 1, 2), (torso_c.x, torso_c.y, torso_c.z))
-block("Head", (1.2, 1.2, 1.2), (torso_c.x, torso_c.y, torso_c.z + 1.6))
-block("ArmL", (1, 1, 2), (torso_c.x - 1.5, torso_c.y, torso_c.z))
-block("ArmR", (1, 1, 2), (torso_c.x + 1.5, torso_c.y, torso_c.z))
-block("LegL", (1, 1, 2), (torso_c.x - 0.5, torso_c.y, torso_c.z - 2))
-block("LegR", (1, 1, 2), (torso_c.x + 0.5, torso_c.y, torso_c.z - 2))
-ground.location.z = torso_c.z - 3.0
-ground.rotation_euler = (0, 0, math.radians(113))
-aim((7.5, 3.2, 1.6), Vector((0, -1.3, 0.2)), 50)
-render("scale_r6", 900)
+    def block(name, size, loc):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1)
+        o = mesh_obj(name, bm)
+        bomb.objects.unlink(o)
+        r6.objects.link(o)
+        o.scale = size
+        o.location = loc
+        give(o, skin)
+        return o
 
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "Bomb.ClassicIron.blend"))
-print("DONE", OUT, flush=True)
+
+    feet = -R - 0.02
+    # torso centre at 3 studs up; the bomb sits behind it (+Y) per the mount
+    torso_c = Vector((0, -(1.0 / 2 + 0.4 + R), 0.15))
+    block("Torso", (2, 1, 2), (torso_c.x, torso_c.y, torso_c.z))
+    block("Head", (1.2, 1.2, 1.2), (torso_c.x, torso_c.y, torso_c.z + 1.6))
+    block("ArmL", (1, 1, 2), (torso_c.x - 1.5, torso_c.y, torso_c.z))
+    block("ArmR", (1, 1, 2), (torso_c.x + 1.5, torso_c.y, torso_c.z))
+    block("LegL", (1, 1, 2), (torso_c.x - 0.5, torso_c.y, torso_c.z - 2))
+    block("LegR", (1, 1, 2), (torso_c.x + 0.5, torso_c.y, torso_c.z - 2))
+    ground.location.z = torso_c.z - 3.0
+    ground.rotation_euler = (0, 0, math.radians(113))
+    aim((7.5, 3.2, 1.6), Vector((0, -1.3, 0.2)), 50)
+    render("scale_r6", 900)
+
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "Bomb.ClassicIron.blend"))
+    print("DONE", OUT, flush=True)
