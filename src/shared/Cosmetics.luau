@@ -54,7 +54,10 @@ function Cosmetics.ready(id: string): boolean
 	end
 	local c = item.category
 	if c == "BombSkin" then
-		return Cosmetics.Skins[id] ~= nil
+		-- a skin is ready once its SurfaceAppearance set is built in the place (FV_Art.Skins.<id>)
+		local art = ReplicatedStorage:FindFirstChild("FV_Art")
+		local skins = art and art:FindFirstChild("Skins")
+		return Cosmetics.Skins[id] ~= nil or (skins ~= nil and skins:FindFirstChild(id) ~= nil)
 	elseif c == "FuseSpark" then
 		return Cosmetics.Sparks[id] ~= nil
 	elseif c == "Trail" then

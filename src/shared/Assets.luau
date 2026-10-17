@@ -143,4 +143,87 @@ Assets.Icon = {
 	Badge = "rbxassetid://75057395762995",
 } :: { [string]: string }
 
+-- Bomb skin texture sets (Asset Bible §3.6), baked by art/bomb/skins.py. Each part: { color, normal, rough, metal }.
+-- SurfaceAppearance maps cannot be set at runtime, so these are built into ReplicatedStorage.FV_Art.Skins in Studio.
+Assets.Skins = {
+	Skin_CopperKettle = {
+		Body = {
+			color = "rbxassetid://106609049632912",
+			normal = "rbxassetid://120556367717243",
+			rough = "rbxassetid://73329947394555",
+			metal = "rbxassetid://131596460259219",
+		},
+		Brass = {
+			color = "rbxassetid://113575132944567",
+			normal = "rbxassetid://80662401340048",
+			rough = "rbxassetid://108030313300519",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://109603502568152",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://121018052132242",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_RookieBrass = {
+		Body = {
+			color = "rbxassetid://116113316587764",
+			normal = "rbxassetid://98192474602634",
+			rough = "rbxassetid://108017181595671",
+			metal = "rbxassetid://128440482522492",
+		},
+		Brass = {
+			color = "rbxassetid://97521357654583",
+			normal = "rbxassetid://137346094286781",
+			rough = "rbxassetid://97287496773811",
+			metal = "rbxassetid://135226285995404",
+		},
+		Clamp = {
+			color = "rbxassetid://123324203516341",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://121018052132242",
+			metal = "rbxassetid://83465893820549",
+		},
+		Socket = {
+			color = "rbxassetid://120317075566784",
+			normal = "rbxassetid://91735717445721",
+			rough = "rbxassetid://113979126153655",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+	Skin_Watermelon = {
+		Body = {
+			color = "rbxassetid://80736682340730",
+			normal = "rbxassetid://84513089958585",
+			rough = "rbxassetid://122897080085626",
+			metal = "rbxassetid://71920310683255",
+		},
+		Brass = {
+			color = "rbxassetid://83663960754841",
+			normal = "rbxassetid://93448637900424",
+			rough = "rbxassetid://85020939959129",
+			metal = "rbxassetid://71920310683255",
+		},
+		Clamp = {
+			color = "rbxassetid://136550447779784",
+			normal = "rbxassetid://115941181932741",
+			rough = "rbxassetid://138247463892679",
+			metal = "rbxassetid://100027963931407",
+		},
+		Socket = {
+			color = "rbxassetid://114691316229863",
+			normal = "rbxassetid://119955831408299",
+			rough = "rbxassetid://80104843955863",
+			metal = "rbxassetid://80308395174292",
+		},
+	},
+} :: { [string]: { [string]: { color: string, normal: string, rough: string, metal: string } } }
+
 return Assets

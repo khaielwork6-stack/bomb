@@ -46,3 +46,9 @@ art/out/**/*.blend
 art/out/**/*.blend1
 art/out/**/contact_sheet.html
 art/out/Review/
+
+# Bomb skin maps (107 MB): rebuilt by art/bomb/skins.py; the uploaded ids live in src/shared/Assets.luau (Assets.Skins)
+art/out/Skins/**/*_COLOR.png
+art/out/Skins/**/*_NORMAL.png
+art/out/Skins/**/*_ROUGHNESS.png
+art/out/Skins/**/*_METAL.png

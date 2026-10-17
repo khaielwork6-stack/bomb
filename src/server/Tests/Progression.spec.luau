@@ -65,7 +65,7 @@ return function(t)
 	t.it("a callout pays its table value; a chain pays per link", function()
 		local c = Rewards.callout("ClutchDefuse")
 		t.expect(c.xp).toBe(40)
-		t.expect(c.stars).toBe(8)
+		t.expect(c.stars).toBe(E.Callouts.ClutchDefuse.stars)
 		t.expect(Rewards.callout("Chain", 4).xp).toBe(40)
 	end)
 
@@ -77,7 +77,7 @@ return function(t)
 	t.it("small private servers halve callout Stars, not XP", function()
 		local c = Rewards.callout("RevengePass", nil, false, true)
 		t.expect(c.xp).toBe(20)
-		t.expect(c.stars).toBe(3) -- 5 x 0.5 rounds to 3
+		t.expect(c.stars).toBe(math.floor(E.Callouts.RevengePass.stars * E.PRIVATE_SMALL_MULT + 0.5))
 	end)
 
 	t.it("passes stop paying at the cap and repeat pairs pay once per crossing", function()

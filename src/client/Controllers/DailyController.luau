@@ -513,7 +513,7 @@ local function buildDock()
 	dock = new("Frame", {
 		Name = "Dock",
 		AnchorPoint = Vector2.new(1, 0.5),
-		Size = UDim2.fromOffset(72, 250),
+		Size = UDim2.fromOffset(72, 400),
 		BackgroundTransparency = 1,
 		Parent = hud,
 	})
@@ -601,6 +601,13 @@ local function buildDock()
 end
 
 local function placeDock()
+	-- short phone screens: the dock shrinks to fit between the top bar and the action buttons
+	local fit = dock:FindFirstChild("Fit") :: UIScale?
+	if not fit then
+		fit = new("UIScale", { Name = "Fit", Parent = dock })
+	end
+	local v = Screen.size();
+	(fit :: UIScale).Scale = math.min(1, (v.Y * 0.72) / 400)
 	local safe = Screen.safe()
 	local x = if shown then -12 - safe.right else 100
 	local goal = UDim2.new(1, x, if touch() then 0.42 else 0.48, 0)
@@ -769,6 +776,29 @@ function DailyController.start()
 			task.wait(0.5)
 		end
 	end)
+end
+
+-- Another controller's button in the dock (the Shop and Locker, StoreController). Returns the button and its dot.
+function DailyController.addDockButton(
+	name: string,
+	icon: string,
+	order: number,
+	onClick: () -> ()
+): (TextButton, Frame)
+	while not dock do
+		task.wait()
+	end
+	return dockButton(name, icon, order, onClick)
+end
+
+-- A panel in the shared modal layer (other screens use it so only one is ever open).
+function DailyController.panel(name: string, title: string, size: Vector2, accent: Color3, refresh: boolean?): Frame
+	return panel(name, title, size, accent, refresh)
+end
+
+-- The name of the open panel ("" when none), so other screens can tell whether theirs is still up.
+function DailyController.openName(): string
+	return openName
 end
 
 -- Open a screen from elsewhere (the quest tracker, onboarding).

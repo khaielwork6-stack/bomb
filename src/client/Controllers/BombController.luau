@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
+local SkinApply = require(script.Parent.Parent.SkinApply)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local B = Config.Bomb
@@ -226,10 +227,12 @@ end
 
 local function buildFromArt(
 	torso: BasePart,
-	template: Model
+	template: Model,
+	skinId: string?
 ): (Model, BasePart, { BasePart }, { BasePart }, { BasePart }, Attachment)
 	local model = template:Clone()
 	model.Name = "FV_Bomb"
+	SkinApply.apply(model, skinId) -- the Carrier's equipped bomb skin (Asset Bible §3.6: textures only)
 	local body = model:FindFirstChild("Body", true) :: BasePart?
 	local clamp = model:FindFirstChild("Clamp", true) :: BasePart?
 	-- Orientation: the clamp must face the torso (the bomb's -Z in Torso space). Exports can arrive turned round.
@@ -365,7 +368,9 @@ local function attach(host: Instance): Visual?
 	local template = artTemplate()
 	local model, mount, segments, lamps, seams, sparkAtt
 	if template then
-		model, mount, segments, lamps, seams, sparkAtt = buildFromArt(torso, template)
+		local skin = host:GetAttribute("Eq_BombSkin")
+		model, mount, segments, lamps, seams, sparkAtt =
+			buildFromArt(torso, template, if type(skin) == "string" then skin else nil)
 	else
 		model, mount, segments, lamps, seams, sparkAtt = build(torso)
 	end

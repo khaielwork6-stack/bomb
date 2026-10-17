@@ -6,38 +6,40 @@
 export type Reward = { xp: number, stars: number }
 
 return {
+	-- Stars here were tuned down ~0.35x from the GDD §11.1 / §12.1 tables so the P4 soak lands in 600–900 Stars/h
+	-- (DECISIONS D-ECO-01); the XP values are the GDD's.
 	-- Callouts (§11.1): keyed by the callout key. Chain pays `xp`/`stars` per link (n links); Revenge, DoubleBoom and
 	-- TripleBoom are bonuses paid on top of the callout that fires with them.
 	Callouts = {
-		Tagged = { xp = 5, stars = 1 },
+		Tagged = { xp = 5, stars = 0 },
 		Pass = { xp = 5, stars = 1 },
-		CloseOne = { xp = 15, stars = 3 },
-		Defused = { xp = 15, stars = 3 },
-		ClutchDefuse = { xp = 40, stars = 8 },
-		RevengePass = { xp = 20, stars = 5 },
-		Revenge = { xp = 10, stars = 3 },
-		Betrayal = { xp = 10, stars = 2 },
-		Chain = { xp = 10, stars = 2 }, -- per link
-		Boom = { xp = 20, stars = 3 },
-		DoubleBoom = { xp = 25, stars = 5 },
-		TripleBoom = { xp = 60, stars = 12 },
-		Survived = { xp = 10, stars = 2 },
-		AllClear = { xp = 5, stars = 1 },
+		CloseOne = { xp = 15, stars = 1 },
+		Defused = { xp = 15, stars = 1 },
+		ClutchDefuse = { xp = 40, stars = 3 },
+		RevengePass = { xp = 20, stars = 2 },
+		Revenge = { xp = 10, stars = 1 },
+		Betrayal = { xp = 10, stars = 1 },
+		Chain = { xp = 10, stars = 1 }, -- per link
+		Boom = { xp = 20, stars = 1 },
+		DoubleBoom = { xp = 25, stars = 2 },
+		TripleBoom = { xp = 60, stars = 4 },
+		Survived = { xp = 10, stars = 1 },
+		AllClear = { xp = 5, stars = 0 },
 		Dodge = { xp = 5, stars = 0 },
-		LastStand = { xp = 30, stars = 5 },
+		LastStand = { xp = 30, stars = 2 },
 	} :: { [string]: Reward },
 	-- Round payouts (§12.1), paid at RESULTS.
 	Rounds = {
-		RoundComplete = { xp = 15, stars = 3 },
-		SurvivorWin = { xp = 60, stars = 15 },
-		LastStandWin = { xp = 150, stars = 50 },
-		BomberWin = { xp = 40, stars = 8 },
-		MVP = { xp = 30, stars = 10 },
+		RoundComplete = { xp = 15, stars = 1 },
+		SurvivorWin = { xp = 60, stars = 5 },
+		LastStandWin = { xp = 150, stars = 20 },
+		BomberWin = { xp = 40, stars = 3 },
+		MVP = { xp = 30, stars = 4 },
 		FirstWinOfDay = { xp = 100, stars = 25 },
 	} :: { [string]: Reward },
 
 	-- Anti-farm (F-CALL-02, F-SEC-05)
-	PASS_PAID_PER_ROUND = 10, -- PASS rewards stop paying after this many in a round
+	PASS_PAID_PER_ROUND = 4, -- PASS rewards stop paying after this many in a round
 	BOT_CREDIT_MULT = 0.5, -- TAGGED / PASS / BOOM credit on a bot pays half
 	BOT_HALVED = { Tagged = true, Pass = true, Boom = true } :: { [string]: boolean },
 	PRIVATE_SMALL_HUMANS = 4, -- private servers with fewer humans than this…
