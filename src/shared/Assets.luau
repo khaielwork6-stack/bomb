@@ -69,4 +69,7 @@ Assets.Anim = {
 	TitanWalk = "rbxassetid://90675009643945",
 }
 
+-- Premium painted icons (the Skin kit's Skin.icon). FUSE VALLEY's own set (Asset Bible §6.4) lands with the P5 store.
+Assets.Icon = {} :: { [string]: string }
+
 return Assets

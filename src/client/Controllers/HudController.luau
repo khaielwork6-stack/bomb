@@ -40,6 +40,7 @@ local headlineScale: UIScale
 local subline: TextLabel
 local moveWarn: TextLabel
 local vignette: { Frame } = {}
+local lastRole = ""
 
 local function touch(): boolean
 	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -112,7 +113,10 @@ local function build()
 		ZIndex = 3,
 		Parent = chip,
 	})
-	fuseFace = Theme.panel(top, { Name = "Fuse", Size = UDim2.fromOffset(300, 22), radius = 999, color = P.Smoke })
+	fuseFace = Theme.panel(
+		top,
+		{ Name = "Fuse", Size = UDim2.fromOffset(300, 22), radius = 999, color = P.Smoke, glow = P.Detonate, glowT = 1 }
+	)
 	fuseHolder = fuseFace.Parent :: Frame
 	fuseHolder.AnchorPoint = Vector2.new(0.5, 0)
 	fuseHolder.Position = UDim2.new(0.5, 0, 0, 40)
@@ -335,9 +339,16 @@ local function step()
 	fuseSpark.Visible = fuseLive and frac > 0
 	local remaining = if fuseLive then ends - t else math.huge
 	local pulse = 0.5 + 0.5 * math.sin(t * 12)
-	local stroke = fuseFace:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Color = if remaining <= 5 then P.Detonate:Lerp(P.Ink, pulse) else P.Ink
+	-- F-FUSE-02: the frame flashes Detonate red with a glow from 5 s left.
+	if remaining <= 5 then
+		Theme.recolor(fuseFace, {
+			border = P.Detonate:Lerp(P.Spark, pulse * 0.4),
+			border2 = P.Detonate,
+			glow = P.Detonate,
+			glowT = 0.25 + pulse * 0.4,
+		})
+	else
+		Theme.recolor(fuseFace, { border = P.Fuse, border2 = P.Ember })
 	end
 	fuseHolder.Rotation = if remaining <= 3 then (math.random() - 0.5) * 3 else 0
 	fuseSpark.Size = UDim2.fromOffset(14 + pulse * 6, 14 + pulse * 6)
@@ -346,7 +357,11 @@ local function step()
 	local roleHolder = roleChip.Parent :: Frame
 	roleHolder.Visible = inRound and role ~= Types.Role.None
 	roleLabel.Text = string.upper(role)
-	roleChip.BackgroundColor3 = Theme.roleColor(role):Lerp(P.Ink2, 0.35)
+	if role ~= lastRole then
+		lastRole = role
+		local rc = Theme.roleColor(role)
+		Theme.recolor(roleChip, { fill = rc:Lerp(P.Ink2, 0.3), fill2 = rc:Lerp(P.Ink, 0.6), border = rc, border2 = rc })
+	end
 	-- Counter.
 	local counterHolder = counter.Parent :: Frame
 	counterHolder.Visible = inRound

@@ -39,4 +39,6 @@ Studio test tools: `CG_Debug:Invoke("dummies", n)`, `"bomb", id, seconds`, `"rol
 ## P3 Feel & hero assets · P4 Retention · P5 Store · P6 Event & launch
 See GDD §26.1. Tasks get broken down at the start of each phase.
 - [x] P3-02 Callouts: `CalloutService` detects every §11.1 moment on the server (TAGGED, PASS, CLOSE ONE, DEFUSED, CLUTCH DEFUSE, REVENGE PASS, REVENGE, BETRAYAL, CHAIN ×n, BOOM, DOUBLE/TRIPLE BOOM, SURVIVED, ALL CLEAR, LAST STAND) — its `Fired` signal is what P4 rewards pay from; `CalloutController` shows them in their Small / Medium / Big treatments (max 3 stacked)
-- [~] P3-01 Hero bomb "The Tick": `art/bomb/build.py` (Blender 4.5, deterministic) → review contact sheet → **user sign-off** → bake + export to Roblox
+- [~] P3-01 Hero bomb "The Tick": `art/bomb/build.py` (Blender 4.5, deterministic) → review contact sheet → **approved by the user 2026-10-17** → next: bake + FBX export, user imports, swap the part-built bomb
+- [x] P3-03 The partner's premium UI kit (`UI/Skin`) ported and recoloured; every `Theme.panel` uses it
+- [x] P3-04 Carrier toolkit (§10.2) and the Last Stand presentation (§8.2)

@@ -100,10 +100,7 @@ function CalloutController.show(key: string, n: number?)
 			color = P.Ink2,
 			transparency = 0.1,
 		})
-		local stroke = banner:FindFirstChildOfClass("UIStroke")
-		if stroke then
-			stroke.Color = color
-		end
+		Theme.recolor(banner, { border = color, border2 = color, glow = color, glowT = 0.45 })
 		starburst(frame, color, 220)
 		FxController.shake(0.18)
 	elseif tier == "Medium" then
