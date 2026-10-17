@@ -92,8 +92,10 @@ return function(t)
 	end)
 
 	t.it("round Stars obey the balance cap (F-ECO-03)", function()
-		t.expect(Rewards.roundStars(100, 1.5, 0.2)).toBe(180)
-		t.expect(Rewards.roundStars(500, 2, 0.3)).toBe(E.ROUND_STARS_CAP)
+		-- Hot Streak multiplies the round payouts only; squad covers callouts too
+		t.expect(Rewards.roundStars(60, 40, 1.5, 0.2)).toBe(144) -- (60 + 40 × 1.5) × 1.2
+		t.expect(Rewards.roundStars(60, 40, 1, 0)).toBe(100)
+		t.expect(Rewards.roundStars(300, 200, 2, 0.3)).toBe(E.ROUND_STARS_CAP)
 	end)
 
 	t.it("round keys: a Last Stand win pays its own key plus the first win of the day", function()

@@ -606,7 +606,7 @@ The P4 soak test (§26) prints the measured Stars/hour; it must land in 600–90
 
 ### 15.1 Hot Streak (F-SOC-01)
 - **Your streak +1** for every round you either **win** (any way) or **survive to crossing 5+**. Otherwise it resets to 0.
-- **The Stars multiplier for that round's payout:** streak 2 → ×1.25 · 3 → ×1.5 · 4+ → ×2.0 (`Config.Economy.STREAK_MULT`).
+- **The Stars multiplier for that round's payout** (the round payouts paid at RESULTS, §12.1; callouts are not multiplied — DECISIONS D-ECO-02): streak 2 → ×1.25 · 3 → ×1.5 · 4+ → ×2.0 (`Config.Economy.STREAK_MULT`).
 - **The HUD streak flame** (§21.2) grows with the streak and roars when the multiplier rises. When the streak breaks, the flame gutters out with a sad fizz. Loss aversion is the point.
 
 ### 15.2 Leaderboards (F-SOC-02)

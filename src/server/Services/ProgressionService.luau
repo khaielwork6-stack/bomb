@@ -297,7 +297,7 @@ local function payRound(p: Participant, outcome: string, won: boolean, isMvp: bo
 	local room = math.max(0, E.ROUND_STARS_CAP - st.starsPaid)
 	stars = math.min(stars, room)
 	local base = st.starsPaid + stars
-	local bonus = math.max(0, Rewards.roundStars(base, mult, squad + vip) - base)
+	local bonus = math.max(0, Rewards.roundStars(st.starsPaid, stars, mult, squad + vip) - base)
 	if firstWin then
 		d.daily.firstWin = true
 	end
@@ -414,7 +414,8 @@ function ProgressionService.start()
 				p.data.simStreak = HotStreak.after(p.data.simStreak or 0, w, reached)
 				stars = math.min(stars, math.max(0, E.ROUND_STARS_CAP - st.starsPaid))
 				local base = st.starsPaid + stars
-				local bonus = math.max(0, Rewards.roundStars(base, HotStreak.mult(p.data.simStreak), 0) - base)
+				local bonus =
+					math.max(0, Rewards.roundStars(st.starsPaid, stars, HotStreak.mult(p.data.simStreak), 0) - base)
 				econAdd(p, xp, stars + bonus, true)
 				econ[p.id].bonus += bonus
 				econ[p.id].first += first

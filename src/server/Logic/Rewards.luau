@@ -43,9 +43,10 @@ function Rewards.squad(friends: number): number
 	return math.min(E.SQUAD_CAP, math.max(0, friends) * E.SQUAD_PER_FRIEND)
 end
 
--- A round's Stars: (callouts + round payouts) × Hot Streak × (1 + squad), capped by the balance rule.
-function Rewards.roundStars(base: number, streakMult: number, squad: number): number
-	return math.min(E.ROUND_STARS_CAP, math.floor(base * streakMult * (1 + squad) + 0.5))
+-- A round's Stars: (callouts + round payouts × Hot Streak) × (1 + squad), capped by the balance rule. Hot Streak
+-- multiplies only the round payouts (§15.1 "that round's payout"; DECISIONS D-ECO-02); squad + VIP cover it all.
+function Rewards.roundStars(callouts: number, round: number, streakMult: number, squad: number): number
+	return math.min(E.ROUND_STARS_CAP, math.floor((callouts + round * streakMult) * (1 + squad) + 0.5))
 end
 
 -- The round payout keys a participant earns at RESULTS.
