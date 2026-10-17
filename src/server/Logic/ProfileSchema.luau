@@ -1,70 +1,77 @@
 --!strict
--- Profile template, migrations and repair (GDD §16.7). Pure: no Roblox services.
+-- Profile template, migrations and repair (GDD §24.3, schema v1). Pure: no Roblox services.
 -- reconcile() fills anything missing or of the wrong type from the template without touching valid data, so
--- adding a field is just adding it here. Open maps (inventory, settings, tips) keep whatever keys they hold.
+-- adding a field is just adding it here. Open maps (inventory, receipts, quests…) keep whatever entries they hold.
+-- Implements: F-DATA-01.
 
 local ProfileSchema = {}
 
 ProfileSchema.VERSION = 1
 
--- Loadout slots: "" means "nothing equipped / default".
 local function template(): { [string]: any }
 	return {
 		version = ProfileSchema.VERSION,
+		createdAt = 0,
 		saveCount = 0,
+		firstJoin = 0,
+		lastJoin = 0,
 		level = 1,
 		xp = 0, -- progress inside the current level
 		stars = 0,
+		inventory = {}, -- itemId -> true
+		-- "" = the default for that slot
+		equipped = {
+			BombSkin = "",
+			Explosion = "",
+			FuseSpark = "",
+			Trail = "",
+			VictoryBoom = "",
+			Title = "",
+			Emotes = {},
+		},
 		stats = {
+			rounds = 0,
 			wins = 0,
 			lastStandWins = 0,
-			bonks = 0,
-			anklesBroken = 0,
-			braveEscapes = 0,
-			revives = 0,
-			crossingsSurvived = 0,
-			matchesPlayed = 0,
-			mvps = 0,
-			perfectDodges = 0,
-			longestSurvival = 0,
-			bestDashTime = 0,
+			bomberWins = 0,
+			defuses = 0,
+			clutches = 0,
+			passes = 0,
+			booms = 0,
+			revenge = 0,
+			chains5 = 0,
+			crossings = 0,
 		},
-		inventory = {}, -- itemId -> true (cosmetics owned)
-		loadout = {
-			tool = "",
-			caughtFx = "",
-			trail = "",
-			brave = "",
-			emote = "",
-			ragdoll = "",
-			title = "",
-			abilityRunner = "",
-			abilityCatcher = "",
+		-- Daily systems (§14). day = the UTC day number these belong to.
+		daily = {
+			day = 0,
+			quests = {}, -- { { id, progress, done, paid } } in tier order
+			lastIds = {}, -- yesterday's quest ids (no repeats)
+			rerolls = 0, -- rerolls used today
+			crateClaimed = false, -- the Daily Crate for finishing all three
+			playSec = 0, -- seconds played today (playtime gifts)
+			giftsClaimed = {}, -- milestone index (as string) -> true
+			firstWin = false, -- the first win of the day has been paid
 		},
-		settings = {}, -- key -> value (validated by PlayerService)
-		rival = { name = "", n = 0 }, -- lifetime top rival (§18.2)
-		receipts = {}, -- purchase ids already granted (newest last), for idempotent ProcessReceipt
-		vip = false, -- VIP game pass (re-verified on every join)
-		starterBundle = false, -- Starter Bundle bought (one per account)
-		-- funnel: analytics onboarding steps logged (§21.9); modes: crossing modifiers met (the Modes page, discovery)
-		flags = { welcomed = false, tips = {}, funnel = {}, modes = {} },
-		-- spin wheel: free = earned free spins waiting (one per FREE_EVERY seconds played, they stack), progress =
-		-- seconds played towards the next one, bank = bought spins not yet played. freeAt is the pre-stacking field
-		-- (kept so old profiles load cleanly; unused).
-		spins = { free = 1, progress = 0, freeAt = 0, bank = 0, total = 0 },
-		-- weekly leaderboards: the week number and each counter's value at your first match that week
+		login = { lastDay = 0, streakDay = 0, claimedDay = 0 },
+		hotStreak = 0,
+		pity = { Inferno = 0 },
+		-- Rewards won before the P5 store exists to open / grant them: crates to open, items still owed.
+		crates = { Spark = 0, GiftBox = 0 },
+		owed = {}, -- list of reward kinds ("RareItem", "StreakBomb:2026-10") granted once the catalogue ships
+		-- weekly leaderboards: the week number and each counter's value at the first round that week
 		weekly = { week = 0, base = {} },
-		-- social rewards: who referred this player (0 = nobody), and which rewards were claimed
-		-- supporterAt: when the supporter gift's panel first opened (os.time; 0 = never), supporterClaimed: got it
-		social = {
-			referredBy = 0,
-			inviteClaimed = false,
-			groupClaimed = false,
-			supporterAt = 0,
-			supporterClaimed = false,
+		settings = {}, -- key -> value (validated by PlayerService)
+		flags = {
+			tutorial = false, -- the 4 rules card was closed
+			starterOffered = false,
+			starterBought = false,
+			groupPerk = false,
+			questsIntro = false,
+			tips = {}, -- contextual tip id -> true (shown once)
+			funnel = {}, -- onboarding funnel step -> true (logged once)
 		},
-		firstJoin = 0,
-		lastJoin = 0,
+		receipts = {}, -- purchase ids already granted (newest last), for idempotent ProcessReceipt
 	}
 end
 
@@ -73,7 +80,19 @@ function ProfileSchema.new(): { [string]: any }
 end
 
 -- Keys whose table values are open maps / lists: kept as stored (only the type is checked).
-local OPEN = { inventory = true, settings = true, receipts = true, tips = true, funnel = true, modes = true }
+local OPEN = {
+	inventory = true,
+	receipts = true,
+	settings = true,
+	tips = true,
+	funnel = true,
+	quests = true,
+	lastIds = true,
+	giftsClaimed = true,
+	owed = true,
+	base = true,
+	Emotes = true,
+}
 
 local function fill(into: { [string]: any }, defaults: { [string]: any })
 	for key, def in pairs(defaults) do
@@ -112,6 +131,7 @@ function ProfileSchema.reconcile(stored: any): { [string]: any }
 	data.level = math.max(1, math.floor(data.level))
 	data.xp = math.max(0, math.floor(data.xp))
 	data.stars = math.max(0, math.floor(data.stars))
+	data.hotStreak = math.max(0, math.floor(data.hotStreak))
 	return data
 end
 

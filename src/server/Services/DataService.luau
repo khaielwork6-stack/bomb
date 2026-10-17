@@ -1,5 +1,5 @@
 --!strict
--- Player profiles (GDD §16.7, §22.4): one session-locked DataStore entry per player, loaded on join, saved every
+-- Player profiles (GDD §24.3): one session-locked DataStore entry per player, loaded on join, saved every
 -- AUTOSAVE seconds, released on leave and on shutdown (BindToClose). The lock and schema rules are pure modules
 -- (Logic/SessionLock, Logic/ProfileSchema) with specs.
 -- Backend: the real DataStore, or, when Studio has no API access, an in-memory store with the same UpdateAsync
@@ -191,6 +191,9 @@ local function load(p: Participant)
 		warn(`[Data] could not lock {key}; this session's progress won't be saved`)
 	end
 	local now = os.time()
+	if profile.data.createdAt == 0 then
+		profile.data.createdAt = now
+	end
 	if profile.data.firstJoin == 0 then
 		profile.data.firstJoin = now
 	end
@@ -333,22 +336,25 @@ function DataService.start()
 			load(p)
 			return "reloaded " .. p.id
 		end)
-		-- dataset <id> <field> <number>: change a number for tests: top-level (level / xp / stars) or a stat
-		-- (stats.wins, …), so a play-test's progress can be put back exactly.
+		-- dataset <id> <field> <number>: change a number for tests: top-level (level / xp / stars / hotStreak) or a
+		-- nested number (stats.wins, daily.playSec, login.lastDay…), so a play-test's progress can be put back exactly.
 		AdminService.register("dataset", function(args)
 			local p = Participants.get(args[1])
 			local d = p and DataService.get(p)
 			local key = tostring(args[2])
 			local tbl: any = d
 			local stat = string.match(key, "^stats%.(.+)$")
-			local social = string.match(key, "^social%.(.+)$")
+			local daily = string.match(key, "^daily%.(.+)$")
+			local login = string.match(key, "^login%.(.+)$")
 			if d and stat then
 				tbl, key = d.stats, stat
-			elseif d and social then
-				tbl, key = d.social, social -- e.g. social.supporterAt 0 (reset the supporter gift's wait)
+			elseif d and daily then
+				tbl, key = d.daily, daily -- e.g. daily.playSec 1790 (a gift about to unlock)
+			elseif d and login then
+				tbl, key = d.login, login -- e.g. login.lastDay 0 (a fresh calendar)
 			end
 			if not tbl or type(tbl[key]) ~= "number" or not tonumber(args[3]) then
-				return "usage: dataset <playerId> <level|xp|stars|stats.<name>|social.<name>> <number>"
+				return "usage: dataset <playerId> <level|xp|stars|hotStreak|stats.<n>|daily.<n>|login.<n>> <number>"
 			end
 			tbl[key] = tonumber(args[3])
 			DataService.Loaded:Fire(p, d) -- re-apply to the live participant
