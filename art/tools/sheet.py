@@ -21,7 +21,7 @@ CSS = """
 .t{background:#241D2E;border-radius:14px;padding:8px} .t img{width:100%;display:block;border-radius:8px}
 .t b{display:block;padding:8px 6px 2px;font-size:20px;letter-spacing:.06em}
 .stages{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.mid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;align-items:start} .mid:last-child{grid-template-columns:1fr}
+.mid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px;align-items:start}
 .side{display:grid;gap:24px}
 .turn{display:grid;grid-template-columns:repeat(8,1fr);gap:20px;margin-top:30px}
 """
@@ -43,7 +43,7 @@ def main():
 <h1>{title.upper()}</h1><div class="sub">FUSE VALLEY · Asset review sheet · Cycles, Golden Fuse lighting</div><div class="bar"></div>
 <div class="grid"><div class="side">{tile(img("hero"), "HERO · LIT")}</div>
 <div><div class="stages">{tile(img("stage_LIT"), "LIT")}{tile(img("stage_HOT"), "HOT")}{tile(img("stage_CRITICAL"), "CRITICAL")}</div>
-<div class="mid">{tile(img("detail"), "MATERIAL CLOSE-UP")}<div class="side">{tile(img("silhouette"), "SILHOUETTE")}</div></div><div class="mid">{tile(img("scale_r6"), "R6 SCALE (5 STUDS)")}</div></div></div>
+<div class="mid">{tile(img("detail"), "MATERIAL CLOSE-UP")}{tile(img("silhouette"), "SILHOUETTE")}{tile(img("scale_r6"), "R6 SCALE (5 STUDS)")}</div></div></div>
 <div class="turn">{"".join(tile(img(f"turn_{a:03d}"), f"{a}°") for a in range(0, 360, 45))}</div>
 </div></body></html>"""
     out_html = folder / "contact_sheet.html"
@@ -58,7 +58,7 @@ def main():
     png = folder / "contact_sheet.png"
     profile = Path(tempfile.gettempdir()) / f"edgesheet_{uuid.uuid4().hex}"
     subprocess.run(
-        [edge, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}", "--window-size=2400,2480",
+        [edge, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}", "--window-size=2400,1660",
          "--virtual-time-budget=8000", "--allow-file-access-from-files", f"--screenshot={png}", out_html.as_uri()],
         check=False,
         timeout=120,
