@@ -12,6 +12,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Types = require(ReplicatedStorage.Shared.Types)
+local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Screen = require(script.Parent.Parent.UI.Screen)
@@ -280,8 +282,17 @@ end
 function QuestTrackerController.start()
 	Progress.start()
 	build()
-	expanded = not touch()
-	layout()
+	-- the rows stay out of the field during a round (§21.1): collapsed to the rings while playing, expanded between
+	-- rounds on PC (a tap still toggles them until the next phase change)
+	local function auto()
+		local ph = ClientState.phase()
+		local lobby = ph == Types.Phase.Intermission or ph == Types.Phase.Results or ph == Types.Phase.Boot or ph == ""
+		expanded = lobby and not touch()
+		layout()
+	end
+	auto()
+	local gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
+	gs:GetAttributeChangedSignal("Phase"):Connect(auto)
 	Progress.Changed:Connect(apply)
 	local s = Progress.get()
 	if s then

@@ -21,6 +21,7 @@ local SkinApply = require(script.Parent.Parent.SkinApply)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local B = Config.Bomb
+local F = Config.Feel
 local P = Theme.Palette
 local new = Theme.new
 local player = Players.LocalPlayer
@@ -436,6 +437,23 @@ local function attach(host: Instance): Visual?
 	weld.C0 = MOUNT * CFrame.new(0, 0, 1.2) * CFrame.Angles(math.rad(-25), 0, 0)
 	TweenService:Create(weld, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { C0 = MOUNT })
 		:Play()
+	-- …and pops as the clamp bites: a quick swell that settles (§10.3 squash-stretch, in uniform scale)
+	if template then
+		local t0 = os.clock()
+		local pop: RBXScriptConnection
+		pop = RunService.RenderStepped:Connect(function()
+			local k = math.clamp((os.clock() - t0) / F.LAND_POP_TIME, 0, 1)
+			if not model.Parent then
+				pop:Disconnect()
+				return
+			end
+			model:ScaleTo(1 + (F.LAND_POP - 1) * math.sin(k * math.pi))
+			if k >= 1 then
+				model:ScaleTo(1)
+				pop:Disconnect()
+			end
+		end)
+	end
 	return v
 end
 
@@ -557,35 +575,60 @@ local function step(dt: number)
 	end
 end
 
--- Pass arc (GDD §7.4): a bomb flies back to back in 0.18 s with spins, then the receiver's clamp catches it.
+-- Pass arc (GDD §7.4, §10.3): the real bomb, in the giver's skin, flies back to back with spins and a motion trail,
+-- then the receiver's clamp catches it (attach() does the slam and the pop).
 local function passArc(fromId: string, toId: string)
-	local _, fromModel = ClientState.byId(fromId)
+	local fromHost, fromModel = ClientState.byId(fromId)
 	local _, toModel = ClientState.byId(toId)
 	local a = fromModel and fromModel:FindFirstChild("Torso") :: BasePart?
 	local b = toModel and toModel:FindFirstChild("Torso") :: BasePart?
-	if not a or not b then
+	local template = artTemplate()
+	if not a or not b or not template then
 		return
 	end
-	local ghost = new("Part", {
-		Name = "FV_BombFlight",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * RADIUS * 2,
-		Material = Enum.Material.Metal,
-		Color = P.Iron,
-		Anchored = true,
-		CanCollide = false,
-		CanQuery = false,
-		CanTouch = false,
-		Parent = workspace,
-	})
+	local ghost = template:Clone()
+	ghost.Name = "FV_BombFlight"
+	local skin = fromHost and fromHost:GetAttribute("Eq_BombSkin")
+	SkinApply.apply(ghost, if type(skin) == "string" then skin else nil)
+	for _, d in ipairs(ghost:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			if string.match(d.Name, "^SeamGlow") then
+				d.Transparency = 1
+			elseif d.Name == "LampF" or d.Name == "LampB" then
+				d.Material = Enum.Material.Neon
+				d.Color = P.Spark
+			end
+		end
+	end
+	local body = ghost:FindFirstChild("Body", true) :: BasePart?
+	if body then
+		local top = new("Attachment", { Position = Vector3.new(0, RADIUS * 0.6, 0), Parent = body })
+		local bottom = new("Attachment", { Position = Vector3.new(0, -RADIUS * 0.6, 0), Parent = body })
+		new("Trail", {
+			Attachment0 = top,
+			Attachment1 = bottom,
+			Color = ColorSequence.new(P.Spark, P.Fuse),
+			Transparency = NumberSequence.new(0.2, 1),
+			Lifetime = 0.16,
+			LightEmission = 0.6,
+			FaceCamera = true,
+			Parent = body,
+		})
+	end
+	ghost.Parent = workspace
+	local spin = F.PASS_SPINS * math.pi * 2
 	local start = (a.CFrame * MOUNT).Position
 	local t0 = os.clock()
 	local conn: RBXScriptConnection
 	conn = RunService.RenderStepped:Connect(function()
-		local k = math.clamp((os.clock() - t0) / 0.18, 0, 1)
+		local k = math.clamp((os.clock() - t0) / F.PASS_TIME, 0, 1)
 		local finish = (b.CFrame * MOUNT).Position
-		local pos = start:Lerp(finish, k) + Vector3.new(0, math.sin(k * math.pi) * 2, 0)
-		ghost.CFrame = CFrame.new(pos) * CFrame.Angles(k * math.pi * 3, 0, 0)
+		local pos = start:Lerp(finish, k) + Vector3.new(0, math.sin(k * math.pi) * F.PASS_ARC, 0)
+		ghost:PivotTo(CFrame.new(pos) * CFrame.Angles(k * spin, 0, 0))
 		if k >= 1 then
 			conn:Disconnect()
 			ghost:Destroy()
