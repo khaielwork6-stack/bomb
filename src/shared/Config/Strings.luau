@@ -60,6 +60,7 @@ return {
 		HotStreak = "HOT STREAK x%s",
 		StreakLost = "Streak lost",
 		Squad = "SQUAD +%d%%",
+		VipBonus = "VIP +%d%%",
 		FirstWinOfDay = "FIRST WIN OF THE DAY",
 		Saved = "Saved for the Shop",
 		GotIt = "GOT IT",

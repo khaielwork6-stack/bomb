@@ -15,4 +15,7 @@ return {
 	RIVAL_BOTS = false, -- let bots count as rivals (Studio only; humans-only otherwise, §18.2)
 	ADMIN_IDS = {} :: { number },
 	VERBOSE = false,
+	-- Economy soak (GDD §25.3): bots "earn" on paper through the real payout maths (callouts + rounds) so a bot-only
+	-- soak prints Stars/hour (`econ start` / `econ` admin commands). Studio only.
+	ECON_SIM = false,
 }

@@ -14,6 +14,7 @@ local Config = {
 	Economy = require(script.Economy),
 	Daily = require(script.Daily),
 	Strings = require(script.Strings),
+	Store = require(script.Store),
 	Arena = require(script.Arena),
 	Maps = require(script.Maps),
 	Data = require(script.Data),

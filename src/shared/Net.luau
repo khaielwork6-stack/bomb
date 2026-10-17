@@ -17,6 +17,7 @@ Net.ClientToServer = {
 	SaveSettings = 1,
 	Admin = 4,
 	DailyAction = 4, -- { kind = ClaimLogin | ClaimGift | Reroll | ClaimDailyCrate | RulesSeen | Tip | Funnel, … } (P4)
+	StoreAction = 4, -- { kind = Buy | Equip | Unequip | OpenCrate | BuyRobux | BuyProduct | BuyPass, … } (P5)
 }
 
 Net.ServerToClient = {

@@ -36,6 +36,8 @@ local BombService = {
 	-- (from, to, bomb, remaining) every pass; (bomber, target, bomb) every tag.
 	Passed = Signal.new(),
 	Tagged = Signal.new(),
+	-- (runner, bomber) a Runner slipped a ready Bomber's reach by a hair (DODGE!, GDD §11.1)
+	Dodged = Signal.new(),
 	-- (p) a boomed Runner is back on their feet as a Bomber.
 	BecameBomber = Signal.new(),
 }
@@ -274,6 +276,54 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 	BombService.Passed:Fire(from, to, bomb, remaining)
 end
 
+-- DODGE! tracking: "runner|bomber" -> when the near miss began; runner -> last dodge (cooldown).
+local nearMisses: { [string]: number } = {}
+BombService.dodgeCount = 0 -- this server's DODGE! total (the Studio `state` command shows it)
+local lastDodge: { [string]: number } = {}
+
+local function dodges(bodies: { Body }, byId: { [string]: Body }, t: number)
+	for _, bomber in ipairs(bodies) do
+		if bomber.role == R.Bomber and bomber.active and t >= bomber.tagReadyAt then
+			local bp = Participants.get(bomber.id)
+			local vel = if bp and bp.root then bp.root.AssemblyLinearVelocity * Vector3.new(1, 0, 1) else Vector3.zero
+			for _, runner in ipairs(bodies) do
+				if runner.role == R.Runner and runner.active and not runner.safe and not runner.carrying then
+					local key = runner.id .. "|" .. bomber.id
+					local toward = (runner.pos - bomber.pos) * Vector3.new(1, 0, 1)
+					local closing = if toward.Magnitude > 0.01 then vel:Dot(toward.Unit) else 0
+					if BombRules.nearMiss(bomber.pos, runner.pos) and closing >= B.DODGE_CLOSING then
+						nearMisses[key] = nearMisses[key] or t
+					elseif nearMisses[key] then
+						local began = nearMisses[key]
+						if t - began > B.DODGE_WINDOW then
+							nearMisses[key] = nil
+						elseif BombRules.clearOf(bomber.pos, runner.pos) then
+							nearMisses[key] = nil
+							if t - (lastDodge[runner.id] or -math.huge) >= B.DODGE_COOLDOWN then
+								lastDodge[runner.id] = t
+								local rp = Participants.get(runner.id)
+								if rp and bp then
+									rp.stats.dodges += 1
+									BombService.dodgeCount += 1
+									BombService.Dodged:Fire(rp, bp)
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	-- a tagged Runner never dodged: drop their pending near misses
+	for key in pairs(nearMisses) do
+		local rid = string.match(key, "^([^|]+)")
+		local b = rid and byId[rid]
+		if not b or b.carrying then
+			nearMisses[key] = nil
+		end
+	end
+end
+
 local function step()
 	if not BombService.live or not Arena.current then
 		return
@@ -334,6 +384,7 @@ local function step()
 			end
 		end
 	end
+	dodges(bodies, byId, t)
 end
 
 -- ── API for RoundService ─────────────────────────────────────────────────────────────────────────────────────────

@@ -20,4 +20,11 @@ return {
 	CLOSE_PASS_WINDOW = 1.0, -- a pass with this little left is a CLOSE ONE
 	LAG_SLACK = 2.0, -- extra server tolerance on contact ranges (replication delay, GDD §24.1)
 	VERTICAL_REACH = 5, -- contact needs the two roots within this height of each other
+	-- DODGE! (GDD §11.1): a ready Bomber closing fast comes within DODGE_MARGIN of its reach, and the Runner gets
+	-- clear (DODGE_CLEAR beyond the reach) untagged within DODGE_WINDOW. One per Runner per DODGE_COOLDOWN.
+	DODGE_MARGIN = 1.0,
+	DODGE_CLEAR = 2.5,
+	DODGE_WINDOW = 1.2,
+	DODGE_CLOSING = 6, -- studs/s toward the Runner
+	DODGE_COOLDOWN = 3,
 }

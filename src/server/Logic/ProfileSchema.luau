@@ -55,7 +55,7 @@ local function template(): { [string]: any }
 		},
 		login = { lastDay = 0, streakDay = 0, claimedDay = 0 },
 		hotStreak = 0,
-		pity = { Inferno = 0 },
+		pity = { Inferno = 0, opened = 0 }, -- Inferno pity + crate openings (the policy branch's fixed list)
 		-- Rewards won before the P5 store exists to open / grant them: crates to open, items still owed.
 		crates = { Spark = 0, GiftBox = 0 },
 		owed = {}, -- list of reward kinds ("RareItem", "StreakBomb:2026-10") granted once the catalogue ships
@@ -65,6 +65,7 @@ local function template(): { [string]: any }
 		flags = {
 			tutorial = false, -- the 4 rules card was closed
 			starterOffered = false,
+			starterAt = 0, -- when the Starter Bundle offer began (its 48 h countdown)
 			starterBought = false,
 			groupPerk = false,
 			questsIntro = false,

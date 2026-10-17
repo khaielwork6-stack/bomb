@@ -22,6 +22,7 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
+local Progress = require(script.Parent.Parent.Progress)
 local ProgressController = require(script.Parent.ProgressController)
 
 local S = Config.Strings
@@ -230,6 +231,84 @@ local function line(list: Frame, order: number, text: string, delay: number, opt
 	end)
 end
 
+-- ── The "next" hooks (F-RES-04): the two most relevant reasons to play one more round ──────────────────────────────
+local function hooks(f: Frame, r: any)
+	local s = Progress.get()
+	local list = {}
+	local need = (r.xpToNext or 0) - (r.xp or 0)
+	if need > 0 and need <= 150 then
+		table.insert(list, { icon = "Badge", text = ("1 more round to level %d"):format((r.level or 1) + 1) })
+	end
+	local d = s and s.daily
+	if d then
+		local best, bestFrac = nil, -1
+		for _, q in ipairs(d.quests) do
+			local frac = q.progress / math.max(1, q.target)
+			if not q.done and frac > bestFrac then
+				best, bestFrac = q, frac
+			end
+		end
+		if best then
+			local t = (S.Quests :: any)[best.id] or best.id
+			t = if string.find(t, "%%d") then string.format(t, best.target) else t
+			table.insert(list, { icon = "Scroll", text = ("%s %d/%d"):format(t, best.progress, best.target) })
+		end
+		local g = d.gift
+		if g then
+			local left = math.max(0, g.left - Progress.age())
+			table.insert(list, {
+				icon = "Gift",
+				text = if g.ready or left <= 0 then "Gift ready!" else "Gift in " .. Widgets.clock(left),
+			})
+		end
+	end
+	local row = new("Frame", {
+		Name = "Hooks",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -14),
+		Size = UDim2.new(1, -48, 0, 34),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = f,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = row,
+	})
+	for i = 1, math.min(2, #list) do
+		local h = list[i]
+		local chip = Theme.panel(row, {
+			Name = "Hook" .. i,
+			Size = UDim2.fromOffset(290, 34),
+			radius = 999,
+			color = P.Ink2,
+			border = P.Spark,
+			border2 = P.Gold,
+		});
+		(chip.Parent :: Frame).LayoutOrder = i
+		Widgets.icon(chip, h.icon, 28, {
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 6, 0.5, 0),
+			ZIndex = 5,
+			tint = if h.icon == "Badge" then ProgressController.BADGE_TINT.Gold else nil,
+		})
+		local l = Widgets.label(chip, {
+			Position = UDim2.fromOffset(38, 0),
+			Size = UDim2.new(1, -46, 1, 0),
+			TextSize = 14,
+			align = Enum.TextXAlignment.Left,
+			Text = h.text,
+			ZIndex = 5,
+			stroke = 1.5,
+		})
+		l.TextTruncate = Enum.TextTruncate.AtEnd
+		Widgets.springIn(chip.Parent :: Frame, 0.8)
+	end
+end
+
 -- ── The payout (arrives a moment after RESULTS, per player) ─────────────────────────────────────────────────────
 local function applyReward(r: any)
 	local f = face
@@ -272,10 +351,18 @@ local function applyReward(r: any)
 		if (r.squad or 0) > 0 then
 			table.insert(parts, string.format(S.Ui.Squad, math.floor(r.squad * 100 + 0.5)))
 		end
+		if (r.vip or 0) > 0 then
+			table.insert(parts, string.format(S.Ui.VipBonus, math.floor(r.vip * 100 + 0.5)))
+		end
 		line(list, order, table.concat(parts, " · "), delay, { stars = r.bonus, color = P.Ember })
 		total += r.bonus
 		delay += 0.22
 	end
+	task.delay(delay + 1.2, function()
+		if face == f then
+			hooks(f, r)
+		end
+	end)
 	-- the stars fly into the counter once the receipt has printed
 	task.delay(delay + 0.2, function()
 		if face and total > 0 then
@@ -325,7 +412,7 @@ local function show(payload: any)
 		Name = "Results",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(W, 186 + 7 * ROW + 26 + 92),
+		Size = UDim2.fromOffset(W, 186 + 7 * ROW + 26 + 92 + 40),
 		dots = o.color,
 		dotsT = 0.88,
 		glow = o.color,
@@ -398,7 +485,7 @@ local function show(payload: any)
 	local xpRow = new("Frame", {
 		Name = "Xp",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -18),
+		Position = UDim2.new(0.5, 0, 1, -58),
 		Size = UDim2.new(1, -48, 0, 50),
 		BackgroundTransparency = 1,
 		ZIndex = 3,

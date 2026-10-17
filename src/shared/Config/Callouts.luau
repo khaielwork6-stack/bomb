@@ -22,6 +22,7 @@ return {
 		Survived = { text = "SURVIVED", tier = "Small", color = "Runner" },
 		AllClear = { text = "ALL CLEAR", tier = "Small", color = "Safe" },
 		LastStand = { text = "LAST STAND!", tier = "Big", color = "Gold" },
+		Dodge = { text = "DODGE!", tier = "Small", color = "Runner" },
 	} :: { [string]: Callout },
 	CHAIN_BIG = 5, -- a chain this long is a Big callout
 	MULTI_BOOM_WINDOW = 4, -- seconds: booms of yours this close together make a DOUBLE / TRIPLE

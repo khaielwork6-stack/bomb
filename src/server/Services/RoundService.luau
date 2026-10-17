@@ -359,6 +359,7 @@ local function resetToLobby()
 			Characters.setLocked(p, false)
 			p.attrs:SetAttribute("SpeedMult", nil)
 			p.attrs:SetAttribute("StunnedUntil", nil)
+			p.attrs:SetAttribute("Crowned", nil)
 			Participants.setRole(p, R.None)
 			Participants.setState(p, S.Lobby)
 			Characters.applyGroup(p)
@@ -391,6 +392,8 @@ local function playRound()
 	for _, p in ipairs(list) do
 		p.stats = Participants.newStats()
 		p.data.roundsPlayed = (p.data.roundsPlayed or 0) + 1
+		-- F-WIN-04: last round's winners wear the crown for this whole round
+		p.attrs:SetAttribute("Crowned", if p.data.wonLast then true else nil)
 		p.data.wonLast = nil
 		if bombers[p] then
 			lastBombers[p.id] = true
@@ -510,7 +513,7 @@ function RoundService.start()
 	AdminService.register("state", function()
 		return `{GameState.get("Phase")} {GameState.get("SubPhase")} crossing {GameState.get("Crossing")} runners {#runnersAlive()} bombers {#withRole(
 			R.Bomber
-		)} bombs {BombService.count()}`
+		)} bombs {BombService.count()} dodges {BombService.dodgeCount}`
 	end)
 	AdminService.register("role", function(args)
 		local p = Participants.get(args[1] or "")

@@ -52,7 +52,7 @@ return {
 		{ id = "H_LastStandWin", tier = "Hard", event = "LastStandWin", target = 1 },
 	} :: { Quest },
 	-- Features that exist (quests needing anything else stay out of the draw).
-	FEATURES = { Dodge = false, Crown = false, Mega = false } :: { [string]: boolean },
+	FEATURES = { Dodge = true, Crown = true, Mega = false } :: { [string]: boolean },
 
 	-- Login streak (§14.2): day 1..7, then days 8+ repeat days 4..7.
 	LOGIN = {

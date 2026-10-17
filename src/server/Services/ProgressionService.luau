@@ -9,6 +9,7 @@
 
 local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -45,6 +46,25 @@ local ProgressionService = {
 local sections: { (Participant, { [string]: any }) -> (string, any) } = {}
 local pushQueued: { [Participant]: boolean } = {}
 local friendCache: { [string]: boolean } = {} -- "a:b" (user ids, a < b) -> friends?
+
+-- Economy soak (Config.Debug.ECON_SIM, Studio): what each bot would have earned.
+local econ: { [string]: { stars: number, xp: number, rounds: number, cStars: number, cXp: number } } = {}
+local econStart = 0
+local function econSim(p: Participant): boolean
+	return p.isBot and RunService:IsStudio() and Config.Debug.ECON_SIM == true
+end
+local function econAdd(p: Participant, xp: number, stars: number, round: boolean)
+	local e = econ[p.id] or { stars = 0, xp = 0, rounds = 0, cStars = 0, cXp = 0 }
+	e.stars += stars
+	e.xp += xp
+	if round then
+		e.rounds += 1
+	else
+		e.cStars += stars
+		e.cXp += xp
+	end
+	econ[p.id] = e
+end
 
 function ProgressionService.addSection(fn: (Participant, { [string]: any }) -> (string, any))
 	table.insert(sections, fn)
@@ -190,7 +210,8 @@ local function smallPrivate(): boolean
 end
 
 local function payCallout(p: Participant, key: string, n: number?, other: Participant?): (number, number)
-	if p.isBot or not DataService.get(p) then
+	local sim = econSim(p)
+	if not sim and (p.isBot or not DataService.get(p)) then
 		return 0, 0
 	end
 	local st = p.stats
@@ -211,6 +232,10 @@ local function payCallout(p: Participant, key: string, n: number?, other: Partic
 	local stars = math.max(0, math.min(pay.stars, E.ROUND_STARS_CAP - st.starsPaid))
 	st.starsPaid += stars
 	st.xpPaid += pay.xp
+	if sim then
+		econAdd(p, pay.xp, stars, false)
+		return 0, 0
+	end
 	ProgressionService.grant(p, pay.xp, stars, "Callout:" .. key)
 	return pay.xp, stars
 end
@@ -263,11 +288,13 @@ local function payRound(p: Participant, outcome: string, won: boolean, isMvp: bo
 	d.hotStreak = HotStreak.after(d.hotStreak, won, reached)
 	local mult = HotStreak.mult(d.hotStreak)
 	local squad = Rewards.squad(friendsInServer(p))
+	-- the VIP pass adds its Stars bonus on top of the squad bonus (StoreService sets the VIP attribute)
+	local vip = if p.attrs:GetAttribute("VIP") then Config.Store.PASSES.VIP.starsBonus else 0
 	-- the cap covers the whole round: callouts already paid + the round keys + the multipliers' bonus
 	local room = math.max(0, E.ROUND_STARS_CAP - st.starsPaid)
 	stars = math.min(stars, room)
 	local base = st.starsPaid + stars
-	local bonus = math.max(0, Rewards.roundStars(base, mult, squad) - base)
+	local bonus = math.max(0, Rewards.roundStars(base, mult, squad + vip) - base)
 	if firstWin then
 		d.daily.firstWin = true
 	end
@@ -304,6 +331,7 @@ local function payRound(p: Participant, outcome: string, won: boolean, isMvp: bo
 			streakBefore = before,
 			mult = mult,
 			squad = squad,
+			vip = vip,
 			bonus = bonus,
 			levelBefore = levelBefore,
 			xpBefore = xpBefore,
@@ -363,9 +391,67 @@ function ProgressionService.start()
 				end
 			end
 		end
+		-- the economy soak: the same round maths for every bot that played
+		for _, p in ipairs(Participants.all()) do
+			if econSim(p) and (p.role == R.Runner or p.role == R.Bomber) then
+				local today = Daily.dayOf(os.time())
+				local w = won[p] == true
+				local firstWin = w and p.data.simWinDay ~= today
+				if firstWin then
+					p.data.simWinDay = today
+				end
+				local xp, stars = 0, 0
+				for _, key in ipairs(Rewards.roundKeys(outcome, w, mvp == p, firstWin)) do
+					xp += E.Rounds[key].xp
+					stars += E.Rounds[key].stars
+				end
+				local st = p.stats
+				local reached = if st.crossings > 0 then st.crossings + 1 else 0
+				p.data.simStreak = HotStreak.after(p.data.simStreak or 0, w, reached)
+				stars = math.min(stars, math.max(0, E.ROUND_STARS_CAP - st.starsPaid))
+				local base = st.starsPaid + stars
+				local bonus = math.max(0, Rewards.roundStars(base, HotStreak.mult(p.data.simStreak), 0) - base)
+				econAdd(p, xp, stars + bonus, true)
+			end
+		end
 	end)
 	Participants.Removed:Connect(function(p: Participant)
 		pushQueued[p] = nil
+	end)
+	AdminService.register("econ", function(args)
+		-- econ start: begin a soak (bots earn on paper) · econ: the Stars/hour report
+		if args[1] == "start" then
+			table.clear(econ)
+			econStart = os.clock()
+			Config.Debug.ECON_SIM = true
+			return "economy soak started"
+		end
+		local hours = (os.clock() - econStart) * math.clamp(Config.Debug.TIME_SCALE, 0.25, 4) / 3600
+		if econStart == 0 or hours <= 0 then
+			return "run `econ start` first"
+		end
+		local n, stars, xp, rounds, cStars, cXp = 0, 0, 0, 0, 0, 0
+		for _, e in pairs(econ) do
+			n += 1
+			stars += e.stars
+			xp += e.xp
+			rounds += e.rounds
+			cStars += e.cStars
+			cXp += e.cXp
+		end
+		if n == 0 then
+			return "no payouts yet"
+		end
+		return ("%d bots · %.2f game-hours · avg %.0f Stars/h (callouts %.0f), %.0f XP/h (callouts %.0f) · %.1f rounds each, %.1f min/round · quests, gifts, logins and level-ups come on top"):format(
+			n,
+			hours,
+			stars / n / hours,
+			cStars / n / hours,
+			xp / n / hours,
+			cXp / n / hours,
+			rounds / n,
+			if rounds > 0 then hours * 60 / (rounds / n) else 0
+		)
 	end)
 	AdminService.register("give", function(args)
 		-- give <id> <xp> <stars>: Studio test payouts (through the real grant path: level-ups, events, snapshot).

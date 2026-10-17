@@ -129,6 +129,7 @@ local CALLOUT_EVENTS: { [string]: { string } } = {
 	TripleBoom = { "TripleBoom" },
 	LastStand = { "LastStandReached" },
 	Survived = { "Survive" },
+	Dodge = { "Dodge" },
 	AllClear = { "Survive" },
 }
 
@@ -289,6 +290,12 @@ function DailyService.start()
 	end)
 	CalloutService.Fired:Connect(onCallout)
 	ProgressionService.RoundPaid:Connect(onRoundPaid)
+	-- Dethrone (§8.3): a bomb you started booms a crowned winner
+	BombService.RunnerBoomed:Connect(function(boomed: Participant, _bomb: any, credit: Participant?)
+		if credit and boomed.attrs:GetAttribute("Crowned") then
+			count(credit, "Dethrone")
+		end
+	end)
 	BombService.Tagged:Connect(function(_bomber: Participant, target: Participant)
 		target.data.taggedCrossing = GameState.get("Crossing")
 	end)

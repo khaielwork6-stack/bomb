@@ -116,6 +116,21 @@ function BombRules.pickReceiver(bomb: Bomb, carrier: Body, bodies: { Body }, now
 	end)
 end
 
+-- DODGE! geometry (GDD §11.1): just outside the Bomber's reach — within DODGE_MARGIN of it.
+function BombRules.nearMiss(a: Vector3, b: Vector3): boolean
+	if math.abs(a.Y - b.Y) > B.VERTICAL_REACH then
+		return false
+	end
+	local d = ((a - b) * Vector3.new(1, 0, 1)).Magnitude
+	local reach = B.TAG_RANGE + B.LAG_SLACK
+	return d > reach and d <= reach + B.DODGE_MARGIN
+end
+
+-- …and clear of it again (the Runner got away).
+function BombRules.clearOf(a: Vector3, b: Vector3): boolean
+	return ((a - b) * Vector3.new(1, 0, 1)).Magnitude > B.TAG_RANGE + B.LAG_SLACK + B.DODGE_CLEAR
+end
+
 function BombRules.pickTagTarget(bomber: Body, bodies: { Body }, now: number): Body?
 	if bomber.role ~= "Bomber" or not bomber.active or now < bomber.tagReadyAt then
 		return nil
