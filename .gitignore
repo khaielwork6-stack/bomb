@@ -40,3 +40,8 @@ tools/anim/out/
 # Marketing images (thumbnails, icon): large PNGs kept on the owner's PC, not in git
 marketing/
 __pycache__/
+
+# Art build outputs: .blend files and the sheet's HTML are rebuilt by art/*/build.py + art/tools/sheet.py
+art/out/**/*.blend
+art/out/**/*.blend1
+art/out/**/contact_sheet.html

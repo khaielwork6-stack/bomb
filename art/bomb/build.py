@@ -670,7 +670,8 @@ glow = ctree.nodes.new("CompositorNodeGlare")
 glow.glare_type = "FOG_GLOW"
 glow.inputs["Threshold"].default_value = 1.6
 glow.inputs["Strength"].default_value = 0.35
-glow.inputs["Size"].default_value = 0.4comp = ctree.nodes.new("CompositorNodeComposite")
+glow.inputs["Size"].default_value = 0.4
+comp = ctree.nodes.new("CompositorNodeComposite")
 ctree.links.new(rl.outputs["Image"], glare.inputs["Image"])
 ctree.links.new(glare.outputs["Image"], glow.inputs["Image"])
 ctree.links.new(glow.outputs["Image"], comp.inputs["Image"])
