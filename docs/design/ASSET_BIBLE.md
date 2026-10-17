@@ -206,6 +206,7 @@ The bomb is on screen more than anything else in the game, and it's the face of 
 2. **The fuse, seams and lamp stages are never changed** by a skin. The stage colours always read the same.
 3. **No dominant Runner cyan or Bomber red-orange** on the body.
 4. **Every skin passes the Quality Bar on its own**, with turntable renders.
+5. **The face rig (§3.8) is shared by every skin.** Skins never paint eyes or mouths on the front face zone.
 
 ### 3.7 Launch skin line-up (16)
 | Skin | Rarity | Concept & material notes |
@@ -226,6 +227,36 @@ The bomb is on screen more than anything else in the game, and it's the face of 
 | **Dragon Egg** | Legendary | Scaled, iridescent shell plates (normal plus a colour shift), a gold claw belt; the lamps are dragon eyes that blink |
 | **Gilded** | Exclusive (VIP) | Gold leaf over iron with engraved scrollwork; champagne-gold lamps |
 | **Streak Bomb (monthly)** | Exclusive (7-day streak) | A new design every month (October: **Jack-o'-Fuse**, a carved pumpkin with candle glow inside) |
+
+### 3.8 The face rig (character) — awaiting the user's sign-off
+**Brief:** the bomb is the star of the game, so it gets a personality. It is cocky while it ticks, nervous at HOT, and screaming at CRITICAL, and it watches its next victim. Players should feel that the bomb *wants* to go off on someone, and the Carrier should see it panicking on their own back.
+
+**Placement.** The face sits on the front (+Y, away from the clamp), between the two front weld seams. The eyes are above the brass belt and the mouth below it, so the front indicator lamp sits between them like a little glowing nose. Because the bomb hangs facing backward, everyone behind the Carrier sees the face, including the Carrier's own third-person camera.
+
+| Part | Spec | Material | Moves |
+|---|---|---|---|
+| **Eyes** | 2 domes, Ø 0.52, centred 21.5° either side of the front and 26° above the belt, 0.09 proud | Porcelain (the fuse socket's crackle glaze) | Fixed |
+| **Pupils + glints** | An ink cap (25° of the eye) with a 6.5° porcelain glint | Ink enamel, emissive glint | Rotate about the eye centre (gaze) |
+| **Lids** | An upper half-shell over each eye, 0.016 thick | Ink enamel | Rotate about the eye's horizontal axis (blink, squint) and its out axis (slant) |
+| **Brows** | Forged bars, 0.46 long and 0.115 tall, tapering, at 47.5° elevation | Brass (the belt's) | Rotate about the body centre (raise, tilt) |
+| **Mouths** | One mesh per shape, wrapped onto the body 33° below the belt: **Smirk** (LIT), **Grimace** (HOT, clenched porcelain teeth), **Panic** (CRITICAL, a white-hot core matching the seams), **Ooh** (pass flight), **Grin** (a tag) | Brass lips, porcelain teeth, emissive core | Shown one at a time |
+
+**Expressions** (driven by `BombController` from the bomb's state):
+
+| Moment | Lids | Brows | Pupils | Mouth |
+|---|---|---|---|---|
+| **LIT** · smug | Half-lidded, slanted in | Down at the inner end | Track the nearest player | Smirk |
+| **HOT** · uh-oh | Open, outer corners droop | Up at the inner end | Track, slightly down | Grimace |
+| **CRITICAL** · panic | Wide | Up at the inner end | Pinned (×0.7), shaking with the body | Panic (glowing) |
+| **Blink** | Closed for 0.12 s every 2–4 s while LIT | — | — | — |
+| **Gotcha** (a tag) | Narrow, wicked slant | Hard down | On the victim | Grin, 0.6 s |
+| **Whee** (pass flight) | Wide | Up | Up | Ooh |
+
+**Rules.**
+1. **One face for every skin** (§3.6). Skins never paint features on the front face zone.
+2. The fuse, seams, lamps and stage colours are untouched (GDD §10.4). The face adds at most 0.09 studs at the front.
+3. Every part is rigid and only rotates, so the game drives exactly the rig that was reviewed (`art/bomb/face.py`, contact sheet `art/out/Bomb.Face/contact_sheet.png`).
+4. Reduce motion (GDD §21.3) stops the pupil shake. The expressions stay, since they carry the timer read.
 
 ## 4. World
 
