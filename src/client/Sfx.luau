@@ -17,7 +17,7 @@ local function getGroup(): SoundGroup
 		return group
 	end
 	local g = Instance.new("SoundGroup")
-	g.Name = "CG_SFX"
+	g.Name = "FV_SFX"
 	g.Volume = Sfx.volume
 	g.Parent = SoundService
 	group = g
@@ -107,6 +107,24 @@ function Sfx.at(key: string, pos: Vector3, volumeMult: number?, pitch: number?)
 	s.Parent = a
 	s:Play()
 	Debris:AddItem(a, 8)
+end
+
+-- A looping sound (fuse hiss, heartbeat, crowd bed): 3D when parent is a part or attachment, 2D otherwise.
+-- The caller owns it (stop / Destroy).
+function Sfx.loop(key: string, parent: Instance?, volumeMult: number?): Sound?
+	local s = make(key)
+	if not s then
+		return nil
+	end
+	s.Looped = true
+	if volumeMult then
+		s.Volume *= volumeMult
+	end
+	s.RollOffMaxDistance = 90
+	s.RollOffMinDistance = 8
+	s.Parent = parent or SoundService
+	s:Play()
+	return s
 end
 
 return Sfx

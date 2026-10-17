@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local B = Config.Bomb
@@ -382,6 +383,7 @@ local function attach(host: Instance): Visual?
 		Parent = sparkAtt,
 	})
 	local light = new("PointLight", { Color = P.Fuse, Range = 5, Brightness = 2, Parent = sparkAtt })
+	Sfx.loop("FuseHiss", sparkAtt) -- the burning cord, 3D on the Carrier's back (destroyed with the bomb)
 	model.Parent = char
 	local ring, dots = buildRing(torso)
 	ring.Parent = player:WaitForChild("PlayerGui")

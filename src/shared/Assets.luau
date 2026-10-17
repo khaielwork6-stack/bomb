@@ -41,6 +41,35 @@ Assets.SFX = {
 	Footstep2 = s(131412978408311, 0.42, "C"),
 	Footstep3 = s(114768473003662, 0.45, "C"),
 	Footstep4 = s(91882016473062, 0.7, "C"),
+
+	-- The bomb (Asset Bible §9.2; licensed APM / Pro Sound Effects / Roblox, most already shipped by Chase Game).
+	-- Each moment is a STACK of layers (AudioController), never one stock sound.
+	FuseHiss = s(1841092807, 0.32, "APM", { looped = true }), -- "Burning Fuse (a)": the cord's loop on every bomb
+	BombTick = s(12221990, 0.55, "R"), -- one tick; AudioController paces it 2 / 4 / 10 Hz by stage, pitch rising
+	BombClamp = s(9125782643, 0.6, "PSE", { pitch = { 1.05, 1.2 } }), -- a heavy metal lid set down: the clamp biting
+	PassWhoosh = s(9126229255, 0.55, "PSE", { pitch = { 1.25, 1.4 } }), -- the flight between backs
+	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
+	BoomBody = s(9113470802, 0.75, "PSE"), -- a giant thud: the body of the boom
+	BoomDebris = s(9113218938, 0.45, "PSE", { region = { 0, 2.2 } }), -- rock crumble: debris + tail (first 2.2 s of a 16 s file)
+	Defuse = s(9126229255, 0.35, "PSE", { pitch = { 2.1, 2.3 } }), -- a short high whoosh: the snuff
+	Safe = s(18448089848, 0.55, "C"), -- the defuse chime
+	Clutch = s(9047103106, 0.8, "APM"), -- the CLUTCH DEFUSE sting
+	Klaxon = s(9119662934, 0.5, "PSE"), -- the Field Fuse at 5 s
+	Heartbeat = s(9043365842, 0.7, "APM", { looped = true }), -- the Carrier's heartbeat (96 BPM, sped up by stage)
+	DrumRoll = s(4718483268, 0.75, "C"), -- the Last Stand reveal
+	CrowdLoop = s(9120974094, 0.3, "PSE", { looped = true }),
+	CrowdCheer = s(9120974378, 0.6, "PSE"),
+	CrowdGasp = s(9114013354, 0.6, "PSE"),
+	WinSting = s(1841980129, 0.85, "APM"),
+	LoseSting = s(1839303737, 0.75, "APM"),
+}
+
+-- Music (licensed APM, from Chase Game's vetted list). AudioController crossfades by phase.
+Assets.Music = {
+	Lobby = s(1843404009, 0.45, "APM", { looped = true }),
+	Round = s(1847683499, 0.4, "APM", { looped = true }),
+	LastStand = s(1836391539, 0.45, "APM", { looped = true }),
+	Results = s(1842802498, 0.42, "APM"),
 }
 
 -- Animations (tools/anim → published to the group; GDD §23.4: same group, so these ids work here).

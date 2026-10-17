@@ -67,7 +67,7 @@ local function winnerChip(parent: Instance, id: string, order: number, mvp: bool
 	local name, userId = nameOf(id)
 	local chip = new("Frame", {
 		Name = "Winner",
-		Size = UDim2.fromOffset(104, 128),
+		Size = UDim2.fromOffset(94, 128),
 		BackgroundTransparency = 1,
 		LayoutOrder = order,
 		Parent = parent,
@@ -154,7 +154,7 @@ local function show(payload: any)
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 10),
+		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = row,
 	})
@@ -182,6 +182,14 @@ local function show(payload: any)
 		return
 	end
 	local shown = 0
+	local count = 0
+	for _, line in ipairs(LINES) do
+		if (tonumber(mine[line.key]) or 0) > 0 or line.key == "crossings" then
+			count += 1
+		end
+	end
+	-- The card fits its receipt (no empty half when the round was short).
+	holder.Size = UDim2.fromOffset(560, 196 + count * 32 + 34)
 	for i, line in ipairs(LINES) do
 		local value = tonumber(mine[line.key]) or 0
 		if value > 0 or line.key == "crossings" then
