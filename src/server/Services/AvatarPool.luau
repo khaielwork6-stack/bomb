@@ -3,7 +3,7 @@
 --   • friends of the players in this server (Players:GetFriendsAsync) — the crowd AND the bots draw from these first;
 --   • random Roblox users: random user ids, kept only when the avatar is actually dressed (clothes + hair or a hat),
 --     the filler once friends run out;
---   • people who recently played Chase Game in any server (a shared MemoryStore list, kept for a week);
+--   • people who recently played FUSE VALLEY in any server (a shared MemoryStore list, kept for a week);
 --   • nothing: callers fall back to the generated look.
 -- A crowd template is built once per look; the stands reuse templates (2026-10-07) so every seat is a real avatar.
 -- Everything slow happens in the background: descriptions are fetched and R6 rigs are built ahead of time, so a
@@ -17,12 +17,12 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local AvatarPool = {}
 
-local STORE_NAME = "CG_RecentAvatars_v1"
+local STORE_NAME = "FV_RecentAvatars_v1"
 local STORE_TTL = 7 * 24 * 3600
 local RECENT_READ = 200 -- most recent players read back from the shared list
 local MAX_FRIENDS = 150 -- friends read per player
 local READY_RIGS = 18 -- bot rigs kept built and waiting
-local CROWD_TEMPLATES = 60 -- distinct real avatars for the crowd (ReplicatedStorage.CG_CrowdAvatars); seats reuse them
+local CROWD_TEMPLATES = 0 -- FUSE VALLEY has no stands (the Last Stand crowd is audio, GDD §8.2): bots only
 local RANDOM_MIN, RANDOM_MAX = 20_000_000, 4_000_000_000 -- random user id range (older accounts dress up more)
 local MAX_ACCESSORIES = 4
 local MAX_ACCESSORY_SIZE = 4.5 -- studs, any dimension of an accessory's handle

@@ -16,6 +16,7 @@ local BombRules = require(ServerScriptService.Server.Logic.BombRules)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
+local CalloutService = require(script.Parent.CalloutService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
 local Participants = require(script.Parent.Participants)
@@ -103,6 +104,12 @@ end
 local function publishCounts()
 	GameState.set("RunnersLeft", #runnersAlive())
 	GameState.set("BombersCount", #withRole(R.Bomber))
+end
+
+-- The Field Fuse scales with the field's length (Config.Round.FUSE_REF_LENGTH).
+local function lengthFactor(): number
+	local f = Arena.current
+	return if f then math.max(0.5, f.halfLen * 2 / RC.FUSE_REF_LENGTH) else 1
 end
 
 -- ── Placement ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -275,11 +282,14 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 		Net.fireAll("FieldFx", { kind = "Clear", crossing = k, at = now() })
 	end
 	BombService.clear()
+	local crossed = {}
 	for _, p in ipairs(runnersAlive()) do
 		if p.data.crossedThis then
 			p.stats.crossings += 1
+			table.insert(crossed, p)
 		end
 	end
+	CalloutService.crossingEnded(result, crossed)
 	RoundService.CrossingEnded:Fire(k, result)
 	return result
 end
@@ -362,8 +372,9 @@ local function lastStand(runner: Participant, from: number): boolean
 	placeBombers(-from)
 	lockAll(true, R.Bomber)
 	runner.attrs:SetAttribute("SpeedMult", RC.LAST_STAND_SPEED)
+	CalloutService.lastStand(runner)
 	hold(RC.LAST_STAND_INTRO)
-	local result = crossing(GameState.get("Crossing") + 1, from, RC.LAST_STAND_FUSE, true)
+	local result = crossing(GameState.get("Crossing") + 1, from, RC.LAST_STAND_FUSE * lengthFactor(), true)
 	runner.attrs:SetAttribute("SpeedMult", nil)
 	return result == "clear" and runner.role == R.Runner
 end
@@ -423,7 +434,7 @@ local function playRound()
 		publishCounts()
 		setPhase(Ph.Ready, RC.READY)
 		hold(RC.READY)
-		local result = crossing(k, startSide, BombRules.fieldFuse(k), false)
+		local result = crossing(k, startSide, BombRules.fieldFuse(k) * lengthFactor(), false)
 		setPhase(Ph.Resolve, RC.RESOLVE)
 		hold(RC.RESOLVE)
 		BombService.finishGetups()

@@ -23,6 +23,7 @@ Net.ServerToClient = {
 	"BombFx", -- { kind = Stick | Pass | Boom | Defuse, bomb, from?, who, … } (BombService, GDD §22.4)
 	"FieldFx", -- { kind = Warn | Detonate | Clear, crossing, at } (RoundService, F-FUSE-02/03)
 	"RoundFx", -- { kind = Intro | LastStand | Results, … } (RoundService)
+	"Callout", -- { key, n?, at } to one player (CalloutService, GDD §11.1)
 }
 
 local FOLDER_NAME = "Net"

@@ -22,7 +22,9 @@ local ORDER = {
 	"AvatarPool",
 	"DataService",
 	"BombService",
+	"CalloutService",
 	"RoundService",
+	"BotService",
 }
 
 Net.init()

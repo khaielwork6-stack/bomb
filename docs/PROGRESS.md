@@ -28,5 +28,15 @@ Phase plan and Definitions of Done: GDD §26. Tick a task only when its DoD pass
 
 Studio test tools: `CG_Debug:Invoke("dummies", n)`, `"bomb", id, seconds`, `"role", id, Runner|Bomber`, `"tp", id, x, y, z, lookX, lookZ`, `"skip"`, `"state"`, `"cfg", Section, KEY, value`.
 
-## P2 Bots · P3 Feel & hero assets · P4 Retention · P5 Store · P6 Event & launch
+## P2 Bots — "a solo player gets a full round"
+- [x] P2-01 `Config.Bots` (fill target, tiers, brain tuning, generated names)
+- [x] P2-02 `Logic/BombBrain` (pure) + 9 specs: strip distances, defuse-vs-pass with margin, threat push, target spreading, start delays — **62/62 specs pass**
+- [x] P2-03 `BotService`: fill to 16 at every INTERMISSION (trims for humans), real avatars from AvatarPool (generated names), MovementCore steering + Locomotion animation, techniques recorded and shown via ActionFx
+- [x] P2-04 Brains: Runners (lanes, fuse-aware start delay, threat + Carrier avoidance, dodge dash / hard stop), Carriers (defuse when reachable with margin, else pass to the nearest — a Bomber when time is short), Bombers (intercept lead, spread across targets, keep clear of Carriers, dash to close)
+- [x] P2-05 The Field Fuse scales with the map's length (`FUSE_REF_LENGTH = 140`)
+- [~] P2-06 DoD soak (2026-10-17): 4 consecutive bot rounds (≈8 min, 14 crossings) — **0 errors**, memory flat/down (2306 → 1863 MB), bots made 278 tags / 267 passes / 65 defuses (21 clutch) / 172 booms; outcomes Bombers ×3, a bot Last Stand win ×1. The full 30-round soak (≈1 h of Studio time) is still to run.
+
+## P3 Feel & hero assets · P4 Retention · P5 Store · P6 Event & launch
 See GDD §26.1. Tasks get broken down at the start of each phase.
+- [x] P3-02 Callouts: `CalloutService` detects every §11.1 moment on the server (TAGGED, PASS, CLOSE ONE, DEFUSED, CLUTCH DEFUSE, REVENGE PASS, REVENGE, BETRAYAL, CHAIN ×n, BOOM, DOUBLE/TRIPLE BOOM, SURVIVED, ALL CLEAR, LAST STAND) — its `Fired` signal is what P4 rewards pay from; `CalloutController` shows them in their Small / Medium / Big treatments (max 3 stacked)
+- [~] P3-01 Hero bomb "The Tick": `art/bomb/build.py` (Blender 4.5, deterministic) → review contact sheet → **user sign-off** → bake + export to Roblox

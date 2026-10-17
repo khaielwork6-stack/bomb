@@ -11,6 +11,9 @@ return {
 	-- The Field Fuse per crossing (F-FUSE-01): it shortens as the Bomber crowd grows. Crossings past the list reuse
 	-- its last value.
 	FIELD_FUSE = { 20, 16, 13, 11, 10, 10, 10, 10 },
+	-- The lengths above are for a FUSE_REF_LENGTH-stud field (the Fireworks Yard, Asset Bible §4.2); other maps scale them by
+	-- their length so every map keeps the same pressure (the temporary 198-stud Meadow gets ≈1.4×).
+	FUSE_REF_LENGTH = 140,
 	FUSE_WARN = 5, -- F-FUSE-02: klaxon, glowing lanes, red HUD fuse
 	FUSE_PULSE = 3, -- the glow pulses, the music drops to a heartbeat
 	DETONATE_SWEEP = 0.6, -- F-FUSE-03: the rolling chain of blasts crosses the field over this long
