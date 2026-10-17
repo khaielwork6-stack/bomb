@@ -54,7 +54,7 @@ local C = {
 	Canvas = rgb(186, 160, 112),
 	Grass = rgb(118, 150, 76),
 	GrassDark = rgb(92, 124, 62),
-	Window = rgb(255, 186, 104),
+	Window = rgb(255, 168, 86),
 	Rubber = rgb(34, 32, 36),
 	Water = rgb(70, 120, 150),
 }
@@ -215,7 +215,9 @@ return function(ctx, parent)
 		g.Parent = x
 		local l = Instance.new("TextLabel")
 		l.BackgroundTransparency = 1
-		l.Size = UDim2.fromScale(1, 1)
+		local pad = o.pad or 0
+		l.Size = UDim2.fromScale(1 - pad * 2, 1 - pad * 2)
+		l.Position = UDim2.fromScale(pad, pad)
 		l.Text = text
 		l.TextColor3 = color
 		l.FontFace = o.font or DISPLAY
@@ -345,7 +347,14 @@ return function(ctx, parent)
 
 	-- ── The yard (the field): concrete slabs with joints ──────────────────────────────────────────────────────
 	local yard = U.model(map, "Yard")
-	part(yard, "JointBed", Vector3.new(HL * 2, 1.6, HW * 2), Vector3.new(0, TOP - 0.25 - 0.8, 0), C.Joint, M.Concrete)
+	part(
+		yard,
+		"JointBed",
+		Vector3.new(HL * 2, 1.6, HW * 2),
+		Vector3.new(0, TOP - 0.25 - 0.8, 0),
+		C.Joint,
+		M.SmoothPlastic
+	)
 	local SLAB = 10
 	for ix = 0, HL * 2 / SLAB - 1 do
 		for iz = 0, HW * 2 / SLAB - 1 do
@@ -790,7 +799,7 @@ return function(ctx, parent)
 			Vector3.new(reach + 0.6, 0.25, HW * 2 + 14),
 			CFrame.new(fx - s * reach / 2, (cy0 + cy1) / 2 + 0.5, 0)
 				* CFrame.Angles(0, 0, s * math.atan((cy0 - cy1) / reach)),
-			C.Shutter:Lerp(C.Paper, 0.25),
+			C.SteelLight:Lerp(C.Paper, 0.15),
 			M.CorrodedMetal,
 			{ deco = true }
 		)
@@ -875,7 +884,7 @@ return function(ctx, parent)
 				Vector3.new(w, h, 0.3),
 				Vector3.new(x, TOP + y0 + h / 2, FZ + 0.3),
 				C.Window,
-				{ t = 0.12 }
+				{ t = 0.32 }
 			)
 			if rng:NextNumber() < 0.35 then
 				pane.Color = C.Window:Lerp(C.Ink, 0.55) -- a few dark rooms: lights off
@@ -1133,7 +1142,7 @@ return function(ctx, parent)
 			)
 		end
 		for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
-			label(body, face, "FIREWORKS\nHANDLE WITH CARE", C.Ink, { pps = 30, t = 0.18, font = HEAVY })
+			label(body, face, "FIREWORKS\nHANDLE WITH CARE", C.Ink, { pps = 30, t = 0.18, font = HEAVY, pad = 0.1 })
 		end
 		if not opts.closed then -- rockets poking out of the open top
 			for k = 1, opts.rockets or 4 do
@@ -1574,13 +1583,30 @@ return function(ctx, parent)
 		end
 	end
 
+	-- ── Sky: soft volumetric clouds instead of the Meadow's brick ones (Environment keeps only its sea) ─────────
+	local env = workspace:FindFirstChild("Environment")
+	if env then
+		for _, n in ipairs({ "Clouds", "HorizonIslands" }) do
+			local old = env:FindFirstChild(n)
+			if old then
+				old:Destroy() -- Environment's builder brings them back if the Meadow ever returns
+			end
+		end
+	end
+	local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+	clouds.Cover = 0.55
+	clouds.Density = 0.32
+	clouds.Color = rgb(255, 226, 200)
+	clouds.Parent = workspace.Terrain
+
 	-- ── Lighting: "Golden Fuse" (Asset Bible §2.5) ───────────────────────────────────────────────────────────
 	local L = game:GetService("Lighting")
 	pcall(function()
 		(L :: any).Technology = Enum.Technology.Future
 	end)
-	L.ClockTime = 17.4
-	L.GeographicLatitude = 30
+	-- a low sun over the open near side (+Z): it lights the factory front and rakes long shadows across the yard
+	L.ClockTime = 15.4
+	L.GeographicLatitude = 77 -- with ClockTime 15.4: the sun 22° up, from (−0.46, 0.37, 0.80)
 	L.Brightness = 2.6
 	L.EnvironmentDiffuseScale = 0.75
 	L.EnvironmentSpecularScale = 0.6
