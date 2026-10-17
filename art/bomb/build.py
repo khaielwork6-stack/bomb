@@ -47,7 +47,7 @@ def srgb(h):
 IRON = srgb("#2E2C33")
 BRASS = srgb("#C9973F")
 PORCELAIN = srgb("#F4EFE6")
-CORD = srgb("#D9B98A")
+CORD = srgb("#C9A574")
 CHAR = srgb("#2A1F1A")
 INK2 = srgb("#241D2E")
 SPARK = srgb("#FFD84A")
@@ -470,7 +470,7 @@ give(rim, mat_emit("Soot", (0.02, 0.018, 0.016, 1), 0.0))
 FUSE_BASE = R * 0.96 + 0.27
 curve = bpy.data.curves.new("FuseCurve", "CURVE")
 curve.dimensions = "3D"
-curve.bevel_depth = 0.055
+curve.bevel_depth = 0.064
 curve.bevel_resolution = 6
 curve.use_fill_caps = True
 curve.resolution_u = 24
@@ -534,6 +534,13 @@ bevel(plate, 0.05, 4)
 give(plate, M_LEATHER)
 buckle = cylinder("Buckle", 0.09, 0.05, 32, loc=(0, -(R + 0.32), 0.38), rot=(math.radians(90), 0, 0))
 give(buckle, M_BRASS_RIVET)
+# Parent every bomb part to one root, so the CRITICAL swell (§3.3) grows the whole assembly together.
+root = bpy.data.objects.new("BombRoot", None)
+link(root)
+for o in list(bomb.objects):
+    if o is not root and o.parent is None:
+        o.parent = root
+
 # ── Stages (Asset Bible §3.3) ─────────────────────────────────────────────────────────────────────────────────────
 def set_stage(stage):
     seam_strength = {"LIT": 0.0, "HOT": 6.0, "CRITICAL": 28.0}[stage]
@@ -547,15 +554,21 @@ def set_stage(stage):
     lb.inputs["Emission Color"].default_value = lamp_col
     lb.inputs["Base Color"].default_value = lamp_col
     lb.inputs["Emission Strength"].default_value = 6.0 if stage != "CRITICAL" else 14.0
-    body.scale = (1, 1, 0.96) if stage != "CRITICAL" else (1.08, 1.08, 1.08 * 0.96)
+    root.scale = (1, 1, 1) if stage != "CRITICAL" else (1.08, 1.08, 1.08)
 
 
 # ── Lighting: Golden Fuse (Asset Bible §2.5) ─────────────────────────────────────────────────────────────────────
 world = bpy.data.worlds.new("GoldenFuse")
 world.use_nodes = True
 bg = world.node_tree.nodes["Background"]
-bg.inputs["Color"].default_value = srgb("#5D6A8F")
-bg.inputs["Strength"].default_value = 0.35
+sky = world.node_tree.nodes.new("ShaderNodeTexSky")
+sky.sky_type = "NISHITA"
+sky.sun_elevation = math.radians(14)
+sky.sun_rotation = math.radians(-35)
+sky.air_density = 1.4
+sky.dust_density = 2.2
+world.node_tree.links.new(sky.outputs["Color"], bg.inputs["Color"])
+bg.inputs["Strength"].default_value = 0.12
 scene.world = world
 
 
@@ -571,33 +584,57 @@ def area(name, loc, rot, size, color, power):
     return o
 
 
-key = area("Key", (3.2, -3.4, 3.0), (math.radians(55), 0, math.radians(43)), 2.5, srgb("#FFC58A"), 420)
-fill = area("Fill", (-3.6, -2.0, 1.2), (math.radians(75), 0, math.radians(-60)), 3.5, srgb("#8FA2D6"), 140)
-rim = area("Rim", (-1.0, 3.6, 2.8), (math.radians(-55), 0, math.radians(195)), 1.6, srgb("#FFE2B8"), 520)
+key = area("Key", (3.6, 3.8, 3.2), (math.radians(-52), 0, math.radians(137)), 3.0, srgb("#FFC58A"), 900)
+fill = area("Fill", (-4.2, 2.6, 1.4), (math.radians(-72), 0, math.radians(-122)), 4.0, srgb("#8FA2D6"), 260)
+rim = area("Rim", (-1.4, -3.8, 3.0), (math.radians(52), 0, math.radians(-20)), 1.8, srgb("#FFE2B8"), 1100)
 
 # The fuse spark for hero shots (the in-game spark is a particle effect, §5.2).
 spark_l = bpy.data.lights.new("Spark", "POINT")
-spark_l.energy = 18
+spark_l.energy = 40
 spark_l.color = srgb("#FFB347")[:3]
 spark_l.shadow_soft_size = 0.02
 spark = bpy.data.objects.new("SparkLight", spark_l)
 spark.location = (0.05, 0.03, FUSE_BASE + 1.3)
 scene.collection.objects.link(spark)
-spark_core = uv_sphere("SparkCore", 0.035, 16, 8, loc=spark.location)
-give(spark_core, mat_emit("SparkCore", (1, 0.92, 0.6, 1), 60))
+spark_core = uv_sphere("SparkCore", 0.05, 16, 8, loc=spark.location)
+give(spark_core, mat_emit("SparkCore", (1, 0.9, 0.55, 1), 140))
 
-# Ground: a warm dark floor that catches the shadow (reads like the yard at dusk).
+# A curved cyclorama (floor sweeping up into a back wall) instead of a flat ground: no horizon edge in any shot.
 bm = bmesh.new()
-bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=12)
-ground = mesh_obj("Ground", bm)
+profile = []
+for k in range(0, 13):
+    profile.append((-9 + k * 1.0, 0.0))  # floor
+for k in range(1, 13):
+    a = k / 12 * math.pi / 2
+    profile.append((3 + math.sin(a) * 4, 4 - math.cos(a) * 4))  # the sweep
+for k in range(1, 8):
+    profile.append((7.0, 4 + k * 1.5))  # back wall
+rows = []
+for xs in (-12, 12):
+    rows.append([bm.verts.new((xs, y, z)) for (y, z) in profile])
+for i in range(len(profile) - 1):
+    bm.faces.new((rows[0][i], rows[0][i + 1], rows[1][i + 1], rows[1][i]))
+ground = mesh_obj("Cyclorama", bm)
+shade_smooth(ground)
 ground.location = (0, 0, -R - 0.02)
-gm, gnt, gb = new_mat("Ground")
-gb.inputs["Base Color"].default_value = srgb("#3A3330")
-gb.inputs["Roughness"].default_value = 0.9
+ground.rotation_euler = (0, 0, math.radians(148))
+gm, gnt, gb = new_mat("Cyclorama")
+gtc = node(gnt, "ShaderNodeTexCoord", (-700, 0))
+gsep = node(gnt, "ShaderNodeSeparateXYZ", (-500, 0))
+gnt.links.new(gtc.outputs["Object"], gsep.inputs["Vector"])
+gr = node(gnt, "ShaderNodeValToRGB", (-250, 0))
+gr.color_ramp.elements[0].position = 0.0
+gr.color_ramp.elements[0].color = srgb("#2B2524")
+gr.color_ramp.elements[1].position = 1.0
+gr.color_ramp.elements[1].color = srgb("#1E2340")
+gmr = node(gnt, "ShaderNodeMapRange", (-380, 0), **{"From Min": 0.3, "From Max": 4.0})
+gnt.links.new(gsep.outputs["Z"], gmr.inputs["Value"])
+gnt.links.new(gmr.outputs["Result"], gr.inputs["Fac"])
+gnt.links.new(gr.outputs["Color"], gb.inputs["Base Color"])
+gb.inputs["Roughness"].default_value = 0.85
 give(ground, gm)
-scene.collection.objects.link(ground)
 bomb.objects.unlink(ground)
-
+scene.collection.objects.link(ground)
 # ── Render setup ─────────────────────────────────────────────────────────────────────────────────────────────────
 scene.render.engine = "CYCLES"
 scene.cycles.samples = SAMPLES
@@ -616,6 +653,27 @@ for backend in ("OPTIX", "CUDA"):
         continue
 scene.view_settings.view_transform = "AgX"
 scene.view_settings.look = "AgX - Medium High Contrast"
+scene.view_settings.exposure = 0.35
+scene.use_nodes = True
+ctree = scene.node_tree
+for n in list(ctree.nodes):
+    ctree.nodes.remove(n)
+rl = ctree.nodes.new("CompositorNodeRLayers")
+glare = ctree.nodes.new("CompositorNodeGlare")
+glare.glare_type = "STREAKS"
+glare.inputs["Threshold"].default_value = 2.2
+glare.inputs["Strength"].default_value = 0.6
+glare.inputs["Streaks"].default_value = 6
+glare.inputs["Streaks Angle"].default_value = math.radians(15)
+glare.inputs["Fade"].default_value = 0.86
+glow = ctree.nodes.new("CompositorNodeGlare")
+glow.glare_type = "FOG_GLOW"
+glow.inputs["Threshold"].default_value = 1.6
+glow.inputs["Strength"].default_value = 0.35
+glow.inputs["Size"].default_value = 0.4comp = ctree.nodes.new("CompositorNodeComposite")
+ctree.links.new(rl.outputs["Image"], glare.inputs["Image"])
+ctree.links.new(glare.outputs["Image"], glow.inputs["Image"])
+ctree.links.new(glow.outputs["Image"], comp.inputs["Image"])
 scene.render.film_transparent = False
 
 cam_data = bpy.data.cameras.new("Cam")
@@ -623,7 +681,7 @@ cam_data.lens = 70
 cam = bpy.data.objects.new("Cam", cam_data)
 scene.collection.objects.link(cam)
 scene.camera = cam
-target = Vector((0, 0, 0.35))
+target = Vector((0, 0, 0.72))  # the middle of bomb + fuse + spark
 
 
 def aim(loc, look=target, lens=70):
@@ -641,25 +699,27 @@ def render(name, res=1024, w=None):
     print("rendered", name, flush=True)
 
 
-def orbit(angle_deg, dist=6.4, height=1.6):
+def orbit(angle_deg, dist=10.0, height=2.6):
     a = math.radians(angle_deg)
+    ground.rotation_euler = (0, 0, a)  # the backdrop always sits behind the bomb
     return (math.sin(a) * dist, -math.cos(a) * dist, height)
 
 
 # Hero (3/4 front, LIT) and the three stages.
 set_stage("LIT")
-aim(orbit(148, 6.2, 1.9))
+aim(orbit(148, 9.4, 2.7))
 render("hero", 1400, 1400)
 for st in ("LIT", "HOT", "CRITICAL"):
     set_stage(st)
-    aim(orbit(148, 6.2, 1.9))
+    aim(orbit(148, 9.4, 2.7))
     render(f"stage_{st}", 640)
 set_stage("LIT")
 # 8 turntable angles
 for i in range(8):
-    aim(orbit(i * 45, 6.6, 1.5))
+    aim(orbit(i * 45, 10.0, 2.2))
     render(f"turn_{i * 45:03d}", 512)
 # Material close-up: belt, rivet, lamp, hammered iron
+ground.rotation_euler = (0, 0, math.radians(199))
 aim((-0.9, 2.6, 0.45), Vector((-0.15, 1.05, 0.05)), 85)
 render("detail", 900)
 # Silhouette: everything black on white
@@ -678,11 +738,14 @@ for o in bomb.objects:
         o.data.materials.append(sil)
 ground.hide_render = True
 spark_core.hide_render = True
+for lk in list(world.node_tree.links):
+    if lk.to_node == bg:
+        world.node_tree.links.remove(lk)
 bg.inputs["Color"].default_value = (1, 1, 1, 1)
 bg.inputs["Strength"].default_value = 1.0
 for l in (key, fill, rim, spark):
     l.hide_render = True
-aim(orbit(-90, 7.2, 0.4))
+aim(orbit(-90, 10.5, 0.7))
 render("silhouette", 512)
 for o in bomb.objects:
     if o.name in saved:
@@ -691,8 +754,8 @@ for o in bomb.objects:
             o.data.materials.append(m)
 ground.hide_render = False
 spark_core.hide_render = False
-bg.inputs["Color"].default_value = srgb("#5D6A8F")
-bg.inputs["Strength"].default_value = 0.35
+world.node_tree.links.new(sky.outputs["Color"], bg.inputs["Color"])
+bg.inputs["Strength"].default_value = 0.12
 for l in (key, fill, rim, spark):
     l.hide_render = False
 
@@ -725,6 +788,7 @@ block("ArmR", (1, 1, 2), (torso_c.x + 1.5, torso_c.y, torso_c.z))
 block("LegL", (1, 1, 2), (torso_c.x - 0.5, torso_c.y, torso_c.z - 2))
 block("LegR", (1, 1, 2), (torso_c.x + 0.5, torso_c.y, torso_c.z - 2))
 ground.location.z = torso_c.z - 3.0
+ground.rotation_euler = (0, 0, math.radians(113))
 aim((7.5, 3.2, 1.6), Vector((0, -1.3, 0.2)), 50)
 render("scale_r6", 900)
 
