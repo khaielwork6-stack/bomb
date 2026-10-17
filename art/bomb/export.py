@@ -203,6 +203,8 @@ for name, o in baked.items():
     maps = {}
     for kind in ("COLOR", "ROUGHNESS", "NORMAL", "METAL"):
         img = bpy.data.images.new(f"{name}_{kind}", res, res, alpha=False, float_buffer=(kind == "NORMAL"))
+        if kind != "COLOR":
+            img.colorspace_settings.name = "Non-Color"  # data maps: saved raw, never gamma-encoded
         if kind in ("METAL", "COLOR"):
             undo = to_emission(o, "Metallic" if kind == "METAL" else "Base Color")
             bake_pass(o, img, "METAL")  # an EMIT bake

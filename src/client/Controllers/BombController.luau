@@ -376,12 +376,28 @@ local function attach(host: Instance): Visual?
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,
 		LightInfluence = 0,
-		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.28), NumberSequenceKeypoint.new(1, 0) }),
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.42), NumberSequenceKeypoint.new(1, 0) }),
 		Lifetime = NumberRange.new(0.15, 0.35),
-		Speed = NumberRange.new(2, 5),
+		Speed = NumberRange.new(3, 7),
 		SpreadAngle = Vector2.new(70, 70),
 		Acceleration = Vector3.new(0, -12, 0),
 		Rate = 40,
+		Parent = sparkAtt,
+	})
+	-- The burning point itself (Asset Bible §5.2): a flickering six-point star, always on top of the cord.
+	new("ParticleEmitter", {
+		Name = "SparkCore",
+		Texture = Assets.Vfx.Flash,
+		Color = ColorSequence.new(Color3.new(1, 0.96, 0.82), P.Spark),
+		LightEmission = 1,
+		LightInfluence = 0,
+		Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.75), NumberSequenceKeypoint.new(1, 0.45) }),
+		Transparency = NumberSequence.new(0, 0.6),
+		Lifetime = NumberRange.new(0.05, 0.09),
+		Rate = 40,
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
+		ZOffset = 0.4,
 		Parent = sparkAtt,
 	})
 	local light = new("PointLight", { Color = P.Fuse, Range = 5, Brightness = 2, Parent = sparkAtt })
