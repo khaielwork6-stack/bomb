@@ -50,6 +50,9 @@ local function burstAt(pos: Vector3, life: number): Attachment
 end
 
 local function emit(att: Attachment, count: number, props: { [string]: any })
+	if count <= 0 then
+		return
+	end
 	local e = new("ParticleEmitter", props)
 	e.Rate = 0
 	e.Parent = att
@@ -138,12 +141,16 @@ end
 
 -- The explosion stack at `pos` (scale 1 = a full bomb boom), Asset Bible §5.1: flash → fireball + shockwave →
 -- sparks + embers → smoke that takes over as the fireball burns out → scorch. The pre-swell is the bomb's own.
-function FxController.boom(pos: Vector3, scale: number?)
+-- `lite` is the §5.1 light variant for many booms at once (the field detonation): flash + fireball + 8 sparks +
+-- 3 smoke puffs, no light, lumps, embers or scorch.
+function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 	local s = scale or 1
 	local att = burstAt(pos, 3.5)
 	-- the fireball, flash and smoke sit up off the ground so they read whole; ring, sparks and scorch start at the floor
 	local core = burstAt(pos + Vector3.new(0, 2.5 * s, 0), 3.5)
-	flash(pos, 26 * s, 4, P.Spark, 0.2)
+	if not lite then
+		flash(pos, 26 * s, 4, P.Spark, 0.2)
+	end
 	-- 1. the star flash: one frame-fast pop, bigger than everything else
 	emit(core, 1, {
 		Texture = Assets.Vfx.Flash,
@@ -172,7 +179,7 @@ function FxController.boom(pos: Vector3, scale: number?)
 	)
 	emit(
 		core,
-		math.floor(4 * s + 0.5),
+		if lite then 0 else math.floor(4 * s + 0.5),
 		flipbook({
 			Texture = Assets.Vfx.Fireball,
 			Size = keys({ { 0, 4 * s }, { 1, 6 * s } }),
@@ -199,7 +206,7 @@ function FxController.boom(pos: Vector3, scale: number?)
 		EmissionDirection = Enum.NormalId.Top,
 	})
 	-- 4. spark streaks (velocity-aligned) and slow embers
-	emit(att, math.floor(26 * s), {
+	emit(att, if lite then 8 else math.floor(26 * s), {
 		Texture = Assets.Vfx.Streak,
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,
@@ -212,7 +219,7 @@ function FxController.boom(pos: Vector3, scale: number?)
 		SpreadAngle = Vector2.new(180, 180),
 		Acceleration = Vector3.new(0, -30, 0),
 	})
-	emit(att, math.floor(14 * s), {
+	emit(att, if lite then 0 else math.floor(14 * s), {
 		Texture = Assets.Vfx.Ember,
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,
@@ -231,7 +238,7 @@ function FxController.boom(pos: Vector3, scale: number?)
 		end
 		emit(
 			core,
-			math.floor(6 * s + 0.5),
+			if lite then 3 else math.floor(6 * s + 0.5),
 			flipbook({
 				Texture = Assets.Vfx.Smoke,
 				Color = ColorSequence.new(Color3.fromRGB(236, 230, 224), Color3.fromRGB(200, 196, 204)),
@@ -248,7 +255,9 @@ function FxController.boom(pos: Vector3, scale: number?)
 		)
 	end)
 	-- 6. the scorch it leaves behind
-	scorch(pos, s)
+	if not lite then
+		scorch(pos, s)
+	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
 		local d = (root.Position - pos).Magnitude
@@ -318,7 +327,7 @@ local function fieldDetonation(fromSide: number, sweep: number)
 			for c = 0, cols - 1 do
 				local x = -halfWidth + (c + 0.5) / cols * halfWidth * 2 + (math.random() - 0.5) * 6
 				local pos = (frame * CFrame.new(x, 1, -z)).Position
-				FxController.boom(pos, 0.55)
+				FxController.boom(pos, 0.55, true)
 			end
 		end)
 	end

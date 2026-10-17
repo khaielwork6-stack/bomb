@@ -42,3 +42,8 @@ See GDD §26.1. Tasks get broken down at the start of each phase.
 - [~] P3-01 Hero bomb "The Tick": `art/bomb/build.py` (Blender 4.5, deterministic) → review contact sheet → **approved by the user 2026-10-17** → next: bake + FBX export, user imports, swap the part-built bomb
 - [x] P3-03 The partner's premium UI kit (`UI/Skin`) ported and recoloured; every `Theme.panel` uses it
 - [x] P3-04 Carrier toolkit (§10.2) and the Last Stand presentation (§8.2)
+- [x] P3-05 Sound design (GDD §10.1): `AudioController` phase music, carrier muffle + heartbeat + paced tick, layered stacks; 30 licensed library sounds, all load
+- [x] P3-06 Explosion stack (Asset Bible §5) on in-house textures: `art/vfx/make_vfx.py` → 7 PNGs uploaded (`Assets.Vfx`) → `FxController` flash / fireball flipbook / ring / streaks / embers / smoke flipbook / scorch; verified in Studio 2026-10-17 (screens in-session), 0 script errors
+- [ ] P3-07 Hero bomb in game: **human** imports `art/out/Bomb.ClassicIron/export/Bomb.ClassicIron.glb` (Studio → Import 3D) → move to `ReplicatedStorage.FV_Art.Bomb` → verify scale ≈2.2 studs, orientation, fuse segments
+- [ ] P3-08 Launch map first pass (Asset Bible §4.2)
+- [ ] P3-09 Performance: 60 FPS on a mid-range phone (particle counts at the field detonation, bomb texture sizes)
