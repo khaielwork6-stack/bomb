@@ -118,7 +118,20 @@ Assets.Vfx = {
 	Ember = "rbxassetid://135076496021372",
 }
 
--- Premium painted icons (the Skin kit's Skin.icon). FUSE VALLEY's own set (Asset Bible §6.4) lands with the P5 store.
-Assets.Icon = {} :: { [string]: string }
+-- The custom icon set (Asset Bible §6.4), drawn in code by art/ui/make_icons.py (Skin.icon). Person and Badge are
+-- grey: tint them (team colours, badge tiers) with ImageColor3.
+Assets.Icon = {
+	Star = "rbxassetid://86093237979583",
+	Gift = "rbxassetid://121335451303695",
+	Scroll = "rbxassetid://71911946865623",
+	Calendar = "rbxassetid://89162593444268",
+	Flame = "rbxassetid://96666900794298",
+	Crate = "rbxassetid://121054222520468",
+	Check = "rbxassetid://133209889740447",
+	Bomb = "rbxassetid://134063506701775",
+	Person = "rbxassetid://101797418040884",
+	Shield = "rbxassetid://80516751356640",
+	Badge = "rbxassetid://75057395762995",
+} :: { [string]: string }
 
 return Assets
