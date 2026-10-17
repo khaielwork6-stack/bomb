@@ -1,0 +1,16 @@
+--!strict
+-- Shared settings readable by both server and client. Every tunable lives in a submodule here; code never hard-codes
+-- numbers (GDD §0, Appendix A). Add a submodule here when its phase lands (Round/Bomb: P1, Bots: P2, Economy…: P4).
+
+local Config = {
+	GameName = "TICK TAG", -- D1: working title; change only here (GDD §2)
+
+	Game = require(script.Game),
+	Movement = require(script.Movement),
+	Arena = require(script.Arena),
+	Maps = require(script.Maps),
+	Data = require(script.Data),
+	Debug = require(script.Debug),
+}
+
+return Config

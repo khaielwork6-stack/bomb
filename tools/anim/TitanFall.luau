@@ -1,0 +1,171 @@
+--!strict
+-- TitanFall (3.4 s, Action). TITAN HUNT: the Titan is defeated (the final dive lands on the weak spot while it
+-- kneels). From TitanKneel's pose:
+-- 0.00–0.15 the last blow: a violent jolt up the spine, head thrown back, arms flung out (the game drops the
+--           hammer here: unweld it and let it fall).
+-- 0.15–0.90 it staggers half up onto its feet, arching back, arms flailing.
+-- 0.90–1.60 it totters, swaying side to side, a stumbling step to keep its balance.
+-- 1.60–2.28 it topples forward, slowly at first then faster (gravity), reaching out to break the fall.
+-- 2.28      IMPACT face-down (camera shake, dust ring), a heavy bounce and a smaller second one.
+-- 2.50–3.40 still, sprawled, head turned to one side; one last twitch of the left hand.
+-- contact = "all": while it falls and lies, whatever part is lowest rests on the floor.
+
+local LENGTH = 3.4
+local IMPACT = 2.28
+
+return {
+	name = "TitanFall",
+	length = LENGTH,
+	looped = false,
+	priority = "Action",
+	contact = "all",
+	hipPivot = 1,
+	springs = {
+		lArm = { 4, 0.55 },
+		lArmOut = { 4, 0.55 },
+		rArm = { 4, 0.55 },
+		rArmOut = { 4, 0.55 },
+		head = { 6, 0.5 },
+		headYaw = { 4, 0.6 },
+	},
+	lag = { head = 0.06, headYaw = 0.1, lArm = 0.05, rArm = 0.07, lArmOut = 0.05, rArmOut = 0.06 },
+	keys = { { t = 0 }, { t = LENGTH } },
+	tracks = {
+		-- torso: jolt up, arch back while staggering, totter, then the accelerating topple and the face-down landing
+		pitch = {
+			{ 0, 31.8 },
+			{ 0.12, 10, "hit" },
+			{ 0.45, -6 },
+			{ 0.9, -10 },
+			{ 1.2, -4 },
+			{ 1.45, -7 },
+			{ 1.7, 4 },
+			{ 1.9, 16 },
+			{ 2.08, 42 },
+			{ IMPACT, 90, "hit" },
+			{ 2.42, 86 },
+			{ 2.56, 90, "hit" },
+			{ 2.7, 88.5 },
+			{ LENGTH, 89 },
+		},
+		roll = {
+			{ 0, 1 },
+			{ 0.12, 6 },
+			{ 0.6, -3 },
+			{ 1.0, -8 },
+			{ 1.3, 7 },
+			{ 1.6, -5 },
+			{ 2.0, 4 },
+			{ IMPACT, 6 },
+			{ LENGTH, 7 },
+		},
+		yaw = { { 0, 3 }, { 0.12, -8 }, { 0.7, 6 }, { 1.2, -6 }, { 1.7, 4 }, { IMPACT, 8 }, { LENGTH, 9 } },
+		squash = { { 0, 0.05 }, { 0.12, 0 }, { 1.6, 0.02 }, { IMPACT, 0.1, "hit" }, { 2.4, 0 }, { LENGTH, 0.02 } },
+		lift = { { 0, 0 }, { IMPACT, 0 }, { 2.4, 0.16 }, { 2.56, 0, "hit" }, { 2.63, 0.04 }, { 2.7, 0 }, { LENGTH, 0 } },
+		-- legs: push up out of the kneel, a stumbling step, then they follow the body down (world angles ≈ -pitch)
+		rLeg = {
+			{ 0, -82 },
+			{ 0.2, -70 },
+			{ 0.6, -18 },
+			{ 0.9, -6 },
+			{ 1.25, 4 },
+			{ 1.6, 2 },
+			{ 1.9, -12 },
+			{ 2.08, -40 },
+			{ IMPACT, -86 },
+			{ LENGTH, -84 },
+		},
+		lLeg = {
+			{ 0, 78 },
+			{ 0.2, 66 },
+			{ 0.6, 22 },
+			{ 0.9, 10 },
+			{ 1.15, 26 },
+			{ 1.4, -4 },
+			{ 1.9, -18 },
+			{ 2.08, -44 },
+			{ IMPACT, -90 },
+			{ LENGTH, -88 },
+		},
+		rLegOut = { { 0, 14 }, { 0.9, 9 }, { 1.6, 8 }, { IMPACT, 10 }, { LENGTH, 11 } },
+		lLegOut = { { 0, 18 }, { 0.9, 9 }, { 1.6, 8 }, { IMPACT, 14 }, { LENGTH, 15 } },
+		rLegTwist = { { 0, 2 }, { 1.6, 6 }, { LENGTH, 14 } },
+		lLegTwist = { { 0, -6 }, { 1.6, -6 }, { LENGTH, -12 } },
+		-- arms: flung out by the blow, flailing for balance, reaching out to break the fall, sprawled; a last twitch
+		lArm = {
+			{ 0, 32 },
+			{ 0.14, 58 },
+			{ 0.5, 30 },
+			{ 0.85, 76 },
+			{ 1.2, 20 },
+			{ 1.55, 60 },
+			{ 1.95, 72 },
+			{ IMPACT, 96 },
+			{ 2.5, 104 },
+			{ 3.0, 102 },
+			{ 3.08, 112 },
+			{ 3.18, 103 },
+			{ LENGTH, 104 },
+		},
+		lArmOut = {
+			{ 0, 8 },
+			{ 0.14, 62 },
+			{ 0.5, 40 },
+			{ 0.85, 58 },
+			{ 1.3, 30 },
+			{ 1.95, 26 },
+			{ IMPACT, 40 },
+			{ 2.5, 56 },
+			{ LENGTH, 58 },
+		},
+		lArmTwist = { { 0, -2 }, { 0.14, 12 }, { 1.0, -4 }, { IMPACT, 10 }, { LENGTH, 16 } },
+		rArm = {
+			{ 0, 28.7 },
+			{ 0.14, 72 },
+			{ 0.5, 40 },
+			{ 0.9, 88 },
+			{ 1.25, 30 },
+			{ 1.6, 54 },
+			{ 1.95, 70 },
+			{ IMPACT, 92 },
+			{ 2.5, 86 },
+			{ LENGTH, 84 },
+		},
+		rArmOut = {
+			{ 0, 10 },
+			{ 0.14, 44 },
+			{ 0.5, 30 },
+			{ 0.9, 50 },
+			{ 1.3, 26 },
+			{ 1.95, 22 },
+			{ IMPACT, 26 },
+			{ 2.5, 20 },
+			{ LENGTH, 18 },
+		},
+		rArmTwist = { { 0, 2 }, { 0.14, 10 }, { 1.2, -6 }, { IMPACT, 4 }, { LENGTH, 6 } },
+		-- head: thrown back, lolling while it totters, turned to one side as it lies
+		head = {
+			{ 0, 12 },
+			{ 0.12, -26, "hit" },
+			{ 0.5, -10 },
+			{ 0.9, -16 },
+			{ 1.3, 4 },
+			{ 1.7, -6 },
+			{ 2.0, -14 },
+			{ IMPACT, -8 },
+			{ 2.5, -4 },
+			{ LENGTH, -4 },
+		},
+		headYaw = {
+			{ 0, 0 },
+			{ 0.12, -10 },
+			{ 0.6, 18 },
+			{ 1.0, -22 },
+			{ 1.4, 16 },
+			{ 1.8, -8 },
+			{ IMPACT, 24 },
+			{ 2.6, 36 },
+			{ LENGTH, 38 },
+		},
+	},
+}

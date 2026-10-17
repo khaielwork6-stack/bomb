@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<style>
+  :root{
+    --ink:#16121C; --inksoft:#241D2E; --paper:#FFF3E2; --bonk:#FF6A1F; --bonkdark:#C94A0C;
+    --runner:#2FD3FF; --catcher:#FF4A2E; --brave:#FFD84A; --safe:#3BE48C; --ghost:#B04CFF; --ice:#9BE7FF; --grey:#8C8498;
+    --line:#E7DCCB; --row:#FFFBF5;
+  }
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm;
+    @bottom-left { content: "{{SHORT}}"; font: 600 8pt Inter, sans-serif; color: #9AA3B5; }
+    @bottom-right { content: counter(page) " / " counter(pages); font: 600 8pt Inter, sans-serif; color: #9AA3B5; } }
+  @page :first { margin: 0; @bottom-left { content: none } @bottom-right { content: none } }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; font: 400 9.6pt/1.5 Inter, "Segoe UI", sans-serif; color: var(--ink); background:#fff; }
+
+  /* ---------- Cover ---------- */
+  .cover { height: 297mm; width: 210mm; position: relative; overflow: hidden; background: radial-gradient(120% 90% at 70% 35%, #3B2A2A 0%, #16121C 62%); color: #fff; page-break-after: always; }
+  .cover .rays { position:absolute; inset:-40%; background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,106,31,.10) 0 9deg, transparent 9deg 18deg); }
+  .cover .inner { position:absolute; inset: 22mm 18mm; display:flex; flex-direction:column; }
+  .cover .kicker { font: 700 11pt Fredoka, sans-serif; letter-spacing:.18em; text-transform:uppercase; opacity:.92; }
+  .cover h1 { font: 700 64pt/0.95 Fredoka, sans-serif; margin: 10mm 0 4mm; color:#FFF3E2; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 6px 0 #FF6A1F; }
+  .cover .sub { font: 600 20pt/1.2 Fredoka, sans-serif; color: var(--paper); max-width: 105mm; }
+  .cover .card { margin-top:auto; background: var(--paper); color: var(--ink); border: 3px solid #000; border-radius: 18px; padding: 8mm 9mm; box-shadow: 0 8px 0 #FF6A1F; }
+  .cover .card .meta { display:grid; grid-template-columns: 1fr 1fr; gap: 3mm 8mm; font-size: 10pt; }
+  .cover .card .meta b { display:block; font: 700 8pt Inter; letter-spacing:.12em; text-transform: uppercase; color: var(--bonkdark); }
+  .cover .swatches { display:flex; gap:3mm; margin-top:6mm; }
+  .cover .swatches span { width: 13mm; height: 13mm; border-radius: 4mm; border: 2px solid var(--ink); }
+  .cover .hammer { position:absolute; right: 8mm; top: 70mm; width: 92mm; height: 92mm; }
+
+  /* ---------- TOC ---------- */
+  .toc { page-break-after: always; padding-top: 4mm; }
+  .toc h2 { border:none; margin-top:0; }
+  .toc ol { list-style:none; padding:0; margin:0; columns: 2; column-gap: 10mm; }
+  .toc li { break-inside: avoid; padding: 1.4mm 0; border-bottom: 1px dashed var(--line); font: 600 9.5pt Inter; }
+  .toc li a { color: var(--ink); text-decoration:none; }
+  .toc li.h3 { font-weight: 400; padding-left: 5mm; font-size: 8.6pt; color: #4a5070; }
+
+  /* ---------- Content ---------- */
+  #content h1 { display:none; } /* doc title is on the cover */
+  #content h2 { font: 700 20pt/1.15 Fredoka, sans-serif; color: var(--ink); margin: 0 0 4mm; padding: 4mm 0 3mm; border-bottom: 4px solid var(--bonk); page-break-before: always; }
+  #content h2:first-of-type { page-break-before: auto; }
+  #content h3 { font: 700 13pt/1.25 Fredoka, sans-serif; color: var(--bonkdark); margin: 6mm 0 2mm; break-after: avoid; }
+  #content h4 { font: 700 10.5pt Inter; margin: 4mm 0 1.5mm; break-after: avoid; }
+  #content p { margin: 1.6mm 0 2.4mm; }
+  #content ul, #content ol { margin: 1mm 0 2.6mm; padding-left: 6mm; }
+  #content li { margin: .6mm 0; }
+  #content blockquote { margin: 3mm 0; padding: 3mm 4mm; background: var(--paper); border: 2px solid var(--ink); border-left: 8px solid var(--bonk); border-radius: 10px; }
+  #content blockquote p { margin: 1mm 0; }
+  #content hr { border: none; border-top: 2px dashed var(--line); margin: 5mm 0; }
+  #content code { font: 500 8.4pt "JetBrains Mono", Consolas, monospace; background: #F3EEE6; border: 1px solid var(--line); padding: .2mm 1.2mm; border-radius: 4px; }
+  #content pre { background: var(--ink); color: #F2F4FF; border-radius: 10px; padding: 3.5mm 4mm; white-space: pre-wrap; word-break: break-word; break-inside: avoid; font: 500 7.8pt/1.45 "JetBrains Mono", Consolas, monospace; border: 2px solid var(--ink); }
+  #content pre code { background: none; border: none; padding: 0; color: inherit; font: inherit; }
+  #content table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 2.5mm 0 4mm; font-size: 8.2pt; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; }
+  #content thead th { background: var(--ink); color: #fff; font: 700 8pt Inter; text-align: left; padding: 1.8mm 2.2mm; letter-spacing:.02em; }
+  #content td { padding: 1.5mm 2.2mm; vertical-align: top; border-top: 1px solid var(--line); }
+  #content tbody tr:nth-child(even) td { background: var(--row); }
+  #content tr { break-inside: avoid; }
+  #content { max-width: 182mm; }
+  #content td, #content th { overflow-wrap: break-word; word-break: normal; }
+  #content code { overflow-wrap: anywhere; word-break: break-all; }
+  #content table { table-layout: auto; max-width: 100%; }
+  #content td:first-child code { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+  #content strong { font-weight: 700; }
+  #content a { color: var(--bonkdark); }
+  .tag { display:inline-block; font: 700 7pt Inter; padding: .2mm 1.6mm; border-radius: 99px; border: 1.5px solid var(--ink); vertical-align: 1px; }
+  .tag.parity { background: var(--ice); } .tag.ours { background: var(--brave); } .tag.tune { background: #E7E1FF; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="rays"></div>
+  <svg class="hammer" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <radialGradient id="iron" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#5A5560"/><stop offset=".45" stop-color="#2E2C33"/><stop offset="1" stop-color="#121016"/></radialGradient>
+      <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0C46A"/><stop offset=".5" stop-color="#C9973F"/><stop offset="1" stop-color="#7E5A1E"/></linearGradient>
+      <radialGradient id="spark" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#FFD84A"/><stop offset="1" stop-color="#FF6A1F" stop-opacity="0"/></radialGradient>
+    </defs>
+    <path d="M118 40 C 126 28, 112 20, 122 10" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/>
+    <path d="M118 40 C 126 28, 112 20, 122 10" fill="none" stroke="#D9B98A" stroke-width="5" stroke-linecap="round" stroke-dasharray="3 2"/>
+    <circle cx="122" cy="10" r="16" fill="url(#spark)"/>
+    <g stroke="#FFD84A" stroke-width="2" stroke-linecap="round"><path d="M122 10 l10 -8"/><path d="M122 10 l13 4"/><path d="M122 10 l-4 -12"/><path d="M122 10 l-11 -2"/></g>
+    <rect x="98" y="38" width="34" height="18" rx="5" fill="url(#brass)" stroke="#000" stroke-width="4" transform="rotate(14 115 47)"/>
+    <ellipse cx="100" cy="118" rx="70" ry="67" fill="url(#iron)" stroke="#000" stroke-width="5"/>
+    <path d="M32 112 Q100 140 168 112 L168 128 Q100 156 32 128 Z" fill="url(#brass)" stroke="#000" stroke-width="4"/>
+    <g fill="#FFE2A0" stroke="#5A3E10" stroke-width="1"><circle cx="48" cy="124" r="3"/><circle cx="70" cy="132" r="3"/><circle cx="130" cy="132" r="3"/><circle cx="152" cy="124" r="3"/></g>
+    <circle cx="100" cy="138" r="10" fill="#FFD84A" stroke="#000" stroke-width="4"/><circle cx="97" cy="135" r="3" fill="#fff"/>
+    <ellipse cx="72" cy="84" rx="16" ry="9" fill="#fff" opacity=".18" transform="rotate(-30 72 84)"/>
+  </svg>
+  <div class="inner">
+    <div class="kicker">{{KICKER}}</div>
+    <h1>TICK<br>TAG</h1>
+    <div class="sub">{{SUBTITLE}}</div>
+    <div class="card">
+      <div class="meta">
+        <div><b>Document</b>{{TITLE}}</div>
+        <div><b>Version</b>1.0 · 2026-10-17</div>
+        <div><b>Platform</b>Roblox · PC · Mobile · Console</div>
+        <div><b>Built with</b>Rojo · Luau (strict) · Claude Code</div>
+      </div>
+      <div class="swatches">
+        <span style="background:#FF6A1F"></span><span style="background:#2FD3FF"></span><span style="background:#FF4A2E"></span>
+        <span style="background:#FFD84A"></span><span style="background:#3BE48C"></span><span style="background:#B04CFF"></span>
+        <span style="background:#C9973F"></span><span style="background:#2E2C33"></span><span style="background:#FFF3E2"></span>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="toc"><h2>Contents</h2><ol id="toc"></ol></section>
+<main id="content"></main>
+<script type="text/markdown" id="md">{{MD}}</script>
+<script>
+  (function(){
+    const src = document.getElementById('md').textContent;
+    marked.use({ gfm: true, breaks: false });
+    const html = marked.parse(src);
+    const main = document.getElementById('content');
+    main.innerHTML = html;
+    // tags
+    main.querySelectorAll('td, p, li, h3').forEach(el => {
+      el.innerHTML = el.innerHTML
+        .replace(/\[PARITY([^\]]*)\]/g, '<span class="tag parity">PARITY$1</span>')
+        .replace(/\[OURS([^\]]*)\]/g, '<span class="tag ours">OURS$1</span>')
+        .replace(/\[TUNE\]/g, '<span class="tag tune">TUNE</span>');
+    });
+    // TOC
+    const toc = document.getElementById('toc');
+    let i = 0;
+    main.querySelectorAll('h2, h3').forEach(h => {
+      const id = 's' + (i++); h.id = id;
+      if (h.tagName === 'H3' && !/^\d+\.\d+/.test(h.textContent.trim())) return;
+      const li = document.createElement('li'); li.className = h.tagName.toLowerCase();
+      const a = document.createElement('a'); a.href = '#' + id; const c = h.cloneNode(true); c.querySelectorAll('.tag, code').forEach(x => x.remove()); a.textContent = c.textContent.replace(/\(user picks? [^)]*\)/g,'').replace(/\s+/g,' ').trim();
+      li.appendChild(a); toc.appendChild(li);
+    });
+    document.title = "{{TITLE}}";
+    window.__ready = true;
+  })();
+</script>
+</body>
+</html>

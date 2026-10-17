@@ -1,0 +1,42 @@
+# Wally packages (restored with `wally install`)
+/Packages
+/ServerPackages
+/DevPackages
+wally.lock
+
+# Rojo / luau-lsp generated
+sourcemap.json
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+!assets/**/*.rbxm
+!assets/**/*.rbxmx
+
+# Selene generated std
+roblox.yml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.lock.rbxl
+
+# Local art toolchain and render intermediates
+art3d/.venv/
+art3d/.tools/
+art3d/**/__pycache__/
+art3d/out/**/frames/
+art3d/out/logs/
+art3d/*.zip
+*.blend1
+
+# Design-doc build intermediates (rebuild with docs/design/build/build.ps1)
+docs/design/build/*.html
+!docs/design/build/template.html
+
+# Lune analysis output (tools/anim/analyse.luau)
+tools/anim/out/
+
+# Marketing images (thumbnails, icon): large PNGs kept on the owner's PC, not in git
+marketing/
+__pycache__/
