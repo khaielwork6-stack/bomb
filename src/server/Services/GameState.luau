@@ -1,5 +1,5 @@
 --!strict
--- Replicated global match state as attributes on ReplicatedStorage.GameState. GDD §21.4.
+-- Replicated global round state as attributes on ReplicatedStorage.GameState. GDD §22.2.
 -- Clients read these; timers use workspace:GetServerTimeNow() (PhaseEndsAt).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,22 +21,18 @@ function GameState.init()
 	GameState.set("Phase", Types.Phase.Boot)
 	GameState.set("SubPhase", Types.Sub.None)
 	GameState.set("PhaseEndsAt", 0)
-	GameState.set("CrossingIndex", 0)
-	GameState.set("CleanStreak", 0)
-	GameState.set("Tier", "I")
-	GameState.set("ThemeId", "Classic")
-	GameState.set("MapId", "")
-	GameState.set("ModifierId", "")
-	GameState.set("ModifierSeed", 0)
+	-- Round (GDD §5, §6.2, §8): the HUD reads these.
+	GameState.set("Crossing", 0)
+	GameState.set("MaxCrossings", 0)
+	GameState.set("StartSide", -1) -- the side the Runners cross FROM this crossing
+	GameState.set("FuseEndsAt", 0) -- the Field Fuse (server time)
+	GameState.set("FuseTotal", 0)
 	GameState.set("RunnersLeft", 0)
-	GameState.set("CatchersCount", 0)
-	GameState.set("LeadId", "")
-	GameState.set("ChosenIds", "")
-	GameState.set("BraveState", "")
+	GameState.set("BombersCount", 0)
+	GameState.set("LastStandId", "")
+	GameState.set("Outcome", "") -- "LastStand" | "Bombers" | "Survivors" at RESULTS
 	GameState.set("Headline", "")
 	GameState.set("HeadlineSub", "")
-	GameState.set("StartSide", 1)
-	GameState.set("MatchSeed", 0)
 end
 
 function GameState.set(key: string, value: any)

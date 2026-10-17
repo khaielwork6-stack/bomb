@@ -1,5 +1,5 @@
 --!strict
--- Shared enums/strings used as attribute values. GDD §21.4.
+-- Shared enums/strings used as attribute values. GDD §5, §22.
 
 local Types = {}
 
@@ -19,29 +19,23 @@ Types.State = {
 	AFK = "AFK",
 }
 
+-- Round phases (GDD §5.2). Values are attribute strings on ReplicatedStorage.GameState ("Phase").
 Types.Phase = {
 	Boot = "BOOT",
-	Lobby = "LOBBY",
-	Vote = "VOTE",
-	Filling = "FILLING",
-	TransitionIn = "TRANSITION_IN",
-	Intro = "MATCH_INTRO",
+	Intermission = "INTERMISSION",
+	Intro = "INTRO",
+	Ready = "READY",
 	Crossing = "CROSSING",
-	MatchEnd = "MATCH_END",
-	TransitionOut = "TRANSITION_OUT",
+	Resolve = "RESOLVE",
+	LastStand = "LAST_STAND",
+	Results = "RESULTS",
 }
 
+-- Sub-phases ("SubPhase"): the Last Stand's intro beat before its run (GDD §8.2).
 Types.Sub = {
 	None = "NONE",
-	GetReady = "GET_READY",
-	LeadPick = "LEAD_PICK",
-	BraveOrBail = "BRAVE_OR_BAIL",
-	Reveal = "LINEUP_REVEAL",
-	BraveRun = "BRAVE_RUN",
+	Intro = "INTRO",
 	Run = "RUN",
-	Resolve = "RESOLVE",
-	LastStandIntro = "LAST_STAND_INTRO",
-	Countdown = "COUNTDOWN", -- 3-2-1 before the main run after a Brave run
 }
 
 Types.Collision = {

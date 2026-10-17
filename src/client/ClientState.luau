@@ -51,12 +51,13 @@ function ClientState.myId(): string
 end
 
 -- Is the run live (catching/dashing matters)?
+-- Is a crossing being run right now? (a normal crossing, or the Last Stand's run, GDD §5.2)
 function ClientState.runLive(): boolean
-	local sub = ClientState.sub()
-	return ClientState.phase() == Types.Phase.Crossing and (sub == Types.Sub.Run or sub == Types.Sub.BraveRun)
+	local phase = ClientState.phase()
+	return phase == Types.Phase.Crossing or (phase == Types.Phase.LastStand and ClientState.sub() == Types.Sub.Run)
 end
 
--- Am I currently controlling an active runner/catcher in the field?
+-- Am I currently controlling an active Runner / Bomber on the field?
 function ClientState.activeInRun(): boolean
 	return ClientState.runLive()
 		and ClientState.role() ~= Types.Role.None

@@ -1,7 +1,7 @@
 --!strict
 -- Active map + field frame derived from the built map's Zones (script contract in docs/ASSETS.md).
 -- Side -1 = StartZone end, side +1 = FinishZone end. Runtime gameplay objects live in <Map>.Gameplay.
--- Implements: F-ARENA-01 (map data), F-ROLE-03 (safe zones, line walls), §5.2 spawning positions, §11.4 shrink.
+-- Implements: F-CROSS-02, F-CROSS-03, F-CROSS-04 (Safe Strips, line walls), GDD §5.2 spawn positions.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -369,13 +369,13 @@ function Arena.runnerLine(side: number, count: number, r: Random?): { CFrame }
 	return out
 end
 
--- Catcher positions spread across the centre band, facing side `faceSide`.
-function Arena.catcherBand(count: number, faceSide: number, r: Random?): { CFrame }
+-- Bomber positions spread across the centre band, facing side `faceSide` (GDD §5.2 READY).
+function Arena.bomberBand(count: number, faceSide: number, r: Random?): { CFrame }
 	local f = assert(Arena.current, "no arena")
 	local out = {}
-	local bandHalf = f.halfLen * A.CATCHER_BAND_FRAC
+	local bandHalf = f.halfLen * A.BOMBER_BAND_FRAC
 	local usable = Arena.halfWidth() * 2 * 0.8
-	local perRow = math.max(1, math.floor(usable / A.CATCHER_MIN_SPACING))
+	local perRow = math.max(1, math.floor(usable / A.BOMBER_MIN_SPACING))
 	local rows = math.max(1, math.ceil(count / perRow))
 	for i = 1, count do
 		local row = (i - 1) // perRow

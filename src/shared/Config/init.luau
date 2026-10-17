@@ -7,6 +7,8 @@ local Config = {
 
 	Game = require(script.Game),
 	Movement = require(script.Movement),
+	Round = require(script.Round),
+	Bomb = require(script.Bomb),
 	Arena = require(script.Arena),
 	Maps = require(script.Maps),
 	Data = require(script.Data),

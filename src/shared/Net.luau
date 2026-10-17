@@ -20,6 +20,9 @@ Net.ClientToServer = {
 
 Net.ServerToClient = {
 	"ActionFx", -- another player's movement technique (MoveService → MoveFxController)
+	"BombFx", -- { kind = Stick | Pass | Boom | Defuse, bomb, from?, who, … } (BombService, GDD §22.4)
+	"FieldFx", -- { kind = Warn | Detonate | Clear, crossing, at } (RoundService, F-FUSE-02/03)
+	"RoundFx", -- { kind = Intro | LastStand | Results, … } (RoundService)
 }
 
 local FOLDER_NAME = "Net"

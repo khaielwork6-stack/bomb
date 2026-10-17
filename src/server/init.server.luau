@@ -21,7 +21,8 @@ local ORDER = {
 	"MovementValidator",
 	"AvatarPool",
 	"DataService",
-	"Sandbox",
+	"BombService",
+	"RoundService",
 }
 
 Net.init()
@@ -53,6 +54,11 @@ for _, name in ipairs(ORDER) do
 			end
 		end)
 	end
+end
+
+-- Studio test tools (Dev/*): never run in a live server.
+if RunService:IsStudio() then
+	require(script.Dev.Dummies).start()
 end
 
 if RunService:IsStudio() and Config.Debug.RUN_TESTS then
