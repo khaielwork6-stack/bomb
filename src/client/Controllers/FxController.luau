@@ -1,7 +1,7 @@
 --!strict
 -- World effects for the bomb loop (GDD §10.3): booms, defuses, the field detonation, and camera shake scaled by
--- distance. P1 uses engine particle textures in the explosion stack's timing (Asset Bible §5.1: pre-swell → flash →
--- fireball + shockwave → sparks → smoke); the in-house textures and debris replace them in the P3 FX pass.
+-- distance. Every texture is in-house (Shared/Assets.Vfx, from art/vfx/make_vfx.py) and plays in the explosion
+-- stack's timing (Asset Bible §5.1: pre-swell → flash → fireball + shockwave → sparks → smoke → scorch).
 -- Implements: F-FEEL-03 (booms, defuse, detonation beats), F-FUSE-03 (visual sweep).
 
 local Debris = game:GetService("Debris")
@@ -10,13 +10,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Assets = require(ReplicatedStorage.Shared.Assets)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local P = Theme.Palette
 local new = Theme.new
 local player = Players.LocalPlayer
-local TEX = "rbxasset://textures/particles/"
 
 local FxController = {}
 
@@ -77,60 +77,178 @@ local function seq(a: number, b: number): NumberSequence
 	return NumberSequence.new({ NumberSequenceKeypoint.new(0, a), NumberSequenceKeypoint.new(1, b) })
 end
 
--- The explosion stack at `pos` (scale 1 = a full bomb boom).
+local function keys(points: { { number } }): NumberSequence
+	local kps = {}
+	for _, p in ipairs(points) do
+		table.insert(kps, NumberSequenceKeypoint.new(p[1], p[2]))
+	end
+	return NumberSequence.new(kps)
+end
+
+-- The toon flipbooks keep their drawn colours and Ink outlines: no world lighting, no additive wash.
+local function flipbook(props: { [string]: any }): { [string]: any }
+	props.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	props.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	props.LightInfluence = 0
+	props.LightEmission = props.LightEmission or 0
+	return props
+end
+
+-- A scorch mark on the ground under the blast: holds, then fades (Asset Bible §5.1, step 6).
+local function scorch(pos: Vector3, s: number)
+	local params = RaycastParams.new()
+	local maps = workspace:FindFirstChild("Maps")
+	if maps then
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { maps, workspace.Terrain }
+	end
+	-- the highest of five probes, so a seam between turf strips can't bury the decal under its neighbours
+	local hit: RaycastResult? = nil
+	for _, o in ipairs({ Vector3.zero, Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis }) do
+		local h = workspace:Raycast(pos + o * 1.5 + Vector3.new(0, 1, 0), Vector3.new(0, -8, 0), params)
+		if h and (not hit or h.Position.Y > hit.Position.Y) then
+			hit = h
+		end
+	end
+	if not hit then
+		return
+	end
+	local at = Vector3.new(pos.X, hit.Position.Y, pos.Z)
+	local size = 9 * s
+	local part = new("Part", {
+		Name = "FV_Scorch",
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Transparency = 1,
+		Size = Vector3.new(size, 0.05, size),
+		CFrame = CFrame.lookAt(at, at + hit.Normal)
+				* CFrame.Angles(-math.pi / 2, 0, 0)
+				* CFrame.Angles(0, math.random() * math.pi * 2, 0)
+			+ hit.Normal * 0.03,
+		Parent = workspace,
+	})
+	local decal = new("Decal", { Texture = Assets.Vfx.Scorch, Face = Enum.NormalId.Top, Parent = part })
+	task.delay(4, function()
+		TweenService:Create(decal, TweenInfo.new(5, Enum.EasingStyle.Linear), { Transparency = 1 }):Play()
+	end)
+	Debris:AddItem(part, 9.5)
+end
+
+-- The explosion stack at `pos` (scale 1 = a full bomb boom), Asset Bible §5.1: flash → fireball + shockwave →
+-- sparks + embers → smoke that takes over as the fireball burns out → scorch. The pre-swell is the bomb's own.
 function FxController.boom(pos: Vector3, scale: number?)
 	local s = scale or 1
-	local att = burstAt(pos, 2.5)
-	flash(pos, 26 * s, 6, P.Spark, 0.18)
-	emit(att, math.floor(3 * s + 0.5), {
-		Texture = TEX .. "explosion01_core_main.dds",
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 0.9)),
-			ColorSequenceKeypoint.new(0.35, P.Spark),
-			ColorSequenceKeypoint.new(1, P.Fuse),
-		}),
+	local att = burstAt(pos, 3.5)
+	-- the fireball, flash and smoke sit up off the ground so they read whole; ring, sparks and scorch start at the floor
+	local core = burstAt(pos + Vector3.new(0, 2.5 * s, 0), 3.5)
+	flash(pos, 26 * s, 4, P.Spark, 0.2)
+	-- 1. the star flash: one frame-fast pop, bigger than everything else
+	emit(core, 1, {
+		Texture = Assets.Vfx.Flash,
+		Color = ColorSequence.new(Color3.new(1, 0.97, 0.85)),
 		LightEmission = 1,
-		Size = seq(3 * s, 8 * s),
-		Transparency = seq(0, 1),
-		Lifetime = NumberRange.new(0.3, 0.4),
-		Speed = NumberRange.new(0, 2),
-		Rotation = NumberRange.new(0, 360),
+		LightInfluence = 0,
+		Size = keys({ { 0, 6 * s }, { 0.4, 16 * s }, { 1, 18 * s } }),
+		Transparency = keys({ { 0, 0 }, { 0.5, 0.2 }, { 1, 1 } }),
+		Lifetime = NumberRange.new(0.12),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 60),
+		ZOffset = 3,
 	})
+	-- 2. the fireball: one hero ball plus smaller lumps thrown off it, each burning out on its own flipbook
+	emit(
+		core,
+		1,
+		flipbook({
+			Texture = Assets.Vfx.Fireball,
+			Size = keys({ { 0, 9 * s }, { 1, 11 * s } }),
+			Lifetime = NumberRange.new(0.6),
+			Speed = NumberRange.new(0),
+			Rotation = NumberRange.new(0, 360),
+			ZOffset = 2,
+		})
+	)
+	emit(
+		core,
+		math.floor(4 * s + 0.5),
+		flipbook({
+			Texture = Assets.Vfx.Fireball,
+			Size = keys({ { 0, 4 * s }, { 1, 6 * s } }),
+			Lifetime = NumberRange.new(0.45, 0.6),
+			Speed = NumberRange.new(10 * s, 16 * s),
+			Drag = 7,
+			SpreadAngle = Vector2.new(180, 180),
+			Acceleration = Vector3.new(0, 8, 0),
+			Rotation = NumberRange.new(0, 360),
+			ZOffset = 1.5,
+		})
+	)
+	-- 3. the shockwave ring, flat on the ground
 	emit(att, 1, {
-		Texture = TEX .. "explosion01_shockwave_main.dds",
+		Texture = Assets.Vfx.Ring,
 		Color = ColorSequence.new(P.Paper),
-		LightEmission = 0.6,
+		LightEmission = 0.5,
+		LightInfluence = 0,
 		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
-		Size = seq(1, 14 * s),
-		Transparency = seq(0.2, 1),
-		Lifetime = NumberRange.new(0.25),
+		Size = keys({ { 0, 2 }, { 1, 22 * s } }),
+		Transparency = keys({ { 0, 0 }, { 0.6, 0.3 }, { 1, 1 } }),
+		Lifetime = NumberRange.new(0.32),
 		Speed = NumberRange.new(0.01),
 		EmissionDirection = Enum.NormalId.Top,
 	})
-	emit(att, math.floor(24 * s), {
-		Texture = TEX .. "fire_sparks_main.dds",
+	-- 4. spark streaks (velocity-aligned) and slow embers
+	emit(att, math.floor(26 * s), {
+		Texture = Assets.Vfx.Streak,
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,
-		Size = seq(0.5 * s, 0),
-		Lifetime = NumberRange.new(0.3, 0.5),
-		Speed = NumberRange.new(40 * s, 70 * s),
+		LightInfluence = 0,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		Size = keys({ { 0, 0.9 * s }, { 1, 0 } }),
+		Lifetime = NumberRange.new(0.25, 0.45),
+		Speed = NumberRange.new(45 * s, 80 * s),
 		Drag = 6,
 		SpreadAngle = Vector2.new(180, 180),
 		Acceleration = Vector3.new(0, -30, 0),
 	})
-	emit(att, math.floor(8 * s), {
-		Texture = TEX .. "smoke_main.dds",
-		Color = ColorSequence.new(P.Smoke, P.Ash),
-		Size = seq(2.5 * s, 7 * s),
-		Transparency = seq(0.15, 1),
-		Lifetime = NumberRange.new(0.9, 1.2),
-		Speed = NumberRange.new(4, 9),
+	emit(att, math.floor(14 * s), {
+		Texture = Assets.Vfx.Ember,
+		Color = ColorSequence.new(P.Spark, P.Fuse),
+		LightEmission = 1,
+		LightInfluence = 0,
+		Size = keys({ { 0, 0.45 }, { 0.8, 0.3 }, { 1, 0 } }),
+		Lifetime = NumberRange.new(0.9, 1.6),
+		Speed = NumberRange.new(8, 18),
+		Drag = 2,
 		SpreadAngle = Vector2.new(180, 180),
-		Acceleration = Vector3.new(0, 6, 0),
-		Drag = 3,
-		Rotation = NumberRange.new(0, 360),
-		RotSpeed = NumberRange.new(-40, 40),
+		Acceleration = Vector3.new(0, 4, 0),
 	})
+	-- 5. smoke: puffs bloom behind the fireball just as it starts breaking up, then dissolve puff by puff
+	task.delay(0.18, function()
+		if core.Parent == nil then
+			return
+		end
+		emit(
+			core,
+			math.floor(6 * s + 0.5),
+			flipbook({
+				Texture = Assets.Vfx.Smoke,
+				Color = ColorSequence.new(Color3.fromRGB(236, 230, 224), Color3.fromRGB(200, 196, 204)),
+				Size = keys({ { 0, 5 * s }, { 1, 8 * s } }),
+				Lifetime = NumberRange.new(1.1, 1.5),
+				Speed = NumberRange.new(5 * s, 10 * s),
+				Drag = 3,
+				SpreadAngle = Vector2.new(180, 180),
+				Acceleration = Vector3.new(0, 5, 0),
+				Rotation = NumberRange.new(-20, 20),
+				RotSpeed = NumberRange.new(-25, 25),
+				ZOffset = -1,
+			})
+		)
+	end)
+	-- 6. the scorch it leaves behind
+	scorch(pos, s)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
 		local d = (root.Position - pos).Magnitude
@@ -141,23 +259,28 @@ end
 -- Defuse (GDD §10.3): a steam puff off the socket and a soft green ring; a clutch adds a gold flare.
 function FxController.defuse(pos: Vector3, clutch: boolean)
 	local att = burstAt(pos + Vector3.new(0, 1.5, 0), 2)
-	emit(att, 6, {
-		Texture = TEX .. "smoke_main.dds",
-		Color = ColorSequence.new(P.Paper),
-		Size = seq(0.6, 2.4),
-		Transparency = seq(0.3, 1),
-		Lifetime = NumberRange.new(0.7, 1),
-		Speed = NumberRange.new(2, 4),
-		SpreadAngle = Vector2.new(25, 25),
-		EmissionDirection = Enum.NormalId.Top,
-	})
+	emit(
+		att,
+		3,
+		flipbook({
+			Texture = Assets.Vfx.Smoke,
+			Color = ColorSequence.new(Color3.fromRGB(240, 246, 244)),
+			Size = seq(1.4, 3),
+			Lifetime = NumberRange.new(0.8, 1),
+			Speed = NumberRange.new(3, 5),
+			SpreadAngle = Vector2.new(25, 25),
+			EmissionDirection = Enum.NormalId.Top,
+			Rotation = NumberRange.new(-20, 20),
+		})
+	)
 	emit(att, 1, {
-		Texture = TEX .. "explosion01_shockwave_main.dds",
+		Texture = Assets.Vfx.Ring,
 		Color = ColorSequence.new(if clutch then P.Gold else P.Safe),
 		LightEmission = 0.8,
+		LightInfluence = 0,
 		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
 		Size = seq(1, if clutch then 12 else 7),
-		Transparency = seq(0.2, 1),
+		Transparency = seq(0.1, 1),
 		Lifetime = NumberRange.new(0.4),
 		Speed = NumberRange.new(0.01),
 		EmissionDirection = Enum.NormalId.Top,
@@ -165,9 +288,10 @@ function FxController.defuse(pos: Vector3, clutch: boolean)
 	if clutch then
 		flash(pos, 18, 5, P.Gold, 0.4)
 		emit(att, 30, {
-			Texture = TEX .. "sparkles_main.dds",
+			Texture = Assets.Vfx.Ember,
 			Color = ColorSequence.new(P.Gold, P.Spark),
 			LightEmission = 1,
+			LightInfluence = 0,
 			Size = seq(0.6, 0),
 			Lifetime = NumberRange.new(0.5, 0.9),
 			Speed = NumberRange.new(10, 22),

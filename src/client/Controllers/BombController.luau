@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
@@ -370,7 +371,8 @@ local function attach(host: Instance): Visual?
 	end
 	local weld = new("Weld", { Part0 = torso, Part1 = mount, C0 = MOUNT, Parent = mount })
 	local spark = new("ParticleEmitter", {
-		Texture = "rbxasset://textures/particles/sparkles_main.dds",
+		Texture = Assets.Vfx.Streak,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
 		Color = ColorSequence.new(P.Spark, P.Fuse),
 		LightEmission = 1,
 		LightInfluence = 0,
