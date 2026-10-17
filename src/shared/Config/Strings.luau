@@ -51,6 +51,7 @@ return {
 		Claim = "CLAIM",
 		Claimed = "CLAIMED",
 		StreakDays = "%d day streak",
+		StreakStart = "Start your streak today!",
 		CalendarMissed = "You missed a day: back %d days.",
 		GiftNext = "%s",
 		GiftReady = "CLAIM",

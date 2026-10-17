@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Widgets = require(script.Parent.Parent.UI.Widgets)
 local FxController = require(script.Parent.FxController)
 
 local CC = Config.Callouts
@@ -23,8 +24,9 @@ local CalloutController = {}
 local SIZES = { Small = 30, Medium = 44, Big = 64 }
 local HOLD = { Small = 0.8, Medium = 1.2, Big = 1.6 }
 local SLOT = { Small = 48, Medium = 70, Big = 100 } -- vertical space each takes in the stack
+local PAY_ROW = 22 -- the "+5 XP · +1 star" line under a paying callout
 
-type Entry = { frame: Frame, tier: string }
+type Entry = { frame: Frame, tier: string, paid: boolean }
 local stack: { Entry } = {}
 local layer: Frame
 
@@ -33,7 +35,7 @@ local function relayout()
 	for _, e in ipairs(stack) do
 		TweenService:Create(e.frame, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Position = UDim2.new(0.5, 0, 0, y) })
 			:Play()
-		y += SLOT[e.tier]
+		y += SLOT[e.tier] + (if e.paid then PAY_ROW else 0)
 	end
 end
 
@@ -72,7 +74,52 @@ local function starburst(parent: Instance, color: Color3, size: number): Frame
 	return holder
 end
 
-function CalloutController.show(key: string, n: number?)
+-- The payout line under a callout (Asset Bible §6.7): "+5 XP" and a star with "+1", in Builder Sans.
+local function payRow(parent: Instance, xp: number, stars: number, y: number)
+	local row = new("Frame", {
+		Name = "Pay",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, y),
+		Size = UDim2.fromOffset(0, PAY_ROW),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		ZIndex = 6,
+		Parent = parent,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = row,
+	})
+	if xp > 0 then
+		Widgets.label(row, {
+			Text = "+" .. tostring(xp) .. " XP",
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, PAY_ROW),
+			TextSize = 17,
+			color = P.Runner,
+			LayoutOrder = 1,
+			ZIndex = 7,
+		})
+	end
+	if stars > 0 then
+		Widgets.icon(row, "Star", 20, { LayoutOrder = 2 })
+		Widgets.label(row, {
+			Text = "+" .. tostring(stars),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, PAY_ROW),
+			TextSize = 17,
+			color = P.Spark,
+			LayoutOrder = 3,
+			ZIndex = 7,
+		})
+	end
+	return row
+end
+
+function CalloutController.show(key: string, n: number?, xp: number?, stars: number?)
 	local def = CC.List[key]
 	if not def then
 		return
@@ -83,11 +130,12 @@ function CalloutController.show(key: string, n: number?)
 	end
 	local color = (P :: any)[def.color] or P.Paper
 	local text = if string.find(def.text, "%%d") then string.format(def.text, n or 0) else def.text
+	local paid = (xp or 0) > 0 or (stars or 0) > 0
 	local frame = new("Frame", {
 		Name = "Callout_" .. key,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, -30),
-		Size = UDim2.new(1, 0, 0, SLOT[tier]),
+		Size = UDim2.new(1, 0, 0, SLOT[tier] + (if paid then PAY_ROW else 0)),
 		BackgroundTransparency = 1,
 		Parent = layer,
 	})
@@ -111,13 +159,18 @@ function CalloutController.show(key: string, n: number?)
 		Text = text,
 		TextSize = SIZES[tier],
 		color = color,
-		Size = UDim2.new(1, 0, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.new(1, 0, 0, SLOT[tier]),
 		ZIndex = 6,
 	})
+	if paid then
+		payRow(frame, xp or 0, stars or 0, SLOT[tier] - 6)
+	end
 	local scale = new("UIScale", { Scale = 1.3, Parent = frame })
 	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
-	local entry: Entry = { frame = frame, tier = tier }
+	local entry: Entry = { frame = frame, tier = tier, paid = paid }
 	table.insert(stack, 1, entry)
 	while #stack > CC.MAX_ON_SCREEN do
 		local old = table.remove(stack) :: Entry

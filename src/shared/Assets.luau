@@ -69,6 +69,15 @@ Assets.SFX = {
 	CrowdCheer = s(9120974378, 0.6, "PSE"),
 	CrowdGasp = s(9114013354, 0.6, "PSE"),
 	WinSting = s(1841980129, 0.85, "APM"),
+	-- UI (Asset Bible §6.3, §6.5), built from sounds already in the set: the in-house escapement pitched up is a crisp
+	-- mechanical button click and a coin-counter tick; the clamp low is the deny thunk and the calendar's stamp.
+	UiPress = s(91973479747444, 0.32, "FV", { pitch = { 1.7, 1.8 } }),
+	UiDeny = s(9125782643, 0.3, "PSE", { pitch = { 0.62, 0.66 } }),
+	CoinTick = s(132119182630967, 0.18, "FV", { pitch = { 2.1, 2.3 } }),
+	Claim = s(18448089848, 0.6, "C"),
+	Stamp = s(9125782643, 0.75, "PSE", { pitch = { 0.8, 0.86 } }),
+	LevelUp = s(1841980129, 0.9, "APM"),
+	QuestDone = s(9047103106, 0.6, "APM"),
 	LoseSting = s(1839303737, 0.75, "APM"),
 }
 

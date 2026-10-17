@@ -61,6 +61,8 @@ local function snapshot(p: Participant, d: { [string]: any }): { [string]: any }
 		hotStreak = d.hotStreak,
 		streakMult = HotStreak.mult(d.hotStreak),
 		crates = d.crates,
+		rounds = d.stats.rounds,
+		wins = d.stats.wins,
 		saving = DataService.isSaving(p),
 	}
 	for _, fn in ipairs(sections) do
@@ -148,6 +150,9 @@ function ProgressionService.grant(p: Participant, xp: number, stars: number, sou
 	for _, l in ipairs(ups) do
 		local pay = LevelCurve.levelStars(l)
 		d.stars += pay
+		if LevelCurve.trackLevel(l) then
+			table.insert(d.owed, "Track:" .. tostring(l)) -- the Level Track cosmetic, granted by the P5 catalogue
+		end
 		economyEvent(p, pay, d.stars, "LevelUp")
 		if p.player then
 			Net.fire(p.player, "Reward", {
