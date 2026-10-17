@@ -393,20 +393,17 @@ local function playRound()
 	lockAll(true)
 	publishCounts()
 	setPhase(Ph.Intro, RC.INTRO)
-	Net.fireAll(
-		"RoundFx",
-		{
-			kind = "Intro",
-			bombers = (function()
-				local ids = {}
-				for p in pairs(bombers) do
-					table.insert(ids, p.id)
-				end
-				return ids
-			end)(),
-			at = now(),
-		}
-	)
+	Net.fireAll("RoundFx", {
+		kind = "Intro",
+		bombers = (function()
+			local ids = {}
+			for p in pairs(bombers) do
+				table.insert(ids, p.id)
+			end
+			return ids
+		end)(),
+		at = now(),
+	})
 	hold(RC.INTRO)
 	local k = 0
 	while true do
