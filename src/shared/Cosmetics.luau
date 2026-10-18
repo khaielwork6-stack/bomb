@@ -40,8 +40,18 @@ Cosmetics.Explosions = {} :: { [string]: Explosion }
 export type Victory = { [string]: any }
 Cosmetics.Victories = {} :: { [string]: Victory }
 
--- Emotes: animation ids (published by the user from tools/anim).
-Cosmetics.Emotes = {} :: { [string]: string }
+-- Emotes: animation ids (tools/anim clips, published to the group — Assets.Anim).
+local Assets = require(ReplicatedStorage.Shared.Assets)
+Cosmetics.Emotes = {
+	Emote_Wave = Assets.Anim.EmoteWave,
+	Emote_FuseDance = Assets.Anim.EmoteFuseDance,
+	Emote_Juggle = Assets.Anim.EmoteJuggle,
+	Emote_Bow = Assets.Anim.EmoteBow,
+	Emote_Shrug = Assets.Anim.EmoteShrug,
+	Emote_VictoryPose = Assets.Anim.EmoteVictory,
+	Emote_Kaboom = Assets.Anim.EmoteKaboom,
+	Emote_SitSip = Assets.Anim.EmoteSitSip,
+} :: { [string]: string }
 
 -- Is this item's art in the game?
 function Cosmetics.ready(id: string): boolean

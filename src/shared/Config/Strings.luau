@@ -38,6 +38,17 @@ return {
 		StreakBomb = "Streak Bomb",
 		DailyCrate = "Daily Crate",
 	},
+	-- Loading screen tips (rotating under the burning fuse, F-ONB-01).
+	LoadingTips = {
+		"A Bomber's touch sticks a bomb on you!",
+		"Bump anyone to pass the bomb.",
+		"The fuse never resets. Pass it fast!",
+		"Reach a safe side to defuse it.",
+		"Dash with Space, slide with C, stop with Shift.",
+		"Pass a bomb back to a Bomber for a REVENGE PASS!",
+		"Defuse with under a second left for a CLUTCH DEFUSE!",
+		"The last Runner standing gets the LAST STAND.",
+	},
 	Ui = {
 		On = "ON",
 		Off = "OFF",

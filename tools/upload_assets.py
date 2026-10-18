@@ -30,6 +30,7 @@ TYPES = {
     ".wav": ("Audio", "audio/wav"),
     ".ogg": ("Audio", "audio/ogg"),
     ".mp3": ("Audio", "audio/mpeg"),
+    ".rbxm": ("Animation", "model/x-rbxm"),  # a KeyframeSequence baked by tools/anim (only point this at clip folders)
 }
 
 
