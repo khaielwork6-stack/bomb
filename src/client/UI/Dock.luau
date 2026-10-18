@@ -199,6 +199,11 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 			if not b.Visible or not b:IsDescendantOf(game) or Modal.blocking() then
 				return
 			end
+			-- a docked tile slid off-screen (the left dock during a round) doesn't take its shortcut either
+			local pos, size = b.AbsolutePosition, b.AbsoluteSize
+			if pos.X + size.X < 0 or pos.Y + size.Y < 0 then
+				return
+			end
 			press()
 			task.delay(0.08, release)
 			Sfx.play("UiPress")

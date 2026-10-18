@@ -5,7 +5,7 @@
 -- (Assets.SFX.Taunt<Key>). Seconds and studs. [TUNE]
 
 return {
-	ORDER = { "Laugh", "Cool", "Angry", "Cry", "Love", "Shock", "Silly", "Skull" }, -- the wheel, clockwise from the top
+	ORDER = { "Laugh", "Cool", "Angry", "Cry", "Love", "Shock", "Silly", "Skull", "Fire" }, -- the wheel, clockwise from the top (keys 1-9)
 	COOLDOWN = 2.5, -- seconds between one player's taunts (the server enforces it)
 	SHOW_TIME = 2.2, -- how long the emoji stays up
 	SIZE = 5, -- the emoji's size over the head (studs)

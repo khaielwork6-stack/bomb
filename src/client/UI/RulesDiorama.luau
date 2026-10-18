@@ -140,7 +140,7 @@ end
 
 -- 2D overlay helpers (ViewportFrames don't draw particles)
 local function puff(overlay: Instance, at: UDim2)
-	local p = Widgets.icon(overlay, "Smoke", 48, { AnchorPoint = Vector2.new(0.5, 0.5), Position = at, ZIndex = 9 })
+	local p = Widgets.icon(overlay, "Explosion", 48, { AnchorPoint = Vector2.new(0.5, 0.5), Position = at, ZIndex = 9 })
 	local h = p.Parent :: Frame
 	local sc = new("UIScale", { Scale = 0.4, Parent = h })
 	TweenService:Create(sc, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()

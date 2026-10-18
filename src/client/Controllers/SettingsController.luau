@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Settings = require(script.Parent.Parent.Settings)
+local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -302,6 +303,16 @@ local function place()
 end
 
 function SettingsController.start()
+	-- the saved settings come back in the first Progress snapshot: apply them once
+	local applied = false
+	local function applySaved(s: { [string]: any }?)
+		if not applied and s and type(s.settings) == "table" then
+			applied = true
+			Settings.apply(s.settings)
+		end
+	end
+	Progress.Changed:Connect(applySaved)
+	applySaved(Progress.get())
 	local gui = new("ScreenGui", {
 		Name = "FV_Menu",
 		IgnoreGuiInset = true,

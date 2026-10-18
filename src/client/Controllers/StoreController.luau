@@ -297,6 +297,9 @@ local function preview(stage: Instance, item: { [string]: any })
 	end
 end
 
+local TOAST_TIME = 3.5 -- seconds a NEW ITEM toast stays up
+local OPTIONAL_SLOT = { Trail = true, Title = true } -- slots that may be empty (UNEQUIP)
+
 -- The action row: EQUIPPED / EQUIP when owned (or in the Locker), else the green price button (gold for the DEAL).
 local function action(
 	parent: Instance,
@@ -308,12 +311,23 @@ local function action(
 	h: number
 )
 	local has = owned(s, id)
+	local item = St.ById[id]
+	local cat = item and item.category or ""
 	if mode == "Locker" or has then
-		if equipped(s, id) then
-			local b = Widgets.button(parent, "EQUIPPED", "dark", size, function() end, props)
+		if cat == "Emote" then
+			-- emotes aren't equipped: every owned one is on the emote wheel (G)
+			local b = Widgets.button(parent, S.Ui.Owned, "dark", size, function() end, props)
+			b.Active = false
+		elseif equipped(s, id) and OPTIONAL_SLOT[cat] then
+			-- trails and titles can be taken off (there's no default one to switch back to)
+			Widgets.button(parent, S.Ui.Unequip, "orange", size, function()
+				Net.send("StoreAction", { kind = "Unequip", slot = cat })
+			end, props)
+		elseif equipped(s, id) then
+			local b = Widgets.button(parent, S.Ui.Equipped, "dark", size, function() end, props)
 			b.Active = false
 		else
-			Widgets.button(parent, "EQUIP", "cyan", size, function()
+			Widgets.button(parent, S.Ui.Equip, "cyan", size, function()
 				Net.send("StoreAction", { kind = "Equip", id = id })
 			end, props)
 		end
@@ -542,7 +556,7 @@ local function crateCard(parent: Instance, s: { [string]: any }, kind: string, o
 			color = P.Spark,
 			align = Enum.TextXAlignment.Left,
 			stroke = 2,
-			Text = ("Epic+ in %d"):format(math.max(1, crate.pity - (store.pity or 0))),
+			Text = S.Ui.PityIn:format(math.max(1, crate.pity - (store.pity or 0))),
 			ZIndex = 6,
 		})
 	end
@@ -562,7 +576,7 @@ local function crateCard(parent: Instance, s: { [string]: any }, kind: string, o
 	})
 	local tokens = store.crates and store.crates[kind] or 0
 	if tokens > 0 then
-		Widgets.button(row, ("OPEN FREE x%d"):format(tokens), "cyan", UDim2.fromOffset(170, 48), function()
+		Widgets.button(row, S.Ui.OpenFree:format(tokens), "cyan", UDim2.fromOffset(170, 48), function()
 			Net.send("StoreAction", { kind = "OpenCrate", crate = kind, source = "Token" })
 		end, { TextSize = 20, ZIndex = 6 })
 	end
@@ -574,7 +588,7 @@ local function crateCard(parent: Instance, s: { [string]: any }, kind: string, o
 			color = Color3.new(1, 1, 1),
 			wrap = true,
 			stroke = 2,
-			Text = "Not available in your region",
+			Text = S.Ui.RegionLocked,
 			ZIndex = 6,
 		})
 	elseif not crate.free then
@@ -1014,12 +1028,12 @@ confirmBuy = function(id: string)
 		back:Destroy()
 	end)
 	back.MouseButton1Click:Connect(done)
-	local _, setOn = Widgets.button(box, "BUY", "green", UDim2.fromOffset(130, 44), function()
+	local _, setOn = Widgets.button(box, S.Ui.Buy, "green", UDim2.fromOffset(130, 44), function()
 		Net.send("StoreAction", { kind = "Buy", id = id })
 		done()
 	end, { Position = UDim2.new(0, 24, 1, -60), TextSize = 20, ZIndex = 61 })
 	setOn((s.stars or 0) >= price)
-	Widgets.button(box, "CANCEL", "dark", UDim2.fromOffset(130, 44), done, {
+	Widgets.button(box, S.Ui.Cancel, "dark", UDim2.fromOffset(130, 44), done, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -24, 1, -60),
 		TextSize = 20,
@@ -1047,7 +1061,7 @@ local function popStarter()
 		while ClientState.phase() == Ph.Intermission do
 			if not Modal.busy() then
 				local now = Progress.get()
-				if not now or not now.store.starter then
+				if not now or not now.store or not now.store.starter then
 					return
 				end
 				-- the reference video's STARTER PACK card (OfferController)
@@ -1061,6 +1075,80 @@ local function popStarter()
 		end
 		offerPopped = false -- the lobby ended before a calm moment: try after the next results
 	end)
+end
+
+-- "NEW ITEM!": a toast that slides in under the XP strip when something is granted without a purchase (a level-track
+-- cosmetic, a title, a free crate, the group gift), so it's never found only by chance in Items. Queued, one at a time.
+local toastQueue: { { icon: string, title: string, line: string } } = {}
+local toastBusy = false
+local toastGui: ScreenGui? = nil
+local function nextToast()
+	if toastBusy or #toastQueue == 0 then
+		return
+	end
+	toastBusy = true
+	local t = table.remove(toastQueue, 1) :: { icon: string, title: string, line: string }
+	if not toastGui then
+		toastGui = new("ScreenGui", {
+			Name = "FV_Toast",
+			IgnoreGuiInset = true,
+			ResetOnSpawn = false,
+			DisplayOrder = 30,
+			Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+		})
+	end
+	local face = Theme.panel(toastGui :: ScreenGui, {
+		Name = "Toast",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 400, 0, 120),
+		Size = UDim2.fromOffset(300, 74),
+		color = Color3.fromRGB(58, 64, 96),
+		color2 = Color3.fromRGB(30, 32, 52),
+		border = P.Gold,
+		border2 = P.Ember,
+	})
+	local holder = face.Parent :: Frame
+	Widgets.icon(face, t.icon, 52, { Position = UDim2.fromOffset(10, 11), ZIndex = 5 })
+	Widgets.label(face, {
+		Position = UDim2.fromOffset(72, 8),
+		Size = UDim2.new(1, -82, 0, 28),
+		TextSize = 24,
+		font = Theme.Font.Display,
+		color = P.Gold,
+		align = Enum.TextXAlignment.Left,
+		Text = t.title,
+		ZIndex = 5,
+	})
+	local line = Widgets.label(face, {
+		Position = UDim2.fromOffset(72, 38),
+		Size = UDim2.new(1, -82, 0, 24),
+		TextSize = 18,
+		font = Theme.Font.Bold,
+		align = Enum.TextXAlignment.Left,
+		Text = t.line,
+		ZIndex = 5,
+	})
+	line.TextTruncate = Enum.TextTruncate.AtEnd
+	Sfx.play("QuestDone")
+	local inPos = UDim2.new(1, -16, 0, 120)
+	game:GetService("TweenService")
+		:Create(holder, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = inPos })
+		:Play()
+	task.delay(TOAST_TIME, function()
+		game:GetService("TweenService")
+			:Create(holder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(1, 400, 0, 120),
+			})
+			:Play()
+		task.wait(0.32)
+		holder:Destroy()
+		toastBusy = false
+		nextToast()
+	end)
+end
+local function toast(icon: string, title: string, line: string)
+	table.insert(toastQueue, { icon = icon, title = title, line = line })
+	nextToast()
 end
 
 function StoreController.start()
@@ -1112,6 +1200,15 @@ function StoreController.start()
 			Sfx.play("Claim")
 		elseif r.kind == "Equipped" then
 			Sfx.play("UiPress")
+		elseif r.kind == "Item" and type(r.id) == "string" then
+			local item = St.ById[r.id]
+			if item then
+				toast(CATEGORY_ICON[item.category] or "Star", S.Ui.NewItem, item.name)
+			end
+		elseif r.kind == "CrateToken" then
+			toast("Crate", S.Ui.NewItem, S.Ui.CrateTokenGot:format(1))
+		elseif r.kind == "Group" then
+			toast("Gift", S.Ui.GroupPerk, S.Rewards.Stars:format(tonumber(r.stars) or 0))
 		end
 	end)
 end

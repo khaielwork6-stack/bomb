@@ -533,14 +533,17 @@ local function playRound()
 		if #alive == 1 and startRunners >= RC.LAST_STAND_MIN_RUNNERS then
 			local runner = alive[1]
 			if lastStand(runner, startSide) then
+				MegaService.reward("Survivors", { runner }) -- a MEGA round's rewards in every ending (no-op otherwise)
 				finish("LastStand", { runner })
 			else
 				BombService.finishGetups()
+				MegaService.reward("Bombers", withRole(R.Bomber))
 				finish("Bombers", withRole(R.Bomber))
 			end
 			return
 		end
 		if k >= RC.MAX_CROSSINGS then
+			MegaService.reward("Survivors", alive)
 			finish("Survivors", alive)
 			return
 		end
@@ -584,7 +587,9 @@ function RoundService.init()
 end
 
 function RoundService.start()
-	if not Arena.load(Config.Maps.Order[1]) then
+	-- the first map in Config.Maps.Order that's actually in the place (a missing map never stops every round)
+	local first = Arena.available()[1]
+	if not first or not Arena.load(first) then
 		warn("[Round] no map loaded; rounds can't start")
 	end
 	Net.on("SetAfk", function(player: Player, on: any)

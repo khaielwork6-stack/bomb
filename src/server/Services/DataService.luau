@@ -263,6 +263,13 @@ function DataService.start()
 	PlayerService.Joined:Connect(function(p)
 		task.spawn(load, p)
 	end)
+	-- settings persist (PARTNER_REQUESTS #6): PlayerService validated them; keep them on the profile
+	PlayerService.SettingsChanged:Connect(function(p, clean)
+		local d = DataService.get(p)
+		if d then
+			d.settings = clean
+		end
+	end)
 	for _, p in ipairs(Participants.humans()) do
 		task.spawn(load, p)
 	end

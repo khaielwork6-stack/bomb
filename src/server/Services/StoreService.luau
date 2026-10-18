@@ -158,7 +158,20 @@ local function settle(p: Participant, d: { [string]: any })
 				done = true
 			end
 		elseif month then
+			-- the month's Streak Bomb, or the newest one listed when that month has none (never stuck in `owed`)
 			local id = St.STREAK_BOMBS[month]
+			if not id then
+				local newest = ""
+				for m, skin in pairs(St.STREAK_BOMBS) do
+					if m > newest then
+						newest, id = m, skin
+					end
+				end
+				if id and owns(d, id) then
+					id = nil -- they already have the newest: nothing new to give, drop the entry
+					done = true
+				end
+			end
 			if id and Cosmetics.ready(id) then
 				grantItem(p, d, id, "Streak")
 				done = true

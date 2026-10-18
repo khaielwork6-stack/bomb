@@ -182,6 +182,13 @@ function LobbyController.start()
 			stopSpectate()
 		end
 	end)
+	-- the watched character was rebuilt or left: move on to the next one (or stop if nobody is left)
+	game:GetService("RunService").Heartbeat:Connect(function()
+		local hum = CameraController.spectate
+		if watching > 0 and (not hum or not hum.Parent or hum.Health <= 0) then
+			show(0)
+		end
+	end)
 end
 
 return LobbyController

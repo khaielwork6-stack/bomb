@@ -69,9 +69,10 @@ local function lobbyPhase(): boolean
 	return ph == Ph.Intermission or ph == Ph.Results or ph == Ph.Boot or ph == ""
 end
 
--- the dock shows between rounds, and all round for an AFK player (they sit in the lobby and need the AFK tile)
+-- the dock shows between rounds, and all round for anyone sitting in the lobby (AFK, or joined mid-round): they can
+-- spectate, shop, or switch AFK off
 local function dockWanted(): boolean
-	return lobbyPhase() or player:GetAttribute("Afk") == true
+	return lobbyPhase() or player:GetAttribute("Afk") == true or ClientState.role() == Types.Role.None
 end
 
 -- ── Panels (modal) ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -731,6 +732,7 @@ function DailyController.start()
 		end
 	end
 	player:GetAttributeChangedSignal("Afk"):Connect(refreshShown)
+	ClientState.myChanged("Role", refreshShown)
 	gs:GetAttributeChangedSignal("Phase"):Connect(function()
 		local on = dockWanted()
 		refreshShown()

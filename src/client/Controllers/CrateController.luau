@@ -481,7 +481,7 @@ local function open(r: { [string]: any })
 		fan:Destroy()
 	end
 	if not r.duplicate then
-		Widgets.button(row, "EQUIP", "cyan", UDim2.fromOffset(170, 54), function()
+		Widgets.button(row, Config.Strings.Ui.Equip, "cyan", UDim2.fromOffset(170, 54), function()
 			Net.send("StoreAction", { kind = "Equip", id = r.item })
 			close()
 		end, { TextSize = 26, ZIndex = 15 })
@@ -489,14 +489,21 @@ local function open(r: { [string]: any })
 	local crate = St.CRATES[r.crate]
 	local s = Progress.get()
 	if crate and not crate.free and s and (s.stars or 0) >= crate.stars then
-		Widgets.button(row, "OPEN ANOTHER", "green", UDim2.fromOffset(230, 54), function()
+		Widgets.button(row, Config.Strings.Ui.OpenAnother, "green", UDim2.fromOffset(230, 54), function()
 			close()
 			task.delay(0.25, function()
 				Net.send("StoreAction", { kind = "OpenCrate", crate = r.crate, source = "Stars" })
 			end)
 		end, { TextSize = 26, ZIndex = 15 })
 	end
-	Widgets.button(row, "DONE", "dark", UDim2.fromOffset(150, 54), close, { TextSize = 26, ZIndex = 15 })
+	Widgets.button(
+		row,
+		Config.Strings.Ui.DoneButton,
+		"dark",
+		UDim2.fromOffset(150, 54),
+		close,
+		{ TextSize = 26, ZIndex = 15 }
+	)
 end
 
 function CrateController.start()

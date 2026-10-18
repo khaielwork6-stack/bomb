@@ -174,12 +174,14 @@ local tauntWheel = false -- the open wheel is the TAUNT one (T), not the emote o
 
 local function buildWheel()
 	local pg: Page = if tauntWheel then "Taunt" else page or "Free"
+	local list = entries(pg)
+	local R = WHEEL_RADIUS * math.max(1, #list / 8) -- room for more than 8 slots
 	Sfx.play("UiOpen")
 	local w = new("Frame", {
 		Name = "EmoteWheel",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset((WHEEL_RADIUS + SLOT_SIZE) * 2, (WHEEL_RADIUS + SLOT_SIZE) * 2),
+		Size = UDim2.fromOffset((R + SLOT_SIZE) * 2, (R + SLOT_SIZE) * 2),
 		BackgroundTransparency = 1,
 		ZIndex = 10,
 		Parent = gui,
@@ -189,7 +191,7 @@ local function buildWheel()
 	local disc = new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(WHEEL_RADIUS * 2 + SLOT_SIZE, WHEEL_RADIUS * 2 + SLOT_SIZE),
+		Size = UDim2.fromOffset(R * 2 + SLOT_SIZE, R * 2 + SLOT_SIZE),
 		BackgroundColor3 = Skin.Color.PanelBottom,
 		BackgroundTransparency = 0.25,
 		ZIndex = 10,
@@ -231,7 +233,6 @@ local function buildWheel()
 		}
 	)
 	toggle.Visible = pg ~= "Taunt"
-	local list = entries(pg)
 	for i, e in ipairs(list) do
 		local a = math.rad(-90 + (i - 1) * 360 / #list)
 		local slot = Widgets.button(
@@ -252,7 +253,7 @@ local function buildWheel()
 			end,
 			{
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5, math.cos(a) * WHEEL_RADIUS, 0.5, math.sin(a) * WHEEL_RADIUS),
+				Position = UDim2.new(0.5, math.cos(a) * R, 0.5, math.sin(a) * R),
 				ZIndex = 12,
 			}
 		)
@@ -464,7 +465,8 @@ function EmoteController.start()
 		Enum.KeyCode.Five,
 		Enum.KeyCode.Six,
 		Enum.KeyCode.Seven,
-		Enum.KeyCode.Eight
+		Enum.KeyCode.Eight,
+		Enum.KeyCode.Nine
 	)
 	-- moving (or a run starting) cancels an emote; the tiles hide while you're in a live run
 	RunService.Heartbeat:Connect(function()

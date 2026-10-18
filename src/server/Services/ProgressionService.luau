@@ -87,6 +87,7 @@ local function snapshot(p: Participant, d: { [string]: any }): { [string]: any }
 		rounds = d.stats.rounds,
 		wins = d.stats.wins,
 		saving = DataService.isSaving(p),
+		settings = d.settings, -- the client applies these once on join (PARTNER_REQUESTS #6)
 	}
 	for _, fn in ipairs(sections) do
 		local ok, key, value = pcall(fn, p, d)
