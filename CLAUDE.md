@@ -35,6 +35,7 @@ PDFs live in `docs/design/pdf/`. To change the docs, edit `docs/design/src/*.md`
 - **`tools/checkrequires.ps1`:** finds `require`s and `Config.<Section>` reads that don't resolve.
 - **Roblox Studio MCP** for play-tests: `start_stop_play`, `execute_luau`, `get_console_output`, `screen_capture`.
 - **Studio debug bindable:** `ServerScriptService.CG_Debug:Invoke("<cmd>", …)` (AdminService).
+- **Uploading assets:** `python3 tools/upload.py <file> --name "…"` uploads audio (.wav/.mp3/.ogg), animations (.rbxmx), images and models to the 99 Dreams Studio group through Open Cloud and prints the `rbxassetid://` id. **Agents upload themselves; never ask the human to upload.** The key lives at `~/.config/fusevalley/roblox_api_key` (never in the repo, never printed). Audio is capped at 10 uploads ever, or 100 a month once the key's account is ID-verified.
 
 ## Definition of done for every task
 1. `stylua src`, `selene src` (clean), `rojo build`.

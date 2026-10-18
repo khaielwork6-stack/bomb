@@ -350,7 +350,7 @@ The tag's beat, in the same toon language as the explosion stack. It plays on th
 | **SLAM PASS** | Flash + shockwave ring + 9 streaks sprayed the way it was shoved, the slap at low pitch over a low clamp, a 0.1 s freeze |
 | **REJECTED!** | A bright `Runner`-blue parry flash + ring + 12 streaks at the rejecter, a high "ting" (the in-house tick at 2.6×) over a high clamp, both rigs frozen 0.08 s, and the hero bomb ricocheting off the rejecter and back onto the giver |
 | **Whiff** | Toon dust (the smoke flipbook, tinted concrete) at the feet, a low miss-whoosh, the Stumble clip |
-| **Chain Song note** | `art/audio/make_chain_note.py` → `chain_note.wav`: an in-house marimba-style mallet (modal synthesis: the tuned bar with its ≈4× and ≈10× partials, a felt strike, a resonator body, a short room), tuned to C5 within 0.2 cents. The game plays it up a major scale, one step per pass. **Human: upload it as an Audio asset and send the id** (until then the bomb's own tick plays the scale) |
+| **Chain Song note** | `art/audio/make_chain_note.py` → `chain_note.wav`: an in-house marimba-style mallet (modal synthesis: the tuned bar with its ≈4× and ≈10× partials, a felt strike, a resonator body, a short room), tuned to C5 within 0.2 cents. The game plays it up a major scale, one step per pass. Uploaded (`rbxassetid://120312887696662`) |
 | **×N tag** | The chain count over the Carrier from ×2 (`Spark` → `Ember` from ×3 → `Detonate` from ×5), popping in; the bomb's seams glow hotter with every Carrier it's been through |
 
 ### 5.2 Fuse spark (default "Classic")
