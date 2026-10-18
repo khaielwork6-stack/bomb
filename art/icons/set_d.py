@@ -15,19 +15,19 @@ from mathutils import Matrix, Vector
 GREEN = srgb("#14B00A")
 GREEN_SIDE = srgb("#0E7A0A")
 ARROW = srgb("#FFB300")
-ARROW_SIDE = srgb("#E86A00")
+ARROW_SIDE = srgb("#F07C00")
 CRATE = srgb("#E2501A")
 CRATE_DK = srgb("#5E1E0C")
 IRON = srgb("#2C2C34")
-ROCK = srgb("#3A1410")
+ROCK = srgb("#2A0E0A")
 LAVA = srgb("#FFB21E")
 PURPLE = srgb("#5E12C8")
 PURPLE_LID = srgb("#6C1CDC")
 PINK = srgb("#E0107E")
 STARGOLD = srgb("#FFC81E")
 BOMB_PURPLE = srgb("#3A1C68")
-RUBY = srgb("#E0102A")
-ROPE = srgb("#9C5208")
+RUBY = srgb("#B8001A")
+ROPE = srgb("#8C4800")
 ROPE_DK = srgb("#3A1A08")
 BRONZE = srgb("#B8661F")
 BRONZE_IN = srgb("#6E3510")
@@ -50,6 +50,14 @@ def emissive(name, color, strength=1.0):
     em.inputs["Strength"].default_value = strength
     nt.links.new(em.outputs["Emission"], out.inputs["Surface"])
     return m
+
+
+def ball(name, r, mat, loc=(0, 0, 0), segs=16, outline=0.0):
+    """A low-poly sphere for rivets and small knobs (lib.sphere is 48x24, too heavy for dozens of rivets)."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2, radius=r)
+    lib.xform(bm, loc)
+    return lib.finish(lib._obj(name, bm, mat), 0, outline=outline)
 
 
 def two_tone(o, side_mat):
@@ -207,9 +215,9 @@ def flame(name, loc, w, h, lean=0.0, outline=0.016):
     for k, (sx, sw, sh, sl) in enumerate(((0.0, 1.0, 1.0, lean), (-0.45 * w * (1 if lean >= 0 else -1), 0.6, 0.55, lean * 1.6))):
         o = loc + Vector((sx, 0.08 * k, 0))
         ww, hh, ll = w * sw, h * sh, sl
-        prism(f"{name}{k}A", flame_pts(ww, hh, ll), 0.04, emissive("FlameA", srgb("#E8300A"), 1.1), loc=o, bevel=0.006, outline=outline)
-        prism(f"{name}{k}B", flame_pts(ww * 0.68, hh * 0.74, ll * 0.8), 0.04, emissive("FlameB", srgb("#FF8410"), 1.15), loc=o + Vector((0, -0.02, 0.0)), bevel=0.005, outline=0)
-        prism(f"{name}{k}C", flame_pts(ww * 0.38, hh * 0.46, ll * 0.5), 0.04, emissive("FlameC", srgb("#FFE25A"), 1.3), loc=o + Vector((0, -0.04, 0.0)), bevel=0.004, outline=0)
+        prism(f"{name}{k}A", flame_pts(ww, hh, ll), 0.04, emissive("FlameA", srgb("#E8300A"), 1.1), loc=o, bevel=0.006, segs=1, outline=outline)
+        prism(f"{name}{k}B", flame_pts(ww * 0.68, hh * 0.74, ll * 0.8), 0.04, emissive("FlameB", srgb("#FF8410"), 1.15), loc=o + Vector((0, -0.02, 0.0)), bevel=0.005, segs=1, outline=0)
+        prism(f"{name}{k}C", flame_pts(ww * 0.38, hh * 0.46, ll * 0.5), 0.04, emissive("FlameC", srgb("#FFE25A"), 1.3), loc=o + Vector((0, -0.04, 0.0)), bevel=0.004, segs=1, outline=0)
 
 
 def clip(poly, d, c):
@@ -293,8 +301,9 @@ def Fuse():
         s.append(s[-1] + (b - a).length)
     tans = [(path[min(i + 1, len(path) - 1)] - path[max(i - 1, 0)]).normalized() for i in range(len(path))]
     sweep("Core", path[6:], 0.13, glossy("RopeCore", ROPE_DK, 0.8, coat=0), n=10, side=(0, 1, 0), outline=0)
-    rope = glossy("Rope", ROPE, 0.6, coat=0.0)
-    pitch, a_off = 0.5, 0.095
+    rope = glossy("Rope", ROPE, 0.55, coat=0.15)
+    rope.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.2
+    pitch, a_off = 0.8, 0.13
     for k in range(3):
         pts = []
         for p, t, sl in zip(path, tans, s):
@@ -303,7 +312,7 @@ def Fuse():
             nv = t.cross(bv)
             th = 2 * math.pi * sl / pitch + 2 * math.pi * k / 3
             pts.append(p + (bv * math.cos(th) + nv * math.sin(th)) * a_off)
-        sweep(f"Strand{k}", pts, 0.1, rope, n=10, outline=0.024)
+        sweep(f"Strand{k}", pts, 0.11, rope, n=10, outline=0.024)
     yaw, pitch_t = -8, 6
     lib.group_tilt(yaw, pitch_t)
     m = tilt_m(yaw, pitch_t)
@@ -354,9 +363,9 @@ def GiftBox():
     for sd in (-1, 1):
         d = Vector((sd * math.cos(math.radians(34)), 0, math.sin(math.radians(34))))
         nn = Vector((-d.z, 0, d.x)) * sd
-        lean = Matrix.Rotation(math.radians(-50), 3, "X")  # loops lean back so their inner face shows
-        pts = [top + lean @ (d * 0.42 * (1 - math.cos(u)) + nn * 0.33 * math.sin(u)) for u in (2 * math.pi * i / 48 for i in range(48))]
-        sweep(f"Loop{sd}", pts, 0.3, rib, n=18, side=lean @ Vector((0, 1, 0)), flat=0.26, closed=True)
+        lean = Matrix.Rotation(math.radians(-28), 3, "X")  # loops lean back so their inner face shows
+        pts = [top + lean @ (d * 0.46 * (1 - math.cos(u)) + nn * 0.34 * math.sin(u)) for u in (2 * math.pi * i / 48 for i in range(48))]
+        sweep(f"Loop{sd}", pts, 0.075, rib, n=18, side=lean @ Vector((0, 1, 0)), flat=2.2, closed=True)
         tail = [top + Vector((0, -0.05, -0.02)), top + Vector((sd * 0.2, -0.42, -0.08)), top + Vector((sd * 0.3, -0.78, -0.16)), top + Vector((sd * 0.36, -0.9, -0.44))]
         dirv = (tail[2] - tail[0]).normalized()
         sweep(f"Tail{sd}", catmull(tail, 8), 0.17, rib, n=14, side=(-dirv.y, dirv.x, 0), flat=0.22)
@@ -376,7 +385,7 @@ def Mega():
     g = gold("CrownGold")
     # crown band: a flared ring of points, solidified
     ns, per = 9, 14
-    r0, r1, h, sp = 0.97, 1.1, 0.4, 0.36
+    r0, r1, h, sp = 0.9, 1.02, 0.42, 0.34
     bm = bmesh.new()
     nseg = ns * per
     rows = []
@@ -398,16 +407,16 @@ def Mega():
     so.offset = 0
     lib.finish(band, 0.02, segs=2)
     crown = [band, lib.torus("CrownRim", r0 + 0.01, 0.07, g, outline=0.02)]
-    ruby = glossy("Ruby", RUBY, 0.15, coat=0.9, emit=0.2)
+    ruby = glossy("Ruby", RUBY, 0.12, 0.1, 0.9)
     for j in range(ns):
         a = 2 * math.pi * (j + 0.5) / ns
-        crown.append(sphere(f"Ball{j}", 0.08, g, loc=(math.cos(a) * (r1 + 0.005), math.sin(a) * (r1 + 0.005), h + sp + 0.05), outline=0.016))
+        crown.append(ball(f"Ball{j}", 0.08, g, segs=24, loc=(math.cos(a) * (r1 + 0.005), math.sin(a) * (r1 + 0.005), h + sp + 0.05), outline=0.016))
         zg = h * 0.5 + sp * 0.1
         rg = r0 + (r1 - r0) * zg / (h + sp) + 0.05
-        gem = prism(f"Gem{j}", [(0, 0.19), (0.14, 0), (0, -0.19), (-0.14, 0)], 0.07, ruby, bevel=0.025, segs=2, outline=0.012)
+        gem = prism(f"Gem{j}", [(0, 0.22), (0.16, 0), (0, -0.22), (-0.16, 0)], 0.07, ruby, bevel=0.025, segs=2, outline=0.012)
         gem.matrix_world = Matrix.Translation((math.cos(a) * rg, math.sin(a) * rg, zg)) @ Matrix.Rotation(a + math.pi / 2, 4, "Z") @ Matrix.Rotation(math.radians(-8), 4, "X")
         crown.append(gem)
-    place(crown, Matrix.Translation((0.02, -0.03, -0.04)) @ Matrix.Rotation(math.radians(-14), 4, "Y") @ Matrix.Rotation(math.radians(8), 4, "X"))
+    place(crown, Matrix.Translation((0.02, -0.03, -0.02)) @ Matrix.Rotation(math.radians(-14), 4, "Y") @ Matrix.Rotation(math.radians(8), 4, "X"))
     # fuse from the top, behind the crown
     up = Vector((0.22, 0.3, 0.93)).normalized()
     base = up * 0.84
@@ -451,10 +460,10 @@ def Crate():
         for fb in (-1, 1):
             box(f"StrapV{sd}{fb}", (0.17, 0.07, 0.8), g, loc=(sd * 0.45, fb * (D / 2 + 0.01), -0.4), bevel=0.025, outline=0.018)
             for z in (-0.22, -0.62):
-                sphere(f"Rv{sd}{fb}{z}", 0.035, g, loc=(sd * 0.45, fb * (D / 2 + 0.05), z), outline=0)
+                ball(f"Rv{sd}{fb}{z}", 0.035, g, loc=(sd * 0.45, fb * (D / 2 + 0.05), z), outline=0)
             box(f"Corner{sd}{fb}", (0.26, 0.26, 0.26), g, loc=(sd * (W / 2 - 0.08), fb * (D / 2 - 0.08), -0.7), bevel=0.05, outline=0.018)
         for a in (0.55, 1.57, 2.6):
-            sphere(f"RvL{sd}{a}", 0.035, g, loc=(sd * 0.45, math.cos(a) * 0.61, math.sin(a) * 0.61 + 0.02), outline=0)
+            ball(f"RvL{sd}{a}", 0.035, g, loc=(sd * 0.45, math.cos(a) * 0.61, math.sin(a) * 0.61 + 0.02), outline=0)
     box("Belt", (W + 0.04, D + 0.04, 0.12), g, loc=(0, 0, 0.0), bevel=0.03, outline=0.018)
     # bomb-shaped latch with a keyhole and a tiny fuse
     lz, ly = -0.06, -D / 2 - 0.1
@@ -525,7 +534,7 @@ def CrateInferno():
                 for ax in range(3):
                     n = Vector((0, 0, 0))
                     n[ax] = (sx, sy, sz)[ax]
-                    sphere(f"Rv{sx}{sy}{sz}{ax}", 0.045, g, loc=c + n * 0.17, outline=0)
+                    ball(f"Rv{sx}{sy}{sz}{ax}", 0.045, g, loc=c + n * 0.17, outline=0)
     yaw, pitch = -30, 12
     lib.group_tilt(yaw, pitch)
     m = tilt_m(yaw, pitch)

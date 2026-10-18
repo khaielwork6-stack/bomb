@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Assets = require(ReplicatedStorage.Shared.Assets)
 local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -26,6 +27,7 @@ local gui: ScreenGui
 local arrow: BillboardGui
 local chevron: Frame
 local chevronLabel: TextLabel
+local chevronArrow: ImageLabel
 local fromLabel: TextLabel
 local highlights: { [Model]: Highlight } = {}
 
@@ -58,29 +60,45 @@ local function build()
 		Position = UDim2.new(0.5, 0, 0, 14),
 		Size = UDim2.new(1, 0, 0, 28),
 	})
-	local tip = new("Frame", {
+	-- the chunky 3D arrow (art/icons), pointing down at the target
+	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 50),
-		Size = UDim2.fromOffset(18, 18),
-		Rotation = 45,
-		BackgroundColor3 = P.Spark,
+		Position = UDim2.new(0.5, 0, 0, 52),
+		Size = UDim2.fromOffset(40, 40),
+		Rotation = 90,
+		BackgroundTransparency = 1,
+		Image = Assets.Icon.Arrow or "",
+		ScaleType = Enum.ScaleType.Fit,
 		Parent = arrow,
 	})
-	new("UIStroke", { Color = P.Ink, Thickness = 3, Parent = tip })
 	-- Defuse chevron at the screen edge.
-	local face = Theme.panel(gui, { Name = "Chevron", Size = UDim2.fromOffset(150, 40), radius = 999 })
+	local face = Theme.panel(gui, { Name = "Chevron", Size = UDim2.fromOffset(170, 46), radius = 999 })
 	chevron = face.Parent :: Frame
 	chevron.AnchorPoint = Vector2.new(0.5, 0.5)
 	chevron.Visible = false
 	chevronLabel = new("TextLabel", {
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(10, 0),
+		Size = UDim2.new(1, -10, 1, 0),
 		BackgroundTransparency = 1,
-		FontFace = Theme.Font.Heavy,
-		TextSize = 18,
+		FontFace = Theme.Font.Display,
+		TextSize = 22,
 		TextColor3 = P.Safe,
 		Text = "",
 		ZIndex = 3,
 		Parent = face,
+	})
+	new("UIStroke", { Color = P.Ink, Thickness = 2.5, Parent = chevronLabel })
+	-- the arrow rides the pill's outer edge and turns toward the strip
+	chevronArrow = new("ImageLabel", {
+		Name = "Point",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, -6, 0.5, 0),
+		Size = UDim2.fromOffset(48, 48),
+		BackgroundTransparency = 1,
+		Image = Assets.Icon.Arrow or "",
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 5,
+		Parent = chevron,
 	})
 	-- "from <name>" under the HUD fuse when a pass lands on you.
 	fromLabel = Theme.display(gui, {
@@ -222,6 +240,7 @@ local function step()
 		local at = center + unit * k
 		chevron.Position = UDim2.fromOffset(at.X, at.Y)
 	end
+	chevronArrow.Rotation = math.deg(math.atan2(dir2.Y, dir2.X))
 	chevron.Visible = dist > 0.5
 end
 

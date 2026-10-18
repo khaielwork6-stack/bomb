@@ -149,6 +149,14 @@ Assets.Icon = {
 	Badge = "rbxassetid://75057395762995",
 } :: { [string]: string }
 
+-- Round-HUD textures drawn in code by art/ui/make_hud.py: the braided fuse cord tile (HUD Field Fuse), the hazard
+-- stripe tile (the 5 s warning) and the white radial edge mask tinted for the Carrier vignette (Asset Bible §6.6).
+Assets.Ui = {
+	Braid = "rbxassetid://76185158058247",
+	Hazard = "rbxassetid://96079488241147",
+	Vignette = "rbxassetid://114254801837399",
+}
+
 -- The bomb's face rig (Asset Bible §3.8): three shared PBR sets baked by art/bomb/face.py from the review materials.
 -- The meshes themselves live in the place (ReplicatedStorage.FV_Art.Bomb.Face), published from art/out/Bomb.Face/export.
 Assets.Face = {

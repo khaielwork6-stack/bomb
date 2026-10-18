@@ -16,23 +16,23 @@ from mathutils.geometry import delaunay_2d_cdt
 
 # ── Palette (kept a touch darker than the reference swatches: the house key light is bright, so lit faces land on
 # the reference colour instead of clipping toward white) ──────────────────────────────────────────────────────────
-CYAN = srgb("#0B8EE0")
-CYAN_LT = srgb("#2AB0F0")
+CYAN = srgb("#1AA0EA")
+CYAN_LT = srgb("#40BCF4")
 FIG_RED = srgb("#D8300E")
 RED = srgb("#C8121A")
-FLAME_RED = srgb("#D42A0C")
+FLAME_RED = srgb("#DC340A")
 FLAME_ORANGE = srgb("#F07A0E")
 FLAME_YELLOW = srgb("#F7C422")
-FLAME_CORE = srgb("#FFF0A0")
+FLAME_CORE = srgb("#FFE48A")
 GREEN_LT = srgb("#1FA63C")
 GREEN_DK = srgb("#0E7A2A")
-CREAM = srgb("#EBC9A0")
-HAND = srgb("#F3DCC4")
+CREAM = srgb("#D9AE80")
+HAND = srgb("#E6C6A6")
 INK = srgb("#15121A")
 DUST = srgb("#D9B88C")
 DUST_DK = srgb("#BF9A68")
-BUTTON = srgb("#26242E")
-EYE_WHITE = srgb("#EFE6DA")
+BUTTON = srgb("#1E1C26")
+EYE_WHITE = srgb("#D8C8B4")
 IRIS_DK = srgb("#163FA8")
 IRIS = srgb("#2B78EE")
 HEART = srgb("#C80C16")
@@ -154,7 +154,7 @@ def clip_x(poly, positive=True):
     N = len(poly)
     for i in range(N):
         a, b = poly[i - 1], poly[i]
-        ia, ib = a[0] * s >= 0, b[0] * s >= 0
+        ia, ib = a[0] * s > -1e-9, b[0] * s > -1e-9
         if ib:
             if not ia:
                 t = a[0] / (a[0] - b[0])
@@ -163,7 +163,13 @@ def clip_x(poly, positive=True):
         elif ia:
             t = a[0] / (a[0] - b[0])
             out.append((0.0, a[1] + (b[1] - a[1]) * t))
-    return out
+    clean = []
+    for c in out:  # drop repeats (a vertex lying exactly on x = 0 is emitted twice)
+        if not clean or (Vector(c) - Vector(clean[-1])).length > 1e-6:
+            clean.append(c)
+    if len(clean) > 1 and (Vector(clean[0]) - Vector(clean[-1])).length <= 1e-6:
+        clean.pop()
+    return clean
 
 
 def heart_pts(cx=0.5, cz=0.3, r=0.53, tip=-0.98, n=40):
@@ -182,7 +188,7 @@ def heart_pts(cx=0.5, cz=0.3, r=0.53, tip=-0.98, n=40):
     for k in range(n + 1):
         a = a0 + (a1 - a0) * k / n
         right.append((C.x + math.cos(a) * r, C.y + math.sin(a) * r))
-    poly =[(0.0, right[-1][1])] + list(reversed(right[1:-1])) + [(0.0, tip)] + [(-x, z) for x, z in right[1:-1]]
+    poly = [(0.0, right[-1][1])] + list(reversed(right[1:-1])) + [(0.0, tip)] + [(-x, z) for x, z in right[1:-1]]
     radii = [0.0] * len(poly)
     radii[0] = 0.07
     radii[len(right) - 1] = 0.16
@@ -272,14 +278,22 @@ def inflate(name, pts, mat, front=0.3, back=None, sp=0.035, loc=(0, 0, 0), rot=N
     return lib.finish(lib._obj(name, bm, mat), 0, outline=outline)
 
 
-def capsule(name, p1, p2, r, mat, outline=0.035, segs=32):
+def capsule(name, p1, p2, r, mat, outline=0.035, segs=32, r2=None):
+    """A capsule from p1 to p2; with `r2` it tapers (radius r at p1 to r2 at p2) — the chunky figure torso."""
     p1, p2 = Vector(p1), Vector(p2)
     d = p2 - p1
+    L = d.length
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2 + 1, radius=r)
     for v in bm.verts:
         if v.co.z > 0:
-            v.co.z += d.length
+            v.co.z += L
+    if r2 is not None:
+        for v in bm.verts:
+            k = 1.0 + (r2 / r - 1.0) * min(1.0, max(0.0, (v.co.z + r) / (L + 2 * r)))
+            v.co.x *= k
+            v.co.y *= k
+            v.co.z = (v.co.z - L) * (r2 / r) + L if v.co.z > L else v.co.z
     q = Vector((0, 0, 1)).rotation_difference(d.normalized())
     bmesh.ops.rotate(bm, cent=(0, 0, 0), matrix=q.to_matrix(), verts=bm.verts)
     bmesh.ops.translate(bm, vec=p1, verts=bm.verts)
@@ -296,10 +310,11 @@ def limb(name, pts, r, mat, y=0.0, outline=0.04):
     sphere(name + "_b", r, mat, loc=vs[-1], outline=outline)
 
 
-def figure(prefix, mat, head, torso, limbs, ol=0.06):
-    """A chunky toy stick figure: head (x, z, r), torso ((p1, p2), r), limbs [(pts, r, y)]."""
+def figure(prefix, mat, head, torso, limbs, ol=0.07):
+    """A chunky toy stick figure: head (x, z, r), torso ((chest, hips), r_chest, r_hips), limbs [(pts, r, y)]."""
     sphere(prefix + "Head", head[2], mat, loc=(head[0], 0, head[1]), outline=ol)
-    limb(prefix + "Torso", torso[0], torso[1], mat, 0.0, ol)
+    (cx, cz), (hx, hz) = torso[0]
+    capsule(prefix + "Torso", (cx, 0, cz), (hx, 0, hz), torso[1], mat, ol, r2=torso[2])
     for i, (pts, r, y) in enumerate(limbs):
         limb(f"{prefix}Limb{i}", pts, r, mat, y, ol)
 
@@ -314,8 +329,8 @@ def spark(name, loc, size=0.3):
 def Flame():
     outer = [
         (0.07, 0.0), (-0.47, 0.05), (-0.83, 0.3), (-0.99, 0.73), (-0.92, 1.1), (-0.73, 1.4),
-        (-0.47, 1.78), (-0.39, 1.5), (-0.32, 1.87), (-0.2, 2.15), (0.1, 2.01), (0.32, 1.7),
-        (0.43, 1.37), (0.47, 1.12), (0.72, 1.42), (0.88, 1.07), (0.97, 0.7), (0.88, 0.33), (0.57, 0.08),
+        (-0.47, 1.78), (-0.36, 1.4), (-0.32, 1.87), (-0.2, 2.15), (0.1, 2.01), (0.32, 1.7),
+        (0.43, 1.32), (0.5, 1.0), (0.74, 1.42), (0.88, 1.07), (0.97, 0.7), (0.88, 0.33), (0.57, 0.08),
     ]
     inflate("Outer", chaikin(outer, sharp=(6, 7, 9, 13, 14)), toy("FlameR", FLAME_RED, 0.25), front=0.42, back=0.3, sp=0.03, outline=0.04)
     mid = [
@@ -323,10 +338,10 @@ def Flame():
         (-0.12, 1.5), (0.04, 1.18), (0.2, 0.98), (0.42, 1.14), (0.6, 0.82), (0.64, 0.48), (0.46, 0.24),
     ]
     inflate("Mid", chaikin(mid, sharp=(6, 8, 9)), toy("FlameO", FLAME_ORANGE, 0.35), front=0.22, back=0.05, sp=0.03, loc=(0, -0.26, 0), outline=0)
-    core = [(-0.04, 1.06), (0.2, 0.74), (0.36, 0.48), (0.27, 0.25), (0.0, 0.2), (-0.27, 0.25), (-0.38, 0.48), (-0.3, 0.74)]
+    core = [(-0.06, 1.16), (0.22, 0.84), (0.42, 0.56), (0.36, 0.3), (0.04, 0.22), (-0.3, 0.28), (-0.44, 0.54), (-0.3, 0.86)]
     inflate("Core", chaikin(core, sharp=(0,)), toy("FlameY", FLAME_YELLOW, 0.8), front=0.14, back=0.04, sp=0.025, loc=(0, -0.44, 0), outline=0)
-    glow = rounded([(-0.2, 0.28), (0.2, 0.28), (0.24, 0.55), (0.0, 0.72), (-0.24, 0.55)], 0.12, 6)
-    inflate("Glow", glow, glossy("FlameW", FLAME_CORE, 0.3, emit=2.0), front=0.08, back=0.02, sp=0.025, loc=(0, -0.55, 0), outline=0)
+    glow = [(-0.06, 0.78), (0.2, 0.56), (0.26, 0.4), (0.04, 0.32), (-0.22, 0.38), (-0.24, 0.56)]
+    inflate("Glow", chaikin(glow, sharp=(0,)), toy("FlameW", FLAME_CORE, 0.4), front=0.06, back=0.02, sp=0.025, loc=(0, -0.55, 0), outline=0)
     lib.group_tilt(-14, 6)
 
 
@@ -336,8 +351,8 @@ def Shield():
     full = chaikin(mirror_half(right), sharp=(2, 6, 10), iters=4)
     prism("Rim", full, 0.32, gold(), bevel=0.07, segs=4)
     inner = offset_poly(full, 0.19)
-    prism("GreenR", clip_x(inner, True), 0.16, toy("GreenD", GREEN_DK), loc=(0, -0.16, 0), rot=[("Z", 10)], bevel=0.04, outline=0.02)
-    prism("GreenL", clip_x(inner, False), 0.16, toy("GreenL", GREEN_LT), loc=(0, -0.16, 0), rot=[("Z", -10)], bevel=0.04, outline=0.02)
+    prism("GreenR", clip_x(inner, True), 0.2, toy("GreenD", GREEN_DK), loc=(0, -0.2, 0), rot=[("Z", 5)], bevel=0.04, outline=0.02)
+    prism("GreenL", clip_x(inner, False), 0.2, toy("GreenL", GREEN_LT), loc=(0, -0.2, 0), rot=[("Z", -5)], bevel=0.04, outline=0.02)
     for i, (x, z) in enumerate([(0, 0.95), (0.75, 0.7), (-0.75, 0.7), (0.79, 0.08), (-0.79, 0.08), (0.52, -0.58), (-0.52, -0.58), (0, -1.0)]):
         sphere(f"Stud{i}", 0.065, gold("Stud"), loc=(x, -0.17, z), outline=0.015)
     lib.group_tilt(-20, 8)
@@ -346,17 +361,17 @@ def Shield():
 @icon
 def Runner():
     mat = toy("Cyan", CYAN)
-    for i, (x0, x1, z) in enumerate([(-0.7, 0.3, 1.7), (-1.25, -0.25, 1.15), (-1.6, -0.55, 0.52), (-1.45, -0.5, -0.1)]):
-        capsule(f"Streak{i}", (x0, 0.45, z), (x1, 0.45, z), 0.13, toy("Streak", CYAN_LT), outline=0.055)
+    for i, (x0, x1, z) in enumerate([(-0.72, 0.22, 1.27), (-1.28, -0.38, 0.8), (-1.52, -0.42, 0.22), (-1.42, -0.58, -0.35)]):
+        capsule(f"Streak{i}", (x0, 0.45, z), (x1, 0.45, z), 0.15, toy("Streak", CYAN_LT), outline=0.06)
     figure(
         "R", mat,
-        head=(0.95, 1.45, 0.47),
-        torso=([(0.5, 0.8), (0.12, 0.0)], 0.35),
+        head=(0.7, 1.1, 0.47),
+        torso=([(0.3, 0.55), (-0.05, -0.12)], 0.31, 0.26),
         limbs=[
-            ([(0.6, 0.7), (1.2, 0.42), (1.6, 0.85)], 0.19, -0.3),
-            ([(0.35, 0.75), (-0.15, 0.55), (-0.5, 0.38)], 0.19, 0.3),
-            ([(0.2, -0.05), (0.85, -0.2), (0.75, -0.85), (1.02, -0.95)], 0.22, -0.18),
-            ([(0.0, -0.1), (-0.35, -0.5), (-0.95, -0.62)], 0.22, 0.22),
+            ([(0.45, 0.42), (0.95, 0.08), (1.25, 0.55)], 0.18, -0.3),
+            ([(0.2, 0.68), (-0.5, 0.55), (-0.68, 0.3)], 0.18, 0.3),
+            ([(0.08, -0.1), (0.85, -0.25), (0.52, -0.95)], 0.21, -0.15),
+            ([(-0.15, -0.2), (-0.55, -0.52), (-1.02, -0.75)], 0.21, 0.2),
         ],
     )
     lib.group_tilt(-10, 6)
@@ -367,31 +382,31 @@ def Bomber():
     mat = toy("FigRed", FIG_RED)
     figure(
         "B", mat,
-        head=(0.31, 1.25, 0.47),
-        torso=([(0.1, 0.72), (-0.28, -0.08)], 0.35),
+        head=(0.03, 0.83, 0.47),
+        torso=([(-0.1, 0.3), (-0.28, -0.45)], 0.3, 0.26),
         limbs=[
-            ([(0.3, 0.58), (0.85, 0.38), (1.15, 0.85)], 0.19, -0.3),
-            ([(-0.05, 0.68), (-0.6, 0.72), (-0.9, 0.38)], 0.19, 0.3),
-            ([(-0.2, -0.1), (0.45, -0.25), (0.6, -0.8), (0.88, -0.9)], 0.22, -0.18),
-            ([(-0.35, -0.15), (-0.65, -0.45), (-1.0, -0.8)], 0.22, 0.22),
+            ([(0.0, 0.16), (0.62, 0.0), (0.92, 0.32)], 0.19, -0.3),
+            ([(-0.22, 0.3), (-0.85, 0.5), (-1.3, 0.2)], 0.19, 0.3),
+            ([(-0.2, -0.45), (0.5, -0.62), (0.68, -1.3)], 0.22, -0.15),
+            ([(-0.36, -0.5), (-0.78, -0.8), (-1.32, -1.05)], 0.22, 0.2),
         ],
     )
-    bx, bz, by = 1.48, 1.2, -0.4
-    sphere("Bomb", 0.48, glossy("Iron", srgb("#26232C"), 0.3, 0.2, 0.7), loc=(bx, by, bz), outline=0.055)
-    cyl("Collar", 0.13, 0.14, gold(), loc=(bx + 0.17, by, bz + 0.43), rot=[("Y", 22)], outline=0.03)
-    fuse = [Vector((bx + 0.2, by, bz + 0.49)), Vector((bx + 0.26, by, bz + 0.62)), Vector((bx + 0.38, by, bz + 0.68))]
+    bx, bz, by = 1.08, 0.66, -0.42
+    sphere("Bomb", 0.45, glossy("Iron", srgb("#26232C"), 0.3, 0.2, 0.7), loc=(bx, by, bz), outline=0.06)
+    cyl("Collar", 0.13, 0.13, gold(), loc=(bx + 0.05, by, bz + 0.44), rot=[("Y", 8)], outline=0.03)
+    fuse = [Vector((bx + 0.06, by, bz + 0.5)), Vector((bx + 0.08, by, bz + 0.62)), Vector((bx + 0.12, by, bz + 0.72))]
     tube("Fuse", fuse, 0.05, glossy("Cord", srgb("#C99A5A"), 0.8, coat=0), outline=0.03)
-    spark("Spark", (bx + 0.46, by - 0.04, bz + 0.72), 0.27)
+    spark("Spark", (bx + 0.12, by - 0.04, bz + 0.8), 0.3)
     lib.group_tilt(-10, 6)
 
 
 @icon
 def Dash():
-    arrow = [(-0.55, 0.32), (0.15, 0.32), (0.15, 1.0), (1.3, 0.0), (0.15, -1.0), (0.15, -0.32), (-0.55, -0.32)]
-    prism("Arrow", rounded(arrow, [0.14, 0.1, 0.16, 0.2, 0.16, 0.1, 0.14], 8), 0.4, toy("Cyan", CYAN), bevel=0.14, segs=5, outline=0.045)
+    arrow = [(-0.45, 0.34), (0.15, 0.34), (0.15, 1.0), (1.3, 0.0), (0.15, -1.0), (0.15, -0.34), (-0.45, -0.34)]
+    prism("Arrow", rounded(arrow, [0.18, 0.1, 0.2, 0.26, 0.2, 0.1, 0.18], 8), 0.46, toy("Cyan", CYAN), bevel=0.17, segs=6, outline=0.05)
     st = toy("Streak", CYAN_LT)
-    for i, (x0, x1, z) in enumerate([(-0.85, 0.0, 0.66), (-1.45, -0.5, 0.0), (-1.15, -0.2, -0.66)]):
-        capsule(f"Streak{i}", (x0, 0.05, z), (x1, 0.05, z), 0.14, st, outline=0.045)
+    for i, (x0, x1, z) in enumerate([(-0.85, 0.0, 0.68), (-1.5, -0.4, 0.0), (-1.15, -0.2, -0.68)]):
+        capsule(f"Streak{i}", (x0, 0.08, z), (x1, 0.08, z), 0.15, st, outline=0.05)
     lib.group_tilt(-16, 8)
 
 
@@ -400,25 +415,26 @@ def Slide():
     mat = toy("Cyan", CYAN)
     figure(
         "S", mat,
-        head=(1.0, 0.92, 0.47),
-        torso=([(0.5, 0.38), (-0.12, -0.2)], 0.35),
+        head=(0.9, 0.6, 0.47),
+        torso=([(0.15, 0.28), (-0.3, -0.35)], 0.31, 0.27),
         limbs=[
-            ([(0.4, 0.5), (-0.35, 0.7), (-1.05, 0.88)], 0.19, 0.25),
-            ([(0.5, 0.3), (1.0, -0.05), (1.45, -0.3)], 0.19, -0.3),
-            ([(-0.15, -0.28), (0.5, -0.64), (1.35, -0.76)], 0.22, -0.1),
+            ([(0.2, 0.35), (-0.45, 0.53), (-1.1, 0.7)], 0.18, 0.25),
+            ([(0.3, -0.1), (0.9, -0.25), (1.4, -0.4)], 0.19, -0.3),
+            ([(-0.2, -0.5), (0.5, -0.68), (1.05, -0.8)], 0.2, -0.05),
         ],
     )
     dust = glossy("Dust", DUST, 0.55, coat=0.15)
     dust2 = glossy("DustDk", DUST_DK, 0.55, coat=0.15)
     puffs = [
-        (-0.4, -0.72, 0.32), (-0.82, -0.62, 0.36), (-1.25, -0.6, 0.3), (-1.6, -0.72, 0.24), (-1.0, -0.22, 0.28),
-        (-1.42, -0.25, 0.22), (-0.6, -0.3, 0.24), (-1.75, -0.4, 0.17), (-0.05, -0.88, 0.22), (-1.2, -0.92, 0.2),
+        (-1.55, -0.1, 0.3), (-1.2, -0.3, 0.3), (-0.95, -0.6, 0.28), (-0.55, -0.45, 0.3), (-0.2, -0.62, 0.25),
+        (0.1, -0.77, 0.2), (0.4, -0.86, 0.14), (-1.4, -0.6, 0.27), (-0.75, -0.8, 0.22), (-1.72, -0.42, 0.2),
+        (-1.1, -0.05, 0.2),
     ]
     for i, (x, z, r) in enumerate(puffs):
-        sphere(f"Puff{i}", r, dust if i % 3 else dust2, loc=(x, 0.1 - r * 0.3, z), outline=0.05)
-    for i, (x, z, r) in enumerate([(-1.1, 0.28, 0.11), (-1.6, 0.12, 0.08), (-1.95, -0.9, 0.09)]):
-        sphere(f"Bit{i}", r, dust, loc=(x, 0.0, z), outline=0.035)
-    capsule("Ground", (-0.2, 0.1, -1.02), (1.75, 0.1, -1.02), 0.04, dust, outline=0.025)
+        sphere(f"Puff{i}", r, dust if i % 4 else dust2, loc=(x, -0.25 - (i % 3) * 0.06, z), outline=0.05)
+    for i, (x, z, r) in enumerate([(-0.83, 0.02, 0.12), (-1.38, -0.92, 0.1)]):
+        sphere(f"Bit{i}", r, dust, loc=(x, -0.2, z), outline=0.04)
+    capsule("Ground", (-0.1, -0.1, -0.98), (1.45, -0.1, -0.98), 0.045, dust, outline=0.03)
     lib.group_tilt(-10, 6)
 
 
@@ -432,12 +448,12 @@ def Stop():
     prism("Band", rounded(octa(0.93), 0.06, 3), 0.3, toy("Cream", CREAM), loc=(0, -0.03, 0), bevel=0.05, outline=0.015)
     prism("Face", rounded(octa(0.76), 0.05, 3), 0.3, red, loc=(0, -0.06, 0), bevel=0.05, outline=0.02)
     hand = toy("Hand", HAND)
-    palm = rounded([(-0.38, -0.6), (0.36, -0.6), (0.42, 0.02), (-0.42, 0.02)], [0.24, 0.24, 0.12, 0.12])
-    inflate("Palm", palm, hand, front=0.12, back=0.04, sp=0.03, loc=(0, -0.23, -0.04), outline=0.03)
-    for i, (x, tip, ang) in enumerate([(-0.3, 0.3, 7), (-0.1, 0.44, 2), (0.1, 0.42, -2), (0.3, 0.28, -7)]):
-        top = (x - math.sin(math.radians(ang)) * 0.5, tip)
-        capsule(f"Finger{i}", (x, -0.27, -0.12), (top[0], -0.27, top[1]), 0.105, hand, outline=0.03)
-    capsule("Thumb", (0.28, -0.27, -0.42), (0.6, -0.27, -0.12), 0.11, hand, outline=0.03)
+    palm = rounded([(-0.3, -0.52), (0.3, -0.52), (0.36, 0.0), (-0.36, 0.0)], [0.2, 0.2, 0.1, 0.1])
+    inflate("Palm", palm, hand, front=0.11, back=0.04, sp=0.025, loc=(0, -0.23, -0.06), outline=0.03)
+    for i, (x, tip, ang) in enumerate([(-0.255, 0.2, 6), (-0.085, 0.32, 2), (0.085, 0.3, -2), (0.255, 0.18, -6)]):
+        top = (x - math.sin(math.radians(ang)) * 0.4, tip)
+        capsule(f"Finger{i}", (x, -0.27, -0.12), (top[0], -0.27, top[1]), 0.088, hand, outline=0.028)
+    capsule("Thumb", (0.22, -0.27, -0.4), (0.5, -0.27, -0.14), 0.095, hand, outline=0.028)
     lib.group_tilt(-18, 8)
 
 
@@ -455,10 +471,10 @@ def Wheel():
     for i in range(12):
         a = 2 * math.pi * i / 12 + math.pi / 12
         sphere(f"Stud{i}", 0.06, gold("Stud"), loc=(math.cos(a) * 0.885, -0.14, math.sin(a) * 0.885), outline=0.012)
-    sphere("Hub", 0.19, g, loc=(0, -0.22, 0), scale=(1, 0.75, 1))
-    torus("HubRing", 0.2, 0.05, g, rot=[("X", 90)], loc=(0, -0.2, 0))
-    prism("Pointer", rounded([(-0.2, 1.22), (0.2, 1.22), (0.0, 0.74)], 0.04, 3), 0.16, g, loc=(0, -0.24, 0), bevel=0.035)
-    sphere("PointerCap", 0.085, g, loc=(0, -0.32, 1.14))
+    sphere("Hub", 0.15, g, loc=(0, -0.22, 0), scale=(1, 0.8, 1))
+    torus("HubRing", 0.16, 0.045, g, rot=[("X", 90)], loc=(0, -0.2, 0))
+    prism("Pointer", rounded([(-0.22, 1.12), (0.22, 1.12), (0.0, 0.6)], [0.06, 0.06, 0.05], 4), 0.16, g, loc=(0, -0.26, 0), bevel=0.04)
+    sphere("PointerCap", 0.085, g, loc=(0, -0.34, 1.02))
     st = toy("Stand", STAND)
     prism("Base", rounded([(-0.9, -1.3), (0.9, -1.3), (0.7, -1.06), (-0.7, -1.06)], 0.05, 3), 0.6, st, loc=(0, 0.1, 0), bevel=0.04)
     box("Neck", (0.5, 0.3, 0.4), st, loc=(0, 0.2, -0.92), bevel=0.04)

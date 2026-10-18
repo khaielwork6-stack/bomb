@@ -6,15 +6,13 @@ import math
 import bmesh
 import bpy
 import lib
-from lib import cyl, glossy, icon, prism, sphere, srgb, star_pts, torus, tube
-from mathutils import Matrix, Quaternion, Vector
+from lib import cyl, glossy, icon, prism, sphere, srgb, star_pts, torus
+from mathutils import Matrix, Vector
 
 # ── Palette ─────────────────────────────────────────────────────────────────────────────────────────────────────
 RED = srgb("#E8322B")
 DEEP_RED = srgb("#B8141C")
-ORANGE = srgb("#FF7A1A")
 AMBER = srgb("#FFA51F")
-YELLOW = srgb("#FFD23A")
 PALE = srgb("#FFF4B8")
 SMOKE = srgb("#6F6670")
 SOOT = srgb("#4A3C3E")
@@ -22,9 +20,6 @@ BRASS = srgb("#C98F22")
 BRASS_LT = srgb("#E9B544")
 HAND = srgb("#FFB810")
 WOOD_LT = srgb("#D9913F")
-WOOD_DK = srgb("#7A4420")
-ORB = srgb("#1E6BFF")
-WHITE = srgb("#FFFFFF")
 
 
 # ── Local helpers ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -289,9 +284,9 @@ def swoosh_pts(cx, cz, rx, rz, a0, a1, width, rot=0.0, n=56, peak=0.5, ex=0.7):
 # ── Icons ───────────────────────────────────────────────────────────────────────────────────────────────────────
 @icon
 def Explosion():
-    def lobe(name, r, mat, loc, sy=0.72, outline=0.022):
+    def lobe(name, r, mat, loc, sy=0.72, outline=0.022, segs=28):
         bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=32, v_segments=16, radius=r)
+        bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2, radius=r)
         lib.xform(bm, loc, None, (1, sy, 1))
         me = bpy.data.meshes.new(name)
         bm.to_mesh(me)
@@ -308,13 +303,13 @@ def Explosion():
             deg = math.degrees(a) % 360
             lobe(f"{tag}{i}", r * (1 + 0.16 * math.sin(i * 1.9 + 0.5)), mats(deg), (cx + math.cos(a) * rr, y - 0.02 * i, cz + math.sin(a) * rr), outline=outline)
 
-    smoke = glossy("Smoke", SMOKE, 0.5, coat=0.25)
-    red = glossy("FireRed", srgb("#E0301C"), 0.3, emit=0.25)
-    dark = glossy("FireDark", srgb("#B3161A"), 0.32, emit=0.15)
-    hot = glossy("FireHot", srgb("#F2561C"), 0.3, emit=0.35)
-    orange = glossy("FireOrange", srgb("#FF8116"), 0.3, emit=0.5)
-    yellow = glossy("FireYellow", srgb("#FFC930"), 0.3, emit=0.7)
-    core = glossy("FireCore", srgb("#FFEE9A"), 0.3, emit=0.6)
+    smoke = glossy("Smoke", SMOKE, 0.62, coat=0.08)
+    red = glossy("FireRed", srgb("#E0301C"), 0.45, coat=0.15, emit=0.25)
+    dark = glossy("FireDark", srgb("#B3161A"), 0.45, coat=0.15, emit=0.15)
+    hot = glossy("FireHot", srgb("#F2561C"), 0.45, coat=0.15, emit=0.35)
+    orange = glossy("FireOrange", srgb("#FF8116"), 0.45, coat=0.15, emit=0.5)
+    yellow = glossy("FireYellow", srgb("#FFC930"), 0.45, coat=0.15, emit=0.7)
+    core = glossy("FireCore", srgb("#FFEE9A"), 0.45, coat=0.15, emit=0.6)
 
     # back smoke, upper corners
     for i, (x, z, r) in enumerate(((-0.62, 0.8, 0.36), (-0.25, 1.0, 0.32), (-0.92, 0.5, 0.27), (0.72, 0.62, 0.35), (1.0, 0.36, 0.26), (0.46, 0.9, 0.27))):
@@ -328,11 +323,11 @@ def Explosion():
     ring("Core", 4, 0.11, 0.18, -0.52, lambda d: core, phase=0.3, cx=-0.06, cz=0.1, outline=0)
     lobe("CoreC", 0.2, core, (-0.06, -0.55, 0.1), outline=0)
     # front smoke, lower corners
-    for i, (x, z, r) in enumerate(((-0.72, -0.74, 0.36), (-0.34, -0.96, 0.31), (-1.02, -0.5, 0.26), (0.75, -0.74, 0.35), (1.03, -0.5, 0.25), (0.42, -0.95, 0.28))):
+    for i, (x, z, r) in enumerate(((-0.74, -0.76, 0.33), (-0.38, -0.98, 0.28), (-1.02, -0.52, 0.24), (-0.98, -0.94, 0.23), (0.76, -0.76, 0.32), (1.03, -0.52, 0.23), (0.44, -0.98, 0.26), (0.98, -0.94, 0.22))):
         lobe(f"SmokeB{i}", r, smoke, (x, -0.7 - 0.03 * i, z))
     soot = glossy("Soot", SOOT, 0.35)
     for i, (x, z, r) in enumerate(((-1.22, 0.05, 0.09), (-1.28, -0.22, 0.06), (1.27, 0.08, 0.08), (0.12, 1.26, 0.08), (-1.0, 1.0, 0.07), (0.2, -1.3, 0.08))):
-        sphere(f"Debris{i}", r, soot, loc=(x, -0.9, z), outline=0.015)
+        lobe(f"Debris{i}", r, soot, (x, -0.9, z), sy=1.0, outline=0.015, segs=16)
     lib.group_tilt(-10, 6)
 
 
