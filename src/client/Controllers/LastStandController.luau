@@ -3,7 +3,9 @@
 -- spotlight locks onto the last Runner and follows them, a rim light warms the Bombers' line; a win snaps the world
 -- back to full light under a firework volley (the loss is the boom itself). Everything here is client-side
 -- presentation and restores itself when the round moves on.
--- Implements: F-LAST-01, F-LAST-04 (light + volley beats).
+-- The runner's equipped trail (Eq_Trail) runs through the Last Stand sprint, and a win plays the winner's equipped
+-- victory boom (Eq_VictoryBoom, Asset Bible §8.2–8.3, Client/VfxCosmetic) in place of the default volley.
+-- Implements: F-LAST-01, F-LAST-03 (the sprint's trail), F-LAST-04 (light + volley beats), F-STORE-01.
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +17,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local FxController = require(script.Parent.FxController)
+local VfxCosmetic = require(script.Parent.Parent.VfxCosmetic)
 
 local new = Theme.new
 local Ph = Types.Phase
@@ -28,6 +31,7 @@ local saved: { Brightness: number, ExposureCompensation: number }? = nil
 local correction: ColorCorrectionEffect? = nil
 local spotPart: Part? = nil
 local follow: RBXScriptConnection? = nil
+local trailOn: Model? = nil -- the runner whose trail is running for the sprint
 
 local function tween(obj: Instance, time: number, props: { [string]: any })
 	TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), props):Play()
@@ -82,6 +86,10 @@ local function finish(win: boolean)
 		return
 	end
 	active = false
+	if trailOn then
+		VfxCosmetic.stopTrail(trailOn)
+		trailOn = nil
+	end
 	if follow then
 		follow:Disconnect()
 		follow = nil
@@ -133,10 +141,31 @@ function LastStandController.start()
 			local id = gs:GetAttribute("LastStandId")
 			local _, model = ClientState.byId(if type(id) == "string" then id else "")
 			local root = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local host = ClientState.byId(if type(id) == "string" then id else "")
 			finish(win)
 			if win and root then
-				volley(root.Position)
+				local eq = host and host:GetAttribute("Eq_VictoryBoom")
+				if not VfxCosmetic.victory(eq, root.CFrame) then
+					volley(root.Position)
+				end
 			end
+		end
+	end)
+	-- The sprint (F-LAST-03): the runner's trail runs for the whole run.
+	gs:GetAttributeChangedSignal("SubPhase"):Connect(function()
+		if not active then
+			return
+		end
+		if ClientState.sub() == Types.Sub.Run then
+			local id = gs:GetAttribute("LastStandId")
+			local host, model = ClientState.byId(if type(id) == "string" then id else "")
+			if host and model then
+				trailOn = model
+				VfxCosmetic.trail(model, host:GetAttribute("Eq_Trail"), ClientState.timeLeft())
+			end
+		elseif trailOn then
+			VfxCosmetic.stopTrail(trailOn)
+			trailOn = nil
 		end
 	end)
 	-- A theme cue for the reveal (the full sound design is the P3 audio pass).

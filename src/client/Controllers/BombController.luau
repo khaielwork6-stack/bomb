@@ -5,7 +5,9 @@
 -- through LIT → HOT → CRITICAL; the bomb hangs on a sprung clamp and wobbles with the body. A ring above the
 -- Carrier's head shows the time to everyone. P1 builds the bomb from engine parts in the hero design's shapes and
 -- materials; the Blender hero model (Asset Bible §3.2) replaces the parts in P3.
--- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability.
+-- The fuse spark wears the Carrier's equipped Eq_FuseSpark (Asset Bible §8.1, Client/VfxCosmetic); the ring keeps
+-- its stage colours.
+-- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability, F-STORE-01 (sparks).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +23,7 @@ local Settings = require(script.Parent.Parent.Settings)
 local Sfx = require(script.Parent.Parent.Sfx)
 local SkinApply = require(script.Parent.Parent.SkinApply)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local VfxCosmetic = require(script.Parent.Parent.VfxCosmetic)
 
 local B = Config.Bomb
 local F = Config.Feel
@@ -48,6 +51,7 @@ type Visual = {
 	seams: { BasePart },
 	spark: ParticleEmitter,
 	sparkAtt: Attachment,
+	cosmetic: VfxCosmetic.SparkRig?, -- the Carrier's equipped fuse spark (nil: Classic)
 	light: PointLight,
 	ring: BillboardGui,
 	ringDots: { Frame },
@@ -398,7 +402,7 @@ local function attach(host: Instance): Visual?
 		Parent = sparkAtt,
 	})
 	-- The burning point itself (Asset Bible §5.2): a flickering six-point star, always on top of the cord.
-	new("ParticleEmitter", {
+	local core = new("ParticleEmitter", {
 		Name = "SparkCore",
 		Texture = Assets.Vfx.Flash,
 		Color = ColorSequence.new(Color3.new(1, 0.96, 0.82), P.Spark),
@@ -414,6 +418,7 @@ local function attach(host: Instance): Visual?
 		Parent = sparkAtt,
 	})
 	local light = new("PointLight", { Color = P.Fuse, Range = 5, Brightness = 2, Parent = sparkAtt })
+	local cosmetic = VfxCosmetic.spark(host:GetAttribute("Eq_FuseSpark"), sparkAtt, mount, spark, core, light)
 	Sfx.loop("FuseHiss", sparkAtt) -- the burning cord, 3D on the Carrier's back (destroyed with the bomb)
 	model.Parent = char
 	local ring, dots = buildRing(torso)
@@ -429,6 +434,7 @@ local function attach(host: Instance): Visual?
 		seams = seams,
 		spark = spark,
 		sparkAtt = sparkAtt,
+		cosmetic = cosmetic,
 		light = light,
 		ring = ring,
 		ringDots = dots,
@@ -506,7 +512,12 @@ local function update(v: Visual, dt: number, t: number)
 	local tip = v.segments[math.clamp(tipY, 1, FUSE_SEGMENTS)]
 	v.sparkAtt.WorldPosition = tip.Position + Vector3.new(0, (if v.artFuse then tip.Size.Y else tip.Size.X) * 0.5, 0)
 	-- Spark, lamps, seams by stage.
-	v.spark.Rate = if stage == "CRITICAL" then 120 elseif stage == "HOT" then 70 else 40
+	local cosmetic = v.cosmetic
+	if cosmetic then
+		VfxCosmetic.sparkStep(cosmetic, dt, stage == "CRITICAL")
+	else
+		v.spark.Rate = if stage == "CRITICAL" then 120 elseif stage == "HOT" then 70 else 40
+	end
 	local hz = if stage == "CRITICAL" then 10 elseif stage == "HOT" then 4 else 2
 	local pulse = 0.5 + 0.5 * math.sin(t * hz * math.pi * 2)
 	for _, lamp in ipairs(v.lamps) do
@@ -521,8 +532,8 @@ local function update(v: Visual, dt: number, t: number)
 		seam.Transparency = seamT
 		seam.Color = if stage == "CRITICAL" then P.Spark:Lerp(Color3.new(1, 1, 1), pulse) else P.Ember
 	end
-	v.light.Range = if stage == "CRITICAL" then 10 else 5
-	v.light.Color = stageColor
+	v.light.Range = if stage == "CRITICAL" then 10 elseif cosmetic then cosmetic.range else 5
+	v.light.Color = if cosmetic then cosmetic.color else stageColor
 	-- Sprung clamp: the bomb lags the body's acceleration and settles (k 180, damping ≈0.35).
 	local root = v.torso.Parent and (v.torso.Parent :: Model):FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root and dt > 0 then

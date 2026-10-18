@@ -2,7 +2,9 @@
 -- World effects for the bomb loop (GDD §10.3): booms, defuses, the field detonation, and camera shake scaled by
 -- distance. Every texture is in-house (Shared/Assets.Vfx, from art/vfx/make_vfx.py) and plays in the explosion
 -- stack's timing (Asset Bible §5.1: pre-swell → flash → fireball + shockwave → sparks → smoke → scorch).
--- Implements: F-FEEL-03 (booms, defuse, detonation beats), F-FUSE-03 (visual sweep).
+-- A Carrier's equipped explosion (Eq_Explosion, Asset Bible §5.6) swaps the stack's sprites for its recipe in
+-- Client/VfxCosmetic, keeping the PointLight flash, the 7-stud shockwave ring (tinted) and the timing.
+-- Implements: F-FEEL-03 (booms, defuse, detonation beats), F-FUSE-03 (visual sweep), F-STORE-01 (explosions in play).
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -12,7 +14,9 @@ local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Net = require(ReplicatedStorage.Shared.Net)
+local ClientState = require(script.Parent.Parent.ClientState)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local VfxCosmetic = require(script.Parent.Parent.VfxCosmetic)
 
 local P = Theme.Palette
 local new = Theme.new
@@ -121,10 +125,10 @@ end
 -- Client-side and kinematic (no physics bodies), so nothing can ever shove a player.
 local IRON = Color3.fromRGB(46, 44, 51)
 local BRASS = Color3.fromRGB(201, 151, 63)
-local function debris(pos: Vector3, floorY: number, s: number)
+local function debris(pos: Vector3, floorY: number, s: number, rivetsOnly: boolean?)
 	type Piece = { part: BasePart, vel: Vector3, spin: Vector3, half: number, hot: boolean }
 	local pieces: { Piece } = {}
-	for i = 1, 6 do
+	for i = if rivetsOnly then 5 else 1, 6 do
 		local rivet = i > 4
 		local size = if rivet
 			then Vector3.one * 0.38
@@ -205,7 +209,7 @@ local function debris(pos: Vector3, floorY: number, s: number)
 end
 
 -- A scorch mark on the ground under the blast: holds, then fades (Asset Bible §5.1, step 6).
-local function scorch(pos: Vector3, s: number, hit: RaycastResult?)
+local function scorch(pos: Vector3, s: number, hit: RaycastResult?, color: Color3?, alpha: number?)
 	if not hit then
 		return
 	end
@@ -225,18 +229,100 @@ local function scorch(pos: Vector3, s: number, hit: RaycastResult?)
 			+ hit.Normal * 0.03,
 		Parent = workspace,
 	})
-	local decal = new("Decal", { Texture = Assets.Vfx.Scorch, Face = Enum.NormalId.Top, Parent = part })
+	local decal = new("Decal", {
+		Texture = Assets.Vfx.Scorch,
+		Face = Enum.NormalId.Top,
+		Color3 = color or Color3.new(1, 1, 1),
+		Transparency = alpha or 0,
+		Parent = part,
+	})
 	task.delay(4, function()
 		TweenService:Create(decal, TweenInfo.new(5, Enum.EasingStyle.Linear), { Transparency = 1 }):Play()
 	end)
 	Debris:AddItem(part, 9.5)
 end
 
+-- The shockwave ring, flat on the ground (Asset Bible §5.1; cosmetics only tint it, §5.6). `alpha` lifts its base
+-- transparency (Ink Splat's ring is 50 %).
+local function shockwave(att: Attachment, s: number, color: Color3, alpha: number)
+	emit(att, 1, {
+		Texture = Assets.Vfx.Ring,
+		Color = ColorSequence.new(color),
+		LightEmission = 0.5,
+		LightInfluence = 0,
+		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+		Size = keys({ { 0, 2 }, { 1, 22 * s } }),
+		Transparency = keys({ { 0, alpha }, { 0.6, 0.3 + alpha * 0.7 }, { 1, 1 } }),
+		Lifetime = NumberRange.new(0.32),
+		Speed = NumberRange.new(0.01),
+		EmissionDirection = Enum.NormalId.Top,
+	})
+end
+
+-- Camera shake for a blast at `pos`, by the local player's distance.
+local function shakeNear(pos: Vector3, s: number)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local d = (root.Position - pos).Magnitude
+		FxController.shake(if d <= 10 then 0.6 * s elseif d <= 30 then 0.25 * s else 0)
+	end
+end
+
+-- More than CROWD booms inside CROWD_WINDOW seconds play the cosmetics' light variants (COSMETICS.md §0).
+local CROWD, CROWD_WINDOW = 3, 1
+local recentBooms: { number } = {}
+local function crowded(): boolean
+	local t = os.clock()
+	for i = #recentBooms, 1, -1 do
+		if t - recentBooms[i] > CROWD_WINDOW then
+			table.remove(recentBooms, i)
+		end
+	end
+	table.insert(recentBooms, t)
+	return #recentBooms > CROWD
+end
+
+-- A cosmetic explosion (Asset Bible §5.6): the recipe's layers replace the Classic flash sprite, fireball, sparks,
+-- smoke, soot and embers; the PointLight flash, the shockwave ring (tinted), debris and timing stay. `lite` (or a
+-- crowd of booms) plays the recipe's light variant: no light, ring, debris or scorch, like the Classic one.
+local function cosmeticBoom(pos: Vector3, recipe: VfxCosmetic.Boom, lite: boolean)
+	local light = lite or crowded()
+	local ground = groundUnder(pos)
+	local floorY = if ground then ground.Position.Y else nil
+	VfxCosmetic.burst(recipe.layers, pos, recipe.origin, light, floorY)
+	if not light then
+		local function pop()
+			flash(pos, recipe.lightRange or 26, recipe.lightBrightness or 4, recipe.light, 0.2)
+			shockwave(burstAt(pos, 1), 1, recipe.ring, recipe.ringAlpha or 0)
+		end
+		local at = recipe.flashAt - recipe.origin
+		if at > 0 then
+			task.delay(at, pop)
+		else
+			pop()
+		end
+		if recipe.debris ~= "none" then
+			debris(pos, floorY or pos.Y - 3, 1, recipe.debris == "rivets")
+		end
+		local sc = recipe.scorch
+		if sc then
+			task.delay(math.max(0, sc.t - recipe.origin), scorch, pos, 1, ground, sc.color, sc.alpha)
+		end
+	end
+	shakeNear(pos, 1)
+end
+
 -- The explosion stack at `pos` (scale 1 = a full bomb boom), Asset Bible §5.1: flash → fireball + shockwave →
 -- sparks + embers → smoke that takes over as the fireball burns out → scorch. The pre-swell is the bomb's own.
 -- `lite` is the §5.1 light variant for many booms at once (the field detonation): flash + fireball + 5 sparks +
 -- 3 smoke puffs; no light, lumps, ring, embers, debris or scorch (30 of them at once must hold on a phone).
-function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
+-- `explosion` is the Carrier's equipped Eq_Explosion: one with a recipe plays that instead (at scale 1).
+function FxController.boom(pos: Vector3, scale: number?, lite: boolean?, explosion: string?)
+	local recipe = VfxCosmetic.explosion(explosion)
+	if recipe then
+		cosmeticBoom(pos, recipe, lite == true)
+		return
+	end
 	local s = scale or 1
 	local att = burstAt(pos, 3.5)
 	-- the fireball, flash and smoke sit up off the ground so they read whole; ring, sparks and scorch start at the floor
@@ -286,18 +372,9 @@ function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 		})
 	)
 	-- 3. the shockwave ring, flat on the ground
-	emit(att, if lite then 0 else 1, {
-		Texture = Assets.Vfx.Ring,
-		Color = ColorSequence.new(P.Paper),
-		LightEmission = 0.5,
-		LightInfluence = 0,
-		Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
-		Size = keys({ { 0, 2 }, { 1, 22 * s } }),
-		Transparency = keys({ { 0, 0 }, { 0.6, 0.3 }, { 1, 1 } }),
-		Lifetime = NumberRange.new(0.32),
-		Speed = NumberRange.new(0.01),
-		EmissionDirection = Enum.NormalId.Top,
-	})
+	if not lite then
+		shockwave(att, s, P.Paper, 0)
+	end
 	-- 4. spark streaks (velocity-aligned) and slow embers
 	emit(att, if lite then 5 else math.floor(26 * s), {
 		Texture = Assets.Vfx.Streak,
@@ -353,11 +430,7 @@ function FxController.boom(pos: Vector3, scale: number?, lite: boolean?)
 		debris(pos, if ground then ground.Position.Y else pos.Y - 3, s)
 		scorch(pos, s, ground)
 	end
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if root then
-		local d = (root.Position - pos).Magnitude
-		FxController.shake(if d <= 10 then 0.6 * s elseif d <= 30 then 0.25 * s else 0)
-	end
+	shakeNear(pos, s)
 end
 
 -- Defuse (GDD §10.3): a steam puff off the socket and a soft green ring; a clutch adds a gold flare.
@@ -459,7 +532,9 @@ function FxController.start()
 			return
 		end
 		if p.kind == "Boom" and typeof(p.pos) == "Vector3" then
-			FxController.boom(p.pos)
+			local host = if type(p.who) == "string" then ClientState.byId(p.who) else nil
+			local eq = host and host:GetAttribute("Eq_Explosion")
+			FxController.boom(p.pos, nil, nil, if type(eq) == "string" then eq else nil)
 		elseif p.kind == "Defuse" and typeof(p.pos) == "Vector3" then
 			FxController.defuse(p.pos, p.clutch == true)
 		end
