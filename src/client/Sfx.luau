@@ -29,6 +29,41 @@ function Sfx.setVolume(v: number)
 	getGroup().Volume = v
 end
 
+-- In-house uploads that failed to load (moderation): play their licensed `alt` instead (checked once, at start).
+local failed: { [string]: boolean } = {}
+task.spawn(function()
+	local list: { Instance } = {}
+	local keyOf: { [Instance]: string } = {}
+	for key, def in pairs(Assets.SFX :: any) do
+		if def.alt and def.src == "FV" then
+			local probe = Instance.new("Sound")
+			probe.SoundId = def.id
+			probe.Volume = 0
+			probe.Parent = SoundService -- IsLoaded only reports for a sound in the DataModel
+			table.insert(list, probe)
+			keyOf[probe] = key
+		end
+	end
+	pcall(function()
+		game:GetService("ContentProvider"):PreloadAsync(list, function(_, status)
+			if status == Enum.AssetFetchStatus.Failure then
+				for probe, key in pairs(keyOf) do
+					if probe:IsA("Sound") and not probe.IsLoaded then
+						failed[key] = true
+					end
+				end
+			end
+		end)
+	end)
+	task.wait(4)
+	for probe, key in pairs(keyOf) do
+		if probe:IsA("Sound") and not probe.IsLoaded then
+			failed[key] = true
+		end
+		probe:Destroy()
+	end
+end)
+
 local function make(key: string): Sound?
 	local def = (Assets.SFX :: any)[key]
 	if not def then
@@ -36,7 +71,7 @@ local function make(key: string): Sound?
 		return nil
 	end
 	local s = Instance.new("Sound")
-	s.SoundId = def.id
+	s.SoundId = if failed[key] and def.alt then def.alt[1] else def.id
 	s.Volume = def.volume
 	s.SoundGroup = getGroup()
 	if def.pitch then

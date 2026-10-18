@@ -34,15 +34,22 @@ local Assets = {}
 
 Assets.SFX = {
 	-- Movement (Chase Game's tuned set; replaced by designed stacks in the P3 audio pass, Asset Bible §9)
-	Dash = s(9126229255, 0.7, "PSE", { alt = { "rbxassetid://9114157695" } }),
-	HardStop = s(9118740493, 0.7, "PSE"),
-	Slide = s(114100466629000, 0.55, "C", { alt = { "rbxassetid://105544173943722" } }),
-	Land = s("rbxasset://sounds/action_jump_land.mp3", 0.6, "BI"),
+	-- In-house (art/audio/make_sfx.py) since 2026-10-17; `alt` = the licensed sound Sfx falls back to if the in-house
+	-- upload fails to load (moderation).
+	Dash = s(122478519337941, 0.5, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://9126229255" } }),
+	HardStop = s(97594064286635, 0.55, "FV", { pitch = { 0.95, 1.05 }, alt = { "rbxassetid://9118740493" } }),
+	Slide = s(75023722365729, 0.45, "FV", { pitch = { 0.92, 1.06 }, alt = { "rbxassetid://114100466629000" } }),
+	Land = s(
+		132981043048107,
+		0.55,
+		"FV",
+		{ pitch = { 0.92, 1.06 }, alt = { "rbxasset://sounds/action_jump_land.mp3" } }
+	),
 	-- Footsteps: four soft single-hit steps, one picked at random per footfall (FootstepController sets the pace).
-	Footstep1 = s(123224557798023, 0.5, "C"),
-	Footstep2 = s(131412978408311, 0.42, "C"),
-	Footstep3 = s(114768473003662, 0.45, "C"),
-	Footstep4 = s(91882016473062, 0.7, "C"),
+	Footstep1 = s(83118919801898, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://123224557798023" } }),
+	Footstep2 = s(132859876751182, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://131412978408311" } }),
+	Footstep3 = s(117564083525822, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://114768473003662" } }),
+	Footstep4 = s(131466290951841, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://91882016473062" } }),
 
 	-- The bomb (Asset Bible §9.2; licensed APM / Pro Sound Effects / Roblox, most already shipped by Chase Game).
 	-- Each moment is a STACK of layers (AudioController), never one stock sound.
@@ -55,11 +62,11 @@ Assets.SFX = {
 	BombTickHotA = s(132119182630967, 0.62, "FV"), -- bomb_tick_hot.wav
 	BombTickHotB = s(114523246396813, 0.62, "FV"), -- bomb_tock_hot.wav (ids matched by spectrum: the uploads were renamed)
 	BombClamp = s(9125782643, 0.6, "PSE", { pitch = { 1.05, 1.2 } }), -- a heavy metal lid set down: the clamp biting
-	PassWhoosh = s(9126229255, 0.55, "PSE", { pitch = { 1.25, 1.4 } }), -- the flight between backs
+	PassWhoosh = s(127131729161867, 0.5, "FV", { pitch = { 0.9, 1.1 }, alt = { "rbxassetid://9126229255" } }), -- the flight between backs
 	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
 	BoomBody = s(9113470802, 0.75, "PSE"), -- a giant thud: the body of the boom
 	BoomDebris = s(9113218938, 0.45, "PSE", { region = { 0, 2.2 } }), -- rock crumble: debris + tail (first 2.2 s of a 16 s file)
-	Defuse = s(9126229255, 0.35, "PSE", { pitch = { 2.1, 2.3 } }), -- a short high whoosh: the snuff
+	Defuse = s(81997207354999, 0.45, "FV", { pitch = { 0.95, 1.08 }, alt = { "rbxassetid://9126229255" } }), -- the snuff whoosh
 	Safe = s(18448089848, 0.55, "C"), -- the defuse chime
 	Clutch = s(9047103106, 0.8, "APM"), -- the CLUTCH DEFUSE sting
 	Klaxon = s(9119662934, 0.5, "PSE"), -- the Field Fuse at 5 s
@@ -81,10 +88,26 @@ Assets.SFX = {
 	UiTab = s(74212251876794, 0.35, "FV", { pitch = { 0.96, 1.04 } }),
 	CoinTick = s(136647661605856, 0.22, "FV", { pitch = { 1.0, 1.06 } }),
 	Claim = s(72019982036724, 0.55, "FV"),
-	Stamp = s(9125782643, 0.75, "PSE", { pitch = { 0.8, 0.86 } }),
-	LevelUp = s(1841980129, 0.9, "APM"),
-	QuestDone = s(9047103106, 0.6, "APM"),
+	Stamp = s(88717870625190, 0.6, "FV", { pitch = { 0.95, 1.05 }, alt = { "rbxassetid://9125782643" } }),
+	LevelUp = s(106482575046928, 0.7, "FV", { alt = { "rbxassetid://1841980129" } }),
+	QuestDone = s(78051789530604, 0.55, "FV", { alt = { "rbxassetid://9047103106" } }),
 	LoseSting = s(1839303737, 0.75, "APM"),
+	-- The rest of the Asset Bible §9.2 registry, sound-designed in-house (art/audio/make_sfx.py).
+	BombIgnite = s(94650004025445, 0.6, "FV", { pitch = { 0.96, 1.04 } }), -- match strike + fuse catch: a fresh bomb
+	BombCritical = s(113418011279575, 0.3, "FV", { looped = true }), -- the CRITICAL whine (sped up by stage)
+	BoomFar = s(79037341690022, 0.7, "FV", { pitch = { 0.9, 1.05 } }), -- a low-passed boom tail beyond 40 studs
+	FuseSnuff = s(82135849064349, 0.55, "FV", { pitch = { 0.95, 1.08 } }), -- the defuse: steam cut-off + "pft"
+	BombRelease = s(131148544816507, 0.5, "FV", { pitch = { 0.95, 1.05 } }), -- the clamp's latch click
+	BombDrop = s(129735512963271, 0.7, "FV", { pitch = { 0.92, 1.05 } }), -- iron clunk + roll on the floor
+	ClutchChoir = s(117818951825637, 0.75, "FV"), -- the CLUTCH DEFUSE choir hit
+	FieldDetonate = s(93733623616015, 0.9, "FV", { pitch = { 0.97, 1.03 } }), -- rolling firecracker chain + big boom
+	CrowdChant = s(108507572630659, 0.35, "FV", { looped = true }), -- the Last Stand chant (120 BPM)
+	CrowdGroan = s(129180994528762, 0.55, "FV", { pitch = { 0.97, 1.03 } }),
+	StingerBombers = s(139980643414565, 0.8, "FV"), -- the BOMBERS reveal
+	StingerBombersWin = s(122361568603534, 0.85, "FV"),
+	CrateRattle = s(96106308068627, 0.45, "FV", { looped = true, pitch = { 0.97, 1.03 } }),
+	CratePop = s(114428817474077, 0.6, "FV", { pitch = { 0.95, 1.05 } }),
+	CrateLegendary = s(87602496884973, 0.75, "FV"),
 }
 
 -- Music (licensed APM, from Chase Game's vetted list). AudioController crossfades by phase.
@@ -197,6 +220,7 @@ Assets.Icon = {
 -- Round-HUD textures drawn in code by art/ui/make_hud.py: the braided fuse cord tile (HUD Field Fuse), the hazard
 -- stripe tile (the 5 s warning) and the white radial edge mask tinted for the Carrier vignette (Asset Bible §6.6).
 Assets.Ui = {
+	Logo = "rbxassetid://84708770315035", -- art/logo/build.py (Blender), the loading screen + store art
 	Braid = "rbxassetid://76185158058247",
 	Hazard = "rbxassetid://96079488241147",
 	Vignette = "rbxassetid://114254801837399",

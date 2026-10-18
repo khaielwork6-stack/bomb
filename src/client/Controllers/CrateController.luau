@@ -381,6 +381,8 @@ local function open(r: { [string]: any })
 		spark.Transparency = 0
 	end
 	Sfx.play("FuseHiss", 0.6)
+	Sfx.play("BombIgnite", 0.8)
+	local rattle = Sfx.loop("CrateRattle", nil)
 	local pushT0 = os.clock()
 	-- 3. TENSION: rattle with growing amplitude, the lid lifting a crack and leaking the rarity light
 	local tension = if skip then 0 else 1.6
@@ -400,10 +402,14 @@ local function open(r: { [string]: any })
 				glow.Transparency = 0
 			end
 		end
-		if math.random() < 0.08 + a * 0.2 then
-			Sfx.play("UiTab", 0.5, 0.8 + a * 0.6)
+		if rattle then
+			rattle.PlaybackSpeed = 0.9 + a * 0.5
+			rattle.Volume = 0.3 + a * 0.4
 		end
 		RunService.RenderStepped:Wait()
+	end
+	if rattle then
+		rattle:Destroy()
 	end
 	-- 4. POP
 	hint.Visible = false
@@ -419,8 +425,11 @@ local function open(r: { [string]: any })
 			lidPose(model, closed, hinge, axis, -115)
 		end)
 	end
-	Sfx.play("BoomHit", 0.5)
+	Sfx.play("CratePop")
 	Sfx.play("Claim")
+	if r.rarity == "Legendary" or r.rarity == "Exclusive" then
+		Sfx.play("CrateLegendary")
+	end
 	local flash = new("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(1, 1, 1),

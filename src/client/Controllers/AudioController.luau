@@ -31,6 +31,7 @@ local muffle: EqualizerSoundEffect
 local tracks: { [string]: Sound } = {}
 local current: string? = nil
 local heartbeat: Sound? = nil
+local whine: Sound? = nil
 local crowd: Sound? = nil
 local tickAcc = 0
 local tockNext = false
@@ -113,6 +114,13 @@ local function step(dt: number)
 	muffle.MidGain += ((if carrying then -8 else 0) - muffle.MidGain) * math.min(1, dt * 8)
 	local base = MUSIC_VOLUME * ((Settings.get("musicVolume") or 70) / 70)
 	musicGroup.Volume += ((if carrying then base * 0.55 else base) - musicGroup.Volume) * math.min(1, dt * 6)
+	local wantWhine = carrying
+		and type(explodeAt) == "number"
+		and explodeAt - workspace:GetServerTimeNow() <= B.STAGE_CRITICAL
+	if whine and not wantWhine then
+		whine:Destroy()
+		whine = nil
+	end
 	if not carrying then
 		if heartbeat then
 			heartbeat:Destroy()
@@ -132,6 +140,12 @@ local function step(dt: number)
 	end
 	-- Your own tick, paced by stage (§7.2: 2 / 4 / 10 Hz): the in-house escapement alternates tick / tock and turns
 	-- to its brighter, tighter pair at CRITICAL; until those files are uploaded, the fallback tick is pitched up.
+	if stage == 3 and not whine then
+		whine = Sfx.loop("BombCritical", nil)
+	end
+	if whine then
+		whine.PlaybackSpeed = 1 + math.clamp((B.STAGE_CRITICAL - remaining) / B.STAGE_CRITICAL, 0, 1) * 0.5
+	end
 	local hz = ({ 2, 4, 10 })[stage]
 	tickAcc += dt
 	if tickAcc >= 1 / hz then
@@ -164,8 +178,10 @@ local function onBomb(p: any)
 		local r = rootOf(p.who)
 		if mine then
 			Sfx.play("BombClamp", 1.2)
+			Sfx.play("BombIgnite")
 		elseif r then
 			Sfx.at("BombClamp", r.Position)
+			Sfx.at("BombIgnite", r.Position, 0.8)
 		end
 	elseif p.kind == "Pass" then
 		local from, to = rootOf(p.from), rootOf(p.who)
@@ -185,19 +201,35 @@ local function onBomb(p: any)
 			Sfx.play("BoomDebris", 1, 1)
 		else
 			local pitch = 0.92 + math.random() * 0.16
-			Sfx.at("BoomHit", pos, 1, pitch)
-			Sfx.at("BoomBody", pos, 1, pitch)
-			Sfx.at("BoomDebris", pos, 1, pitch)
+			local cam = workspace.CurrentCamera
+			if cam ~= nil and (cam.CFrame.Position - pos).Magnitude > 40 then
+				Sfx.at("BoomFar", pos, 1, pitch) -- beyond 40 studs only the low tail carries (AB §9.2)
+			else
+				Sfx.at("BoomHit", pos, 1, pitch)
+				Sfx.at("BoomBody", pos, 1, pitch)
+				Sfx.at("BoomDebris", pos, 1, pitch)
+			end
 		end
 	elseif p.kind == "Defuse" and typeof(p.pos) == "Vector3" then
+		-- the snuff, the clamp's latch, the bomb clunking to the floor, then the chime (AB §3.3 Defuse)
 		if mine then
-			Sfx.play("Defuse")
+			Sfx.play("FuseSnuff")
+			Sfx.play("Defuse", 0.6)
+			task.delay(0.12, function()
+				Sfx.play("BombRelease")
+			end)
+			task.delay(0.35, function()
+				Sfx.play("BombDrop")
+			end)
 			Sfx.play("Safe")
 			if p.clutch then
-				Sfx.play("Clutch")
+				Sfx.play("ClutchChoir")
 			end
 		else
-			Sfx.at("Defuse", p.pos)
+			Sfx.at("FuseSnuff", p.pos)
+			task.delay(0.35, function()
+				Sfx.at("BombDrop", p.pos, 0.8)
+			end)
 			Sfx.at("Safe", p.pos, 0.7)
 		end
 	end
@@ -237,20 +269,19 @@ function AudioController.start()
 		if p.kind == "Warn" then
 			Sfx.play("Klaxon")
 		elseif p.kind == "Detonate" then
-			Sfx.play("BoomBody", 1.2, 0.8)
-			Sfx.play("BoomDebris", 1.3, 0.85)
-			task.delay(0.25, function()
-				Sfx.play("BoomHit", 0.9, 0.85)
-			end)
+			Sfx.play("FieldDetonate")
+			Sfx.play("BoomBody", 0.9, 0.8)
 		end
 	end)
 	Net.listen("RoundFx", function(p)
 		if type(p) ~= "table" then
 			return
 		end
-		if p.kind == "LastStand" then
+		if p.kind == "Intro" then
+			Sfx.play("StingerBombers")
+		elseif p.kind == "LastStand" then
 			Sfx.play("DrumRoll")
-			crowd = Sfx.loop("CrowdLoop", nil)
+			crowd = Sfx.loop("CrowdChant", nil)
 		elseif p.kind == "Results" then
 			local won = false
 			for _, id in ipairs(if type(p.winners) == "table" then p.winners else {}) do
@@ -262,7 +293,8 @@ function AudioController.start()
 			if p.outcome == "LastStand" then
 				Sfx.play("CrowdCheer")
 			elseif p.outcome == "Bombers" and ClientState.phase() == Ph.Results then
-				Sfx.play("CrowdGasp", 0.7)
+				Sfx.play("StingerBombersWin", 0.8)
+				Sfx.play("CrowdGroan", 0.7)
 			end
 		end
 	end)
