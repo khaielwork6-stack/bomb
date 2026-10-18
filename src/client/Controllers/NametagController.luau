@@ -25,6 +25,7 @@ local NametagController = {}
 
 local WIDTH, NAME_H, PLATE_H = 4.2, 0.95, 0.55 -- studs (a name never spills into the next head's tag)
 local OFFSET = 2.35 -- above the head's centre
+local CROWN_LIFT = 1.05 -- extra height when a crown floats over the head (CrownController)
 local MAX_DISTANCE = 90
 local PLATE_FILL = { Color3.fromRGB(255, 226, 150), Color3.fromRGB(200, 146, 52) }
 
@@ -180,6 +181,8 @@ local function build(head: BasePart): Tag
 end
 
 local function refresh(host: Instance, t: Tag)
+	local crowned = host:GetAttribute("Crowned") == true or host:GetAttribute("Eq_Title") == "Title_ObsidianCrown"
+	t.gui.StudsOffsetWorldSpace = Vector3.new(0, OFFSET + (if crowned then CROWN_LIFT else 0), 0)
 	local display = if host:IsA("Player")
 		then host.DisplayName
 		else (host:GetAttribute("DisplayName") :: string?) or host.Name

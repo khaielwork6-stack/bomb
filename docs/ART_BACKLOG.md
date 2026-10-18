@@ -56,7 +56,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 - [x] **Fuse Sparks (7)** AB §8.1: Sparkler · Ember Drift · Electric · Pixie · Plasma · Gold Leaf · Insignia.
 - [x] **Trails (8)** AB §8.2: Soot Streak · Paper Streamers · Spark Line · Rocket Exhaust · Comet · Neon Tube · Aurora · Victory Lap. No team colours.
 - [x] **Victory Booms (5)** AB §8.3: Confetti Rain · Golden Fountain · Grand Finale · Dragon Dance · Champagne Tower.
-- [ ] **Obsidian Crown** cosmetic (level 50, AB §8.6).
+- [x] **Obsidian Crown** cosmetic (level 50, AB §8.6) *(CrownController: worn by anyone with the Obsidian Crown title equipped)*.
 
 ## 6. Animations (FREE to author with `tools/anim`; the user publishes them to the group)
 - [x] **8 emotes** (AB §8.5): Wave · Fuse Dance · Juggle · Bow · Shrug · Victory Pose · Kaboom · Sit & Sip.
