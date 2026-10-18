@@ -2,7 +2,7 @@
 -- Callouts (GDD §11.1): the server spots every moment worth a word — it knows who passed to whom and whose bomb it
 -- was — and tells that player (Net "Callout"). Fired:Fire(p, key, n?) is the single source P4's RewardService pays
 -- from, so the words and the rewards always agree. RoundService reports crossing ends and the Last Stand here.
--- Implements: F-CALL-01 (detection + delivery).
+-- Implements: F-CALL-01 (detection + delivery), F-BOMB-12/13 (SLAM PASS, REJECTED!, a dodged lunge).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -86,21 +86,35 @@ function CalloutService.start()
 	BombService.Tagged:Connect(function(bomber: Participant, target: Participant)
 		CalloutService.fire(bomber, "Tagged", nil, target)
 	end)
-	BombService.Passed:Connect(function(from: Participant, to: Participant, bomb: BombRules.Bomb, remaining: number)
-		if to.role == R.Bomber then
-			from.stats.revenges += 1
-			CalloutService.fire(from, "RevengePass", nil, to)
-			if to.id == bomb.origin then
-				CalloutService.fire(from, "Revenge", nil, to)
+	BombService.Passed:Connect(
+		function(from: Participant, to: Participant, bomb: BombRules.Bomb, remaining: number, slam: boolean?)
+			if to.role == R.Bomber then
+				from.stats.revenges += 1
+				CalloutService.fire(from, "RevengePass", nil, to)
+				if to.id == bomb.origin then
+					CalloutService.fire(from, "Revenge", nil, to)
+				end
+			elseif remaining <= Config.Bomb.CLOSE_PASS_WINDOW then
+				CalloutService.fire(from, "CloseOne", nil, to)
+			elseif slam then
+				CalloutService.fire(from, "SlamPass", nil, to) -- the Lunge connected (GDD §7.4b)
+			else
+				CalloutService.fire(from, "Pass", nil, to)
 			end
-		elseif remaining <= Config.Bomb.CLOSE_PASS_WINDOW then
-			CalloutService.fire(from, "CloseOne", nil, to)
-		else
-			CalloutService.fire(from, "Pass", nil, to)
 		end
-	end)
+	)
 	BombService.Dodged:Connect(function(runner: Participant, bomber: Participant)
 		CalloutService.fire(runner, "Dodge", nil, bomber)
+	end)
+	-- The Hand-Off (GDD §7.4b): a bounced pass, and a lunge that missed (the target dodged it)
+	BombService.Rejected:Connect(function(rejecter: Participant, giver: Participant)
+		CalloutService.fire(rejecter, "Rejected", nil, giver)
+	end)
+	BombService.Whiffed:Connect(function(carrier: Participant, dodger: Participant?)
+		if dodger then
+			dodger.stats.dodges += 1
+			CalloutService.fire(dodger, "Dodge", nil, carrier)
+		end
 	end)
 	BombService.Defused:Connect(function(p: Participant, bomb: BombRules.Bomb, clutch: boolean)
 		CalloutService.fire(p, if clutch then "ClutchDefuse" else "Defused")

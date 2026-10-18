@@ -41,8 +41,20 @@ local rounds = 0
 -- The core moment: each bomb's life (tag → passes → boom / defuse), and how long a Carrier holds before passing.
 type BombLife = { born: number, lastHand: number }
 local lives: { [number]: BombLife } = {}
-local bombStats =
-	{ tags = 0, passes = 0, booms = 0, defuses = 0, clutches = 0, life = 0, ended = 0, hold = 0, dodges = 0 }
+local bombStats = {
+	tags = 0,
+	passes = 0,
+	booms = 0,
+	defuses = 0,
+	clutches = 0,
+	life = 0,
+	ended = 0,
+	hold = 0,
+	dodges = 0,
+	slams = 0,
+	rejects = 0,
+	whiffs = 0,
+}
 type ModTally = { tags: number, passes: number, booms: number, defuses: number, rounds: { [string]: number } }
 local byMod: { [string]: ModTally } = {}
 local function mod(): ModTally
@@ -226,6 +238,15 @@ local function report(): string
 	)
 	table.insert(
 		lines,
+		("the Hand-Off: %d SLAM PASSES (%.0f%% of passes), %d REJECTED, %d whiffed lunges"):format(
+			b.slams,
+			if b.passes > 0 then b.slams / b.passes * 100 else 0,
+			b.rejects,
+			b.whiffs
+		)
+	)
+	table.insert(
+		lines,
 		("longest live stretch without a HOT moment: avg %.0f s, worst %.0f s"):format(
 			if n > 0 then sum / n else 0,
 			worst
@@ -281,8 +302,17 @@ function PaceProbe.start()
 		mod().tags += 1
 		lives[bomb.id] = { born = os.clock(), lastHand = os.clock() }
 	end)
-	BombService.Passed:Connect(function(_, _, bomb)
+	BombService.Rejected:Connect(function()
+		bombStats.rejects += 1
+	end)
+	BombService.Whiffed:Connect(function()
+		bombStats.whiffs += 1
+	end)
+	BombService.Passed:Connect(function(_, _, bomb, _, slam)
 		bombStats.passes += 1
+		if slam then
+			bombStats.slams += 1
+		end
 		mod().passes += 1
 		local life = lives[bomb.id]
 		if life then

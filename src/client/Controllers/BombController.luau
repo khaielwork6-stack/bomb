@@ -570,6 +570,12 @@ local function hosts(): { Instance }
 	return out
 end
 
+-- The Chain Song (F-BOMB-14): a bomb that's been through N Carriers glows hotter at the seams from ×2.
+local chainHeat: { [Instance]: number } = {}
+function BombController.setChain(host: Instance, n: number?)
+	chainHeat[host] = if n and n >= 2 then n else nil
+end
+
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function update(v: Visual, dt: number, t: number)
 	local at = v.explodeAt
@@ -612,16 +618,20 @@ local function update(v: Visual, dt: number, t: number)
 		then 0.15 - pulse * 0.15
 		elseif stage == "HOT" then 0.75 - (1 - remaining / B.STAGE_HOT) * 0.45
 		else 1
+	local heat = chainHeat[v.host]
+	if heat then
+		seamT = math.min(seamT, 0.82 - 0.1 * math.min(heat - 2, 5)) -- hotter with every Carrier it's been through
+	end
 	for _, seam in ipairs(v.seams) do
 		seam.Transparency = seamT
 		seam.Color = if stage == "CRITICAL" then P.Spark:Lerp(Color3.new(1, 1, 1), pulse) else P.Ember
 	end
-	local heat = v.heat
-	if heat then
+	local heatFx = v.heat
+	if heatFx then
 		local calm = Settings.get("reduceMotion") == true
-		heat.smoke.Rate = if stage == "CRITICAL" then HEAT_SMOKE_CRIT elseif stage == "HOT" then HEAT_SMOKE_HOT else 0
-		heat.spray.Rate = if stage == "CRITICAL" and not calm then HEAT_SPRAY else 0
-		heat.haze.Rate = if stage == "CRITICAL" and not calm then HEAT_HAZE else 0
+		heatFx.smoke.Rate = if stage == "CRITICAL" then HEAT_SMOKE_CRIT elseif stage == "HOT" then HEAT_SMOKE_HOT else 0
+		heatFx.spray.Rate = if stage == "CRITICAL" and not calm then HEAT_SPRAY else 0
+		heatFx.haze.Rate = if stage == "CRITICAL" and not calm then HEAT_HAZE else 0
 	end
 	v.light.Range = if stage == "CRITICAL" then 10 elseif cosmetic then cosmetic.range else 5
 	v.light.Color = if cosmetic then cosmetic.color else stageColor

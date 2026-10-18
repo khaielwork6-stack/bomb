@@ -6,6 +6,24 @@ return {
 	-- Tag / pass (§10.3): both rigs freeze for HITSTOP; the bomb pops on landing; your own camera kicks.
 	HITSTOP = 0.06,
 	HITSTOP_TAG = 0.09, -- the slap's freeze on the contact pose (F-BOMB-10)
+	-- The Hand-Off (GDD §7.4b, HandOffController)
+	HITSTOP_SLAM = 0.1, -- a SLAM PASS
+	HITSTOP_REJECT = 0.08, -- a REJECTED! pass
+	RICOCHET_TIME = 0.34, -- the rejected bomb's out-and-back
+	RING_ALPHA = 0.02, -- the Danger Ring's transparency at the bottom of its beat…
+	RING_BRIGHTNESS = 1.35, -- the unlit ring's glow (SurfaceGui.Brightness)
+	RING_PULSE = 0.2, -- …plus this at the top
+	RING_SPIN = { 25, 55, 130 }, -- °/s the links crawl at LIT / HOT / CRITICAL
+	RING_LUNGE_SPEED = 1.4, -- × MAX_SPEED: moving this fast is a dash, so the ring stretches into the lunge
+	RING_SPRING = 260, -- the stretch's spring (stiff: it snaps out with the dash, and back)
+	RING_POP = 0.12, -- the overshoot of a pop (a new Carrier, a stage change)
+	RING_POP_TIME = 0.24,
+	RING_FADE = 0.14, -- a ring shrinking away when the bomb leaves
+	RING_RAY = 12, -- studs down to look for the floor
+	RING_FEET_BELOW = 3, -- an R6 root's centre to its feet
+	RING_AIRBORNE = 1, -- feet this far above the ray's floor = in the air (the ring stays on the floor)
+	RING_LIFT = 0.06, -- studs above the floor (no z-fighting)
+	CHAIN_TAG_HEIGHT = 3.6, -- studs above the head: the ×N tag (over the fuse ring)
 	-- The slap (F-BOMB-10, SlapController): the Slap clip's contact frame, and how far before it the clip starts when
 	-- the Stick lands (the contact, and everything on it, comes SLAP_LEAD after the event)
 	SLAP_CONTACT = 0.11,

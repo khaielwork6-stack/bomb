@@ -6,7 +6,25 @@ return {
 	STAGE_HOT = 2.5, -- remaining time at which LIT turns HOT
 	STAGE_CRITICAL = 1.0, -- …and HOT turns CRITICAL
 	TAG_RANGE = 3.5, -- root to root: a Bomber's reach (D-FEEL-01: 4.5 + the lag slack tagged from 6.5 studs)
-	PASS_RANGE = 4.0, -- root to root: body contact
+	PASS_RANGE = 4.0, -- root to root: body contact (the LIT reach)
+	-- The Hand-Off (GDD §7.4b). F-BOMB-11 the Danger Ring: the pass reach grows as the fuse burns (the ring shows it).
+	PASS_RANGE_STAGE = { LIT = 4.0, HOT = 4.75, CRITICAL = 5.5 },
+	-- F-BOMB-12 the Lunge: during a Carrier's dash, bodies within LUNGE_CONE° of the dash direction are in reach
+	-- LUNGE_REACH further; a pass made lunging is a SLAM PASS (the receiver knocked SLAM_KNOCK studs). Lunging at
+	-- someone (in the cone within reach + WHIFF_AIM when the dash started) and missing stumbles you.
+	LUNGE_REACH = 2.5,
+	LUNGE_CONE = 60,
+	SLAM_KNOCK = 5,
+	WHIFF_AIM = 3,
+	WHIFF_TIME = 0.35,
+	WHIFF_SPEED = 0.6,
+	-- F-BOMB-13 the Reject: a Hard Stop within REJECT_WINDOW before the bomb reaches you bounces it back; the giver
+	-- is staggered (REJECT_SPEED for REJECT_STAGGER s, knocked REJECT_KNOCK studs). One per bomb per player.
+	REJECT_WINDOW = 0.25,
+	REJECT_COOLDOWN = 4,
+	REJECT_STAGGER = 0.4,
+	REJECT_SPEED = 0.5,
+	REJECT_KNOCK = 4,
 	TAG_COOLDOWN = 1.5,
 	-- The slap (F-BOMB-10): the tagged Runner stumbles forward, away from the Bomber; a pass bumps both bodies apart.
 	TAG_SHOVE = 6, -- studs

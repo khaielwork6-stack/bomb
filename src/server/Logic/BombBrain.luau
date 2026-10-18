@@ -28,8 +28,19 @@ function BombBrain.nearestStrip(z: number, halfLen: number): (number, number)
 end
 
 -- F-BOT-03: a Carrier runs for the strip only when it can make it with margin; otherwise it passes, or (with
--- nobody to pass to) runs for the strip anyway. `speed` is its likely pace (studs/s).
-function BombBrain.carrierChoice(remaining: number, stripDist: number, speed: number, hasTarget: boolean): string
+-- nobody to pass to) runs for the strip anyway. `speed` is its likely pace (studs/s). The Hand-Off (GDD §7.4b): a
+-- body within OPPORTUNITY_RANGE is a free hand-off (one lunge away), so it's taken even when the strip is reachable,
+-- as a player would.
+function BombBrain.carrierChoice(
+	remaining: number,
+	stripDist: number,
+	speed: number,
+	hasTarget: boolean,
+	targetDist: number?
+): string
+	if hasTarget and targetDist and targetDist <= BC.OPPORTUNITY_RANGE then
+		return "pass"
+	end
 	local timeToStrip = stripDist / math.max(speed, 1)
 	if timeToStrip + BC.DEFUSE_MARGIN <= remaining then
 		return "defuse"

@@ -2,7 +2,8 @@
 -- Bots (GDD §18): fill every round to Config.Bots.FILL_TARGET participants with bodies that move exactly like players
 -- (Shared/MovementCore, the same physics and techniques; Shared/Locomotion for animation) and play the bomb game with
 -- bomb-aware brains (Logic/BombBrain): Runners pick lanes and dodge, Carriers defuse or pass, Bombers hunt and spread.
--- Bots wear real avatars when AvatarPool has one ready (never a name: bots keep generated names).
+-- Bots wear real avatars when AvatarPool has one ready (never a name: bots keep generated names). D-LOBBY-02: they
+-- wear the humans' friends, split evenly between the humans here (rebalanced at every intermission, as looks arrive).
 -- Round modifiers (GDD §6.4): bots play by what a player could see. Under READ THE FACE a LIT bomb is assumed to be
 -- about to turn HOT; under LIGHTS OUT a bot Runner only sees a Bomber by its eye glints or a bomb's light; a bot Mole
 -- strikes a nearby Runner some time after GO.
@@ -18,6 +19,7 @@ local MovementCore = require(ReplicatedStorage.Shared.MovementCore)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BombBrain = require(ServerScriptService.Server.Logic.BombBrain)
+local LookShare = require(ServerScriptService.Server.Logic.LookShare)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local AvatarPool = require(script.Parent.AvatarPool)
@@ -36,7 +38,7 @@ local FLAT = Vector3.new(1, 0, 1)
 
 local BotService = {}
 
-type Tier = { reaction: number, error: number, dash: number, pace: number }
+type Tier = { reaction: number, error: number, dash: number, pace: number, reject: number }
 
 type Brain = {
 	tier: Tier,
@@ -53,6 +55,7 @@ type Brain = {
 	targetId: string?,
 	lobbyGoal: Vector3?, -- between rounds: the Depot station it's strolling to
 	lobbyNext: number?,
+	rejectRoll: number?, -- when it last rolled for a Reject (GDD §7.4b)
 }
 
 local brains: { [string]: Brain } = {}
@@ -152,11 +155,11 @@ local function uniqueName(): string
 	return "Player" .. tostring(rng:NextInteger(100, 999))
 end
 
-local function spawnBot(): Participant?
+local function spawnBot(prefer: number?): Participant?
 	nextBotId += 1
 	local name = uniqueName()
 	local model: Model? = nil
-	local okPool, rig = pcall(AvatarPool.takeRig)
+	local okPool, rig, _, avatarId, owner = pcall(AvatarPool.takeRig, prefer)
 	if okPool and rig then
 		model = rig
 		Characters.prepareAvatarRig(rig, name)
@@ -168,6 +171,8 @@ local function spawnBot(): Participant?
 	m:PivotTo(Characters.lobbyCFrame()) -- The Depot (or the start strip in a place without a lobby)
 	m.Parent = botsFolder()
 	local p = Participants.addBot("B" .. nextBotId, name, m, rng:NextInteger(1, 35), rng:NextInteger(0, 60))
+	p.data.avatarId = if okPool then avatarId else nil -- whose look it wears…
+	p.data.avatarOwner = if okPool then owner else nil -- …and whose friend that is (nil = a filler)
 	local root = p.root
 	if root then
 		pcall(function()
@@ -200,9 +205,74 @@ local function despawn(p: Participant)
 		brain.loco:destroy()
 	end
 	brains[p.id] = nil
+	AvatarPool.release(p.data.avatarId)
 	Participants.remove(p)
 	if p.model then
 		p.model:Destroy()
+	end
+end
+
+-- D-LOBBY-02: the bots wear the humans' friends, split evenly (2 players → half each). A bot wearing a filler look, a
+-- look of someone who left, or more than its owner's share is swapped for a look of the player furthest under their
+-- share, while the pool has one built. Runs at INTERMISSION (everyone's in The Depot, the post-round flash covers it).
+local lookRound = 0 -- moves the uneven split's extra bot round the players
+function BotService.balanceLooks()
+	local owners: { number } = {}
+	for _, h in ipairs(Participants.humans()) do
+		if h.player then
+			table.insert(owners, h.player.UserId)
+		end
+	end
+	local bots = Participants.bots()
+	if #owners == 0 or #bots == 0 then
+		return
+	end
+	table.sort(owners) -- a stable order, so the rotating remainder is fair
+	local present: { [number]: boolean } = {}
+	for _, owner in ipairs(owners) do
+		present[owner] = true
+	end
+	local count: { [number]: number } = {}
+	for _, b in ipairs(bots) do
+		local o = b.data.avatarOwner
+		if o and present[o] then
+			count[o] = (count[o] or 0) + 1
+		end
+	end
+	-- a player shows friends if they have looks left to give or bots already wearing them
+	local canShow: { [number]: boolean } = {}
+	for _, owner in ipairs(owners) do
+		canShow[owner] = AvatarPool.hasFriends(owner) or (count[owner] or 0) > 0
+	end
+	lookRound += 1
+	local share = LookShare.shares(owners, #bots, canShow, lookRound)
+	local function neediest(): number?
+		local best: number? = nil
+		local gap = 0
+		for _, owner in ipairs(owners) do
+			local g = share[owner] - (count[owner] or 0)
+			if g > gap and AvatarPool.readyFor(owner) > 0 then
+				best, gap = owner, g
+			end
+		end
+		return best
+	end
+	for _, b in ipairs(bots) do
+		local o = b.data.avatarOwner
+		local misfit = not o or (share[o] or 0) == 0 or (count[o] or 0) > share[o]
+		if misfit then
+			local want = neediest()
+			if not want then
+				break
+			end
+			if o and count[o] then
+				count[o] -= 1
+			end
+			despawn(b)
+			if spawnBot(want) then -- (it lands in The Depot)
+				count[want] = (count[want] or 0) + 1
+			end
+		end
 	end
 end
 
@@ -221,6 +291,7 @@ function BotService.fill()
 	for _ = 1, want - #Participants.bots() do
 		spawnBot()
 	end
+	BotService.balanceLooks()
 	local mix = if newbiePresent() then BC.NEWBIE_MIX else BC.TIER_MIX
 	for id, brain in pairs(brains) do
 		brain.tierName = pickTier(mix)
@@ -380,6 +451,34 @@ local function runnerDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 	end
 end
 
+-- F-BOMB-13: a Carrier closing in → maybe a timed Hard Stop to reject the pass (skill-tier odds, one roll per
+-- approach). Too early and the window is gone when they arrive: the same skill a player needs.
+local function maybeReject(p: Participant, brain: Brain, root: BasePart, seen: { Seen })
+	local t = os.clock()
+	if t - (brain.rejectRoll or -math.huge) < BC.REJECT_RETRY then
+		return
+	end
+	local pos = root.Position
+	for _, s in ipairs(seen) do
+		if s.carrying and s.active and not s.safe and s.p.role == R.Runner then
+			local away = (pos - s.pos) * FLAT
+			local d = away.Magnitude
+			local speed = (s.vel * FLAT).Magnitude
+			local reach = Config.Bomb.PASS_RANGE
+				+ Config.Bomb.LAG_SLACK
+				+ (if speed > Config.Movement.MAX_SPEED * 1.4 then Config.Bomb.LUNGE_REACH else 0)
+			local closing = if d > 1e-3 then (s.vel * FLAT):Dot(away.Unit) else 0
+			if d <= reach + BC.REJECT_LOOK and closing >= BC.REJECT_CLOSING then
+				brain.rejectRoll = t
+				if rng:NextNumber() < brain.tier.reject then
+					technique(p, brain, "HardStop", Vector3.zero)
+				end
+				return
+			end
+		end
+	end
+end
+
 -- F-MOD-04: a bot Mole blends in as a Runner, then, some time after GO, strikes a Runner close by on the field and
 -- runs it down while the strike is armed. Returns true when it took over this decision.
 local function moleDecide(p: Participant, brain: Brain, root: BasePart, seen: { Seen }): boolean
@@ -444,7 +543,8 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 			end
 		end
 	end
-	local choice = BombBrain.carrierChoice(remaining, dist, 22 * brain.tier.pace, target ~= nil)
+	local choice =
+		BombBrain.carrierChoice(remaining, dist, 22 * brain.tier.pace, target ~= nil, if target then best else nil)
 	if rng:NextNumber() < brain.tier.error then
 		choice = if choice == "defuse" and target then "pass" else choice -- a panicky misjudgement
 	end
@@ -611,10 +711,12 @@ local function decide(p: Participant, brain: Brain)
 	if p.role == R.Runner and carrying and p.state == S.Active then
 		carrierDecide(p, brain, root, seen)
 	elseif p.role == R.Runner then
+		maybeReject(p, brain, root, seen)
 		if not moleDecide(p, brain, root, seen) then
 			runnerDecide(p, brain, root, seen)
 		end
 	elseif p.role == R.Bomber and p.state == S.Active then
+		maybeReject(p, brain, root, seen) -- a revenge pass can be rejected too
 		bomberDecide(p, brain, root, seen)
 	else
 		brain.desired = Vector3.zero
@@ -642,6 +744,10 @@ local function steer(p: Participant, brain: Brain, dt: number)
 	local params = brain.params
 	params.lobby = p.role == R.None
 	params.speedMult = (p.attrs:GetAttribute("SpeedMult") or 1) * brain.tier.pace
+	local slowUntil = p.attrs:GetAttribute("SlowUntil")
+	if type(slowUntil) == "number" and now() < slowUntil then -- a whiff's stumble / a reject's stagger (§7.4b)
+		params.speedMult *= p.attrs:GetAttribute("SlowMult") or 1
+	end
 	params.accelMult, params.decelMult, params.turnMult, params.dashMult = 1, 1, 1, 1
 	MovementCore.applyProfile(params, p.role)
 	if busy then
@@ -709,6 +815,22 @@ function BotService.start()
 		tunable.FILL_TARGET = math.clamp(math.floor(n), 0, Config.Game.MAX_PLAYERS)
 		BotService.fill()
 		return `fill target {BC.FILL_TARGET}`
+	end)
+	AdminService.register("looks", function()
+		-- whose friends the bots are wearing (D-LOBBY-02): "<owner userId> n", "filler n", "generated n"
+		local tally: { [string]: number } = {}
+		for _, b in ipairs(Participants.bots()) do
+			local key = if b.data.avatarOwner
+				then tostring(b.data.avatarOwner)
+				elseif b.data.avatarId then "filler"
+				else "generated"
+			tally[key] = (tally[key] or 0) + 1
+		end
+		local out = {}
+		for k, n in pairs(tally) do
+			table.insert(out, `{k} {n}`)
+		end
+		return table.concat(out, ", ") .. ` · ready rigs {AvatarPool.readyCount()}`
 	end)
 	AdminService.register("botfreeze", function(args)
 		frozen = args[1] ~= "off" and args[1] ~= false

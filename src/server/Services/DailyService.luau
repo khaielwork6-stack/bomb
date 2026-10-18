@@ -124,6 +124,7 @@ end
 
 local CALLOUT_EVENTS: { [string]: { string } } = {
 	Pass = { "Pass" },
+	SlamPass = { "Pass" },
 	CloseOne = { "Pass" },
 	RevengePass = { "Pass", "RevengePass" },
 	Tagged = { "Tag" },

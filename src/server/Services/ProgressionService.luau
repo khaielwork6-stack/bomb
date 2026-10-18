@@ -33,7 +33,7 @@ type Participant = Participants.Participant
 
 local E = Config.Economy
 local R = Types.Role
-local PASS_KEYS = { Pass = true, CloseOne = true, RevengePass = true }
+local PASS_KEYS = { Pass = true, SlamPass = true, CloseOne = true, RevengePass = true } -- one anti-farm for all passes
 
 local ProgressionService = {
 	-- (p, summary) after a human's round is paid: { outcome, won, mvp, reached, keys } (quests, leaderboards)

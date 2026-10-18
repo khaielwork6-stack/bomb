@@ -3,7 +3,7 @@
 
 return {
 	NAME = "FUSE VALLEY",
-	MAX_PLAYERS = 20, -- D2
+	MAX_PLAYERS = 30, -- D2 (the user, 2026-10-18: 30 per server; also set it in Game Settings → Places)
 	MIN_HUMANS_TO_START = 1,
 	SHOW_BOT_TAG = false,
 	-- Joining (Chase Game lesson): a player only counts for the round once their client says it's ready (or after

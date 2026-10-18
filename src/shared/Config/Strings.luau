@@ -137,6 +137,8 @@ return {
 		Defused = "DEFUSED!",
 		VipOnly = "VIP pass owners only",
 		NoChampions = "no champions yet this week",
+		Joining = "YOU'RE UP NEXT",
+		JoiningSub = "you drop in as a Bomber at the next crossing",
 		Boards = { Wins = "WEEKLY WINS", Clutches = "WEEKLY CLUTCHES", Booms = "WEEKLY BOOMS" },
 	},
 	Round = {
@@ -182,6 +184,9 @@ return {
 		FirstCarry = "BUMP SOMEONE, OR RUN TO A SAFE SIDE!",
 		FirstBomber = "TOUCH RUNNERS TO STICK BOMBS!",
 		FirstFieldWarn = "GET ACROSS BEFORE IT BLOWS!",
+		-- The Hand-Off (GDD §7.4b): the Lunge on your second carry, the Reject the first time a pass lands on you
+		Lunge = "DASH INTO SOMEONE TO SLAM IT ON THEM!",
+		Reject = "HARD STOP AS IT HITS YOU TO REJECT IT!",
 		QuestsIntro = "Daily quests: earn Gems!",
 	},
 	-- The four rules (GDD §7.1): this is the whole on-screen tutorial.

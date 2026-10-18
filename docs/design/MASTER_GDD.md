@@ -85,7 +85,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 | # | Decision | Value | Config |
 |---|---|---|---|
 | D1 | Name | **FUSE VALLEY** (was the working title FUSE VALLEY; the user named the place on 2026-10-17) | `Config.Game.NAME` |
-| D2 | Max players per server | **20** | `Config.Game.MAX_PLAYERS` |
+| D2 | Max players per server | **30** (raised from 20 on 2026-10-18, the user's call) | `Config.Game.MAX_PLAYERS` |
 | D3 | Bots fill each round to | **16 participants** | `Config.Bots.FILL_TARGET` |
 | D4 | Starting Bombers | **1 per 8 participants** (min 1, max 3) → 2 in a 16-player round | `Config.Round.BOMBERS_PER` |
 | D5 | Bomb fuse | **4.0 s** | `Config.Bomb.FUSE` |
@@ -165,7 +165,7 @@ A full round takes **2–3 minutes** [TUNE]. There is no map vote at launch (one
 **Who plays what (F-FLOW-09):**
 - **Bombers** spawn in the middle of the field at each `READY` and are held there until `GO`.
 - **Runners** who reached the other side stay safe until the crossing ends.
-- **Players joining mid-round** spawn as **Bombers** at the next `READY` [OURS]. Nobody waits a whole round, which is pillar P3.
+- **Players joining mid-round** land in The Depot (§19.1) and drop in as **Bombers** at the next `READY` [OURS] (D-LOBBY-01). "YOU'RE UP NEXT" shows while they wait. Nobody waits a whole round, which is pillar P3.
 
 ### 5.3 Ending conditions (F-FLOW-10)
 Checked continuously during `CROSSING`, in this order:
@@ -183,8 +183,8 @@ Checked continuously during `CROSSING`, in this order:
 | 2–7 | 1 | narrow (map variant) | With fewer than 4 Runners at the start, there is no Last Stand |
 | 8–15 | 1–2 | standard | |
 | 16 (bot fill) | 2 | standard | The default case |
-| 17–20 | 2 | standard | |
-| 24 (MAX_PLAYERS raised later) | 3 | standard | |
+| 17–23 | 2 | standard | |
+| 24–30 | 3 | standard | Bots stop filling at 16; above that every participant is a real player |
 
 Formula: `bombers = clamp(floor(n / BOMBERS_PER), 1, BOMBERS_MAX)`. The starting Bombers are chosen at random, but nobody starts as a Bomber two rounds in a row (`Config.Round.BOMBER_REPEAT_GUARD`).
 
@@ -284,6 +284,18 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 | F-BOMB-04 | **The fuse keeps its remaining time.** It never resets, never extends. |
 | F-BOMB-05 | **Eligible receivers:** anyone *not in a Safe Strip* and *not already carrying*. That includes Runners and Bombers.<br><br>**No pass-back for 1.0 s:** you can't pass a bomb straight back to the player who just gave it to you (`NO_PASSBACK`). This kills ping-pong.<br><br>**Receive grace of 0.2 s:** a fresh Carrier can't pass in the first 0.2 s (`RECEIVE_GRACE`). This stops same-frame bounces and gives the receiver one frame of "oh no". |
 
+### 7.4b The Hand-Off: passing as a 1-second duel (F-BOMB-11..14) [OURS]
+Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nobody needs a button. On top of that, every pass is a small duel. You can see the danger, the Carrier has an attack, the receiver has a counter, and there's a way to beat the counter (D-PASS-01).
+
+| ID | Rule |
+|---|---|
+| F-BOMB-11 | **The Danger Ring.** A ring on the ground under every Carrier shows exactly how far their pass reaches, in the bomb's stage colour. It **grows as the fuse burns: 4 studs at LIT, 4.75 at HOT, 5.5 at CRITICAL** (`PASS_RANGE_STAGE`). The server uses the same radius, so what you see is the rule. A READ THE FACE bomb's ring stays LIT-sized until it turns HOT, like its face. |
+| F-BOMB-12 | **The Lunge.** A Carrier's **Dash** is a lunge: for the dash (0.34 s), the reach stretches **+2.5 studs** toward bodies in front of them (within 60° of the dash direction, `LUNGE_REACH`, `LUNGE_CONE`), and the ring stretches into an oval that way. A pass that connects during a lunge is a **SLAM PASS**: a heavier freeze, the receiver knocked 5 studs, and its own callout. **A whiff:** if you lunged at someone (a body in that cone within the stretched reach + 3 studs when the dash started) and didn't connect, you stumble for 0.35 s at 60 % speed (`WHIFF_*`), and the dodger gets DODGE!. A dash to escape is never punished. |
+| F-BOMB-13 | **The Reject.** **Hard Stop just as the bomb reaches you** (within 0.25 s before contact on the server, `REJECT_WINDOW`): **REJECTED!** The bomb ricochets back to the giver, even inside the no-pass-back second, and the giver is staggered for 0.4 s (`REJECT_STAGGER`). Limits: a **4 s** cooldown per player, and **one reject per bomb per player**, so there are no endless volleys. A Carrier can't reject. **The duel:** Lunge beats running, Reject beats Lunge, and a feint beats Reject (fake the lunge, wait out their Hard Stop, then walk in while they're on cooldown). |
+| F-BOMB-14 | **The Chain Song.** Every pass in a chain plays the next note of a rising major scale, one licensed pluck pitched by semitones, so a ×5 chain sounds like a climbing arpeggio. The bomb carries its chain: a ×N tag and a hotter rim from ×2. On the transfer: a freeze on both bodies, the ricochet arc, "FROM name" on the receiver's screen, and a relief whoosh on the giver's. |
+
+**Bots** lunge (their pass dash) and reject with skill-tier odds, so the duel exists in a solo round. **No new Stars:** a SLAM PASS pays as a pass, and a REJECTED! pays XP only. **Success measure (pace probe):** passes per bomb from 0.64 to 1.2+, boom % within 45–60, 2–6 rejects a round, and some whiffs. First bot probe (2026-10-18): 0.83 passes per bomb, 38 % SLAM PASSES, 1.8 rejects a round, 14 whiffs in 8.5 min, boom 61 %. **Bots take a free hand-off within 7 studs** (`Config.Bots.OPPORTUNITY_RANGE`), as a player would.
+
 ### 7.5 Booms (F-BOMB-06..08)
 | ID | Case | Result |
 |---|---|---|
@@ -317,7 +329,12 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 | `TAG_RANGE` | 3.5 | Studs, root-to-root (Bomber reach) [TUNE]. Was 4.5: with the lag slack, tags landed from 6.5 studs and never looked like a touch (D-FEEL-01) |
 | `TAG_SHOVE` / `TAG_SHOVE_TIME` | 6 / 0.25 | studs / s: the slap's stumble (F-BOMB-10) |
 | `PASS_BUMP` | 3 | studs each: the pass knock-apart (F-BOMB-03) |
-| `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE] |
+| `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE]; LIT reach, see `PASS_RANGE_STAGE` |
+| `PASS_RANGE_STAGE` | 4 / 4.75 / 5.5 | studs at LIT / HOT / CRITICAL: the Danger Ring (F-BOMB-11) |
+| `LUNGE_REACH` / `LUNGE_CONE` | 2.5 / 60 | studs added in front during a Carrier's dash / degrees either side (F-BOMB-12) |
+| `SLAM_KNOCK` | 5 | studs the receiver of a SLAM PASS is knocked |
+| `WHIFF_TIME` / `WHIFF_SPEED` | 0.35 / 0.6 | s / speed while stumbling after a whiffed lunge |
+| `REJECT_WINDOW` / `REJECT_COOLDOWN` / `REJECT_STAGGER` | 0.25 / 4 / 0.4 | s (F-BOMB-13) |
 | `TAG_COOLDOWN` | 1.5 | s |
 | `NO_PASSBACK` | 1.0 | s |
 | `RECEIVE_GRACE` | 0.2 | s |
@@ -439,7 +456,7 @@ When you're carrying, the HUD helps you make the 1-second decision:
 | Moment | Treatment |
 |---|---|
 | **Tag lands** | **The slap (F-BOMB-10):** the Bomber lunges and slaps the hand bomb onto the Runner's back. A 90 ms hit-stop on both rigs, the in-house "smack" burst at the contact point (Asset Bible §5), a slap layered over the metallic "CLANK" as the clamp bites, and the bomb slams onto the back with squash-stretch, its face snapping to GOTCHA. The Runner stumbles forward. On the Bomber's own screen: a small camera punch. |
-| **Pass** | A 0.18 s arc with a whistle and a motion trail. The receiver's bomb lands with the same CLANK, pitched up. The two bodies bump apart. |
+| **Pass** | A 0.18 s arc with a whistle and a motion trail. The receiver's bomb lands with the same CLANK, pitched up. The two bodies bump apart. **The Hand-Off (§7.4b):** the Chain Song note, a SLAM PASS's heavier freeze and knock, a REJECTED! ricochet. |
 | **Boom** | Full explosion stack (Asset Bible §5). Camera shake scales with distance: 0.6 within 10 studs, 0.25 within 30. A ragdoll fling with a soot-stained body for 3 s. |
 | **Boom on you** | 0.35 s **impact freeze** (the camera holds while the explosion expands), then a whoosh as you fly. Then "YOU'RE A BOMBER" slams in with your new red role chip. You are back in control the moment you land. |
 | **Field detonation** | A rolling blast wave across the field. Every on-field client gets the shake; Safe Strip players get a heavy rumble and a glass-rattle SFX. |
@@ -753,6 +770,7 @@ Full item list, art briefs and rarity: Asset Bible §8.
 - **Bots fill each round to 16 participants** at `INTERMISSION`.
 - **When a human joins mid-round**, a bot is removed at the next round boundary, never mid-round.
 - **Bots use Chase Game's `AvatarPool`** (varied, realistic avatars) and natural names.
+- **Looks (D-LOBBY-02):** the bots wear the avatars of the humans' friends, split evenly between the humans in the server (with 2 players, half the bots wear each one's friends), rebalanced at every intermission. Random dressed avatars fill in only when friends run out. Bots keep generated names, so only the look is borrowed.
 
 ### 18.2 Brains (F-BOT-02..05) — new, bomb-aware
 Bots steer with Chase Game's `MovementCore` (the same physics as players) and run new decision logic in `BombBrain`:
@@ -974,7 +992,7 @@ Combat rules, Titan Hunt (as designed), abilities, modifiers, hazards, blocks, B
 | Simultaneous full explosions | 3. Beyond that, the "light" variant (40 % particles) plays |
 | Screen-space UI | ≤ 2 nested ViewportFrames visible at once (shop previews paginate) |
 | Map | ≤ 8,000 parts, `StreamingEnabled` off (small map, instant visibility matters for a tag game) |
-| Server | ≤ 4 ms per Heartbeat at 20 humans + bots (contact checks are ~120 distance checks) |
+| Server | ≤ 4 ms per Heartbeat at 30 participants (contact checks are ~270 distance checks) |
 
 ### 24.3 Data (F-DATA-01)
 The session-locked profile (transferred DataService) uses a fresh schema `v1`:
@@ -1072,7 +1090,7 @@ Built on Roblox `AnalyticsService`:
 ## Appendix A. Config index
 | Module | Key values (defaults in this document) |
 |---|---|
-| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 20` |
+| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 30` |
 | `Config.Round` | `INTERMISSION = 12`, `INTRO = 4`, `READY = 2`, `RESOLVE = 1.5`, `RESULTS = 8`, `MAX_CROSSINGS = 8`, `FIELD_FUSE = {20,16,13,11,10,10,10,10}`, `LAST_STAND_FUSE = 12`, `LAST_STAND_SPEED = 1.08`, `LAST_STAND_MIN_RUNNERS = 4`, `BOMBERS_PER = 8`, `BOMBERS_MAX = 3`, `BOMBER_REPEAT_GUARD = true`, `IDLE_WARN = 5`, `FUSE_WARN = 5`, `FUSE_PULSE = 3` |
 | `Config.Bomb` | §7.8 |
 | `Config.Movement` | Transferred unchanged (§9.1); `Profiles.Bomber` |

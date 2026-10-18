@@ -85,7 +85,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 | # | Decision | Value | Config |
 |---|---|---|---|
 | D1 | Name | **FUSE VALLEY** (was the working title FUSE VALLEY; the user named the place on 2026-10-17) | `Config.Game.NAME` |
-| D2 | Max players per server | **20** | `Config.Game.MAX_PLAYERS` |
+| D2 | Max players per server | **30** (raised from 20 on 2026-10-18, the user's call) | `Config.Game.MAX_PLAYERS` |
 | D3 | Bots fill each round to | **16 participants** | `Config.Bots.FILL_TARGET` |
 | D4 | Starting Bombers | **1 per 8 participants** (min 1, max 3) → 2 in a 16-player round | `Config.Round.BOMBERS_PER` |
 | D5 | Bomb fuse | **4.0 s** | `Config.Bomb.FUSE` |

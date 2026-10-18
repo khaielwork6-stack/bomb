@@ -43,6 +43,9 @@ return function(t)
 
 	t.it("a Carrier with nobody to pass to runs for the strip anyway", function()
 		t.expect(BombBrain.carrierChoice(1.2, 40, 24, false)).toBe("defuse")
+		-- the Hand-Off: somebody right there is a free hand-off, even with the strip in reach
+		t.expect(BombBrain.carrierChoice(3, 24, 24, true, BC.OPPORTUNITY_RANGE - 1)).toBe("pass")
+		t.expect(BombBrain.carrierChoice(3, 24, 24, true, BC.OPPORTUNITY_RANGE + 6)).toBe("defuse")
 	end)
 
 	t.it("the margin decides the borderline case", function()

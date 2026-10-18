@@ -9,6 +9,8 @@ return {
 	List = {
 		Tagged = { text = "TAGGED!", tier = "Small", color = "Bomber" },
 		Pass = { text = "PASS!", tier = "Small", color = "Paper" },
+		SlamPass = { text = "SLAM PASS!", tier = "Medium", color = "Spark" }, -- a pass made lunging (§7.4b)
+		Rejected = { text = "REJECTED!", tier = "Big", color = "Runner" }, -- a timed Hard Stop bounced it back
 		CloseOne = { text = "CLOSE ONE!", tier = "Medium", color = "Ember" },
 		Defused = { text = "DEFUSED", tier = "Medium", color = "Safe" },
 		ClutchDefuse = { text = "CLUTCH DEFUSE!", tier = "Big", color = "Gold" },

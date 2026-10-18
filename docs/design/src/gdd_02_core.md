@@ -24,7 +24,7 @@ A full round takes **2–3 minutes** [TUNE]. There is no map vote at launch (one
 **Who plays what (F-FLOW-09):**
 - **Bombers** spawn in the middle of the field at each `READY` and are held there until `GO`.
 - **Runners** who reached the other side stay safe until the crossing ends.
-- **Players joining mid-round** spawn as **Bombers** at the next `READY` [OURS]. Nobody waits a whole round, which is pillar P3.
+- **Players joining mid-round** land in The Depot (§19.1) and drop in as **Bombers** at the next `READY` [OURS] (D-LOBBY-01). "YOU'RE UP NEXT" shows while they wait. Nobody waits a whole round, which is pillar P3.
 
 ### 5.3 Ending conditions (F-FLOW-10)
 Checked continuously during `CROSSING`, in this order:
@@ -42,8 +42,8 @@ Checked continuously during `CROSSING`, in this order:
 | 2–7 | 1 | narrow (map variant) | With fewer than 4 Runners at the start, there is no Last Stand |
 | 8–15 | 1–2 | standard | |
 | 16 (bot fill) | 2 | standard | The default case |
-| 17–20 | 2 | standard | |
-| 24 (MAX_PLAYERS raised later) | 3 | standard | |
+| 17–23 | 2 | standard | |
+| 24–30 | 3 | standard | Bots stop filling at 16; above that every participant is a real player |
 
 Formula: `bombers = clamp(floor(n / BOMBERS_PER), 1, BOMBERS_MAX)`. The starting Bombers are chosen at random, but nobody starts as a Bomber two rounds in a row (`Config.Round.BOMBER_REPEAT_GUARD`).
 
@@ -143,6 +143,18 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 | F-BOMB-04 | **The fuse keeps its remaining time.** It never resets, never extends. |
 | F-BOMB-05 | **Eligible receivers:** anyone *not in a Safe Strip* and *not already carrying*. That includes Runners and Bombers.<br><br>**No pass-back for 1.0 s:** you can't pass a bomb straight back to the player who just gave it to you (`NO_PASSBACK`). This kills ping-pong.<br><br>**Receive grace of 0.2 s:** a fresh Carrier can't pass in the first 0.2 s (`RECEIVE_GRACE`). This stops same-frame bounces and gives the receiver one frame of "oh no". |
 
+### 7.4b The Hand-Off: passing as a 1-second duel (F-BOMB-11..14) [OURS]
+Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nobody needs a button. On top of that, every pass is a small duel. You can see the danger, the Carrier has an attack, the receiver has a counter, and there's a way to beat the counter (D-PASS-01).
+
+| ID | Rule |
+|---|---|
+| F-BOMB-11 | **The Danger Ring.** A ring on the ground under every Carrier shows exactly how far their pass reaches, in the bomb's stage colour. It **grows as the fuse burns: 4 studs at LIT, 4.75 at HOT, 5.5 at CRITICAL** (`PASS_RANGE_STAGE`). The server uses the same radius, so what you see is the rule. A READ THE FACE bomb's ring stays LIT-sized until it turns HOT, like its face. |
+| F-BOMB-12 | **The Lunge.** A Carrier's **Dash** is a lunge: for the dash (0.34 s), the reach stretches **+2.5 studs** toward bodies in front of them (within 60° of the dash direction, `LUNGE_REACH`, `LUNGE_CONE`), and the ring stretches into an oval that way. A pass that connects during a lunge is a **SLAM PASS**: a heavier freeze, the receiver knocked 5 studs, and its own callout. **A whiff:** if you lunged at someone (a body in that cone within the stretched reach + 3 studs when the dash started) and didn't connect, you stumble for 0.35 s at 60 % speed (`WHIFF_*`), and the dodger gets DODGE!. A dash to escape is never punished. |
+| F-BOMB-13 | **The Reject.** **Hard Stop just as the bomb reaches you** (within 0.25 s before contact on the server, `REJECT_WINDOW`): **REJECTED!** The bomb ricochets back to the giver, even inside the no-pass-back second, and the giver is staggered for 0.4 s (`REJECT_STAGGER`). Limits: a **4 s** cooldown per player, and **one reject per bomb per player**, so there are no endless volleys. A Carrier can't reject. **The duel:** Lunge beats running, Reject beats Lunge, and a feint beats Reject (fake the lunge, wait out their Hard Stop, then walk in while they're on cooldown). |
+| F-BOMB-14 | **The Chain Song.** Every pass in a chain plays the next note of a rising major scale, one licensed pluck pitched by semitones, so a ×5 chain sounds like a climbing arpeggio. The bomb carries its chain: a ×N tag and a hotter rim from ×2. On the transfer: a freeze on both bodies, the ricochet arc, "FROM name" on the receiver's screen, and a relief whoosh on the giver's. |
+
+**Bots** lunge (their pass dash) and reject with skill-tier odds, so the duel exists in a solo round. **No new Stars:** a SLAM PASS pays as a pass, and a REJECTED! pays XP only. **Success measure (pace probe):** passes per bomb from 0.64 to 1.2+, boom % within 45–60, 2–6 rejects a round, and some whiffs. First bot probe (2026-10-18): 0.83 passes per bomb, 38 % SLAM PASSES, 1.8 rejects a round, 14 whiffs in 8.5 min, boom 61 %. **Bots take a free hand-off within 7 studs** (`Config.Bots.OPPORTUNITY_RANGE`), as a player would.
+
 ### 7.5 Booms (F-BOMB-06..08)
 | ID | Case | Result |
 |---|---|---|
@@ -176,7 +188,12 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 | `TAG_RANGE` | 3.5 | Studs, root-to-root (Bomber reach) [TUNE]. Was 4.5: with the lag slack, tags landed from 6.5 studs and never looked like a touch (D-FEEL-01) |
 | `TAG_SHOVE` / `TAG_SHOVE_TIME` | 6 / 0.25 | studs / s: the slap's stumble (F-BOMB-10) |
 | `PASS_BUMP` | 3 | studs each: the pass knock-apart (F-BOMB-03) |
-| `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE] |
+| `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE]; LIT reach, see `PASS_RANGE_STAGE` |
+| `PASS_RANGE_STAGE` | 4 / 4.75 / 5.5 | studs at LIT / HOT / CRITICAL: the Danger Ring (F-BOMB-11) |
+| `LUNGE_REACH` / `LUNGE_CONE` | 2.5 / 60 | studs added in front during a Carrier's dash / degrees either side (F-BOMB-12) |
+| `SLAM_KNOCK` | 5 | studs the receiver of a SLAM PASS is knocked |
+| `WHIFF_TIME` / `WHIFF_SPEED` | 0.35 / 0.6 | s / speed while stumbling after a whiffed lunge |
+| `REJECT_WINDOW` / `REJECT_COOLDOWN` / `REJECT_STAGGER` | 0.25 / 4 / 0.4 | s (F-BOMB-13) |
 | `TAG_COOLDOWN` | 1.5 | s |
 | `NO_PASSBACK` | 1.0 | s |
 | `RECEIVE_GRACE` | 0.2 | s |
