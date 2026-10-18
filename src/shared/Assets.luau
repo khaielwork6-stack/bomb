@@ -143,6 +143,29 @@ Assets.Icon = {
 	Badge = "rbxassetid://75057395762995",
 } :: { [string]: string }
 
+-- The bomb's face rig (Asset Bible §3.8): three shared PBR sets baked by art/bomb/face.py from the review materials.
+-- The meshes themselves live in the place (ReplicatedStorage.FV_Art.Bomb.Face), published from art/out/Bomb.Face/export.
+Assets.Face = {
+	Porcelain = {
+		color = "rbxassetid://99613289323150",
+		normal = "rbxassetid://114221080722735",
+		rough = "rbxassetid://73177527461945",
+		metal = "rbxassetid://80308395174292",
+	},
+	Brass = {
+		color = "rbxassetid://87599637802447",
+		normal = "rbxassetid://97479904250481",
+		rough = "rbxassetid://129369884450640",
+		metal = "rbxassetid://77446420113603",
+	},
+	Ink = {
+		color = "rbxassetid://119113277598508",
+		normal = "rbxassetid://97479904250481",
+		rough = "rbxassetid://102141463810933",
+		metal = "rbxassetid://80308395174292",
+	},
+} :: { [string]: { color: string, normal: string, rough: string, metal: string } }
+
 -- Bomb skin texture sets (Asset Bible §3.6), baked by art/bomb/skins.py. Each part: { color, normal, rough, metal }.
 -- SurfaceAppearance maps cannot be set at runtime, so these are built into ReplicatedStorage.FV_Art.Skins in Studio.
 Assets.Skins = {

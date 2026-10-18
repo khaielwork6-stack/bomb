@@ -40,7 +40,7 @@ PDFs live in `docs/design/pdf/`. To change the docs, edit `docs/design/src/*.md`
 1. `stylua src`, `selene src` (clean), `rojo build`.
 2. Studio play-test: 0 errors, 0 unexpected warnings.
 3. Tick the task in `docs/PROGRESS.md`.
-4. Commit `P<n> <TaskID>: <summary>`. **Pull first**: the partner works in the same repo.
+4. Commit `P<n> <TaskID>: <summary>` **and push**, automatically after every task (no need to ask). **Pull first**: the partner works in the same repo.
 
 ## Origin
 - Movement, animations (`tools/anim`), ragdoll, plumbing and the temporary Meadow map were transferred from Chase Game (GDD §23).

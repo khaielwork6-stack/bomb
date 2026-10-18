@@ -26,4 +26,30 @@ return {
 	SLOWMO_PASS_LEFT = 0.5, -- a pass with this little fuse left earns it
 	SLOWMO_RANGE = 45, -- only moments this close to the camera (or your own)
 	SLOWMO_FOV = -6, -- the camera leans in
+
+	-- The bomb's face (Asset Bible §3.8, art/bomb/face.py). Poses in degrees, as reviewed on the contact sheet:
+	--   lid    + swings back into the body (open), 0 = half-lidded, −95 closed     slant: + droops the outer corner
+	--   raise  + lifts the brow up the body                                         tilt:  + inner end down (angry)
+	--   pupil  scale of the pupils; mouth: which mouth shows
+	FACE_POSES = {
+		SMUG = { lid = 8, slant = -10, raise = 0, tilt = 14, pupil = 1.0, mouth = "Smirk" }, -- LIT
+		UHOH = { lid = 38, slant = 12, raise = 2, tilt = -18, pupil = 0.9, mouth = "Grimace" }, -- HOT
+		PANIC = { lid = 72, slant = 0, raise = 4, tilt = -24, pupil = 0.7, mouth = "Panic" }, -- CRITICAL
+		GOTCHA = { lid = 14, slant = -18, raise = -1, tilt = 22, pupil = 1.0, mouth = "Grin" }, -- it just stuck to someone
+		WHEE = { lid = 76, slant = 0, raise = 5, tilt = -8, pupil = 0.72, mouth = "Ooh" }, -- pass flight
+	} :: {
+		[string]: { lid: number, slant: number, raise: number, tilt: number, pupil: number, mouth: string },
+	},
+	FACE_BLEND = 16, -- 1/s: how fast one pose eases into the next
+	FACE_BLINK_EVERY = { 2, 4 }, -- seconds between blinks while LIT (random in the range)
+	FACE_BLINK_TIME = 0.12,
+	FACE_BLINK_LID = -95,
+	FACE_GOTCHA_TIME = 0.6,
+	FACE_GAZE_RANGE = 45, -- studs: the nearest player inside this is the one it stares at
+	FACE_GAZE_MAX = 32, -- degrees the pupils can turn from straight out
+	FACE_GAZE_RATE = 0.2, -- seconds between target picks
+	FACE_GAZE_IDLE = Vector3.new(0, 1, -0.15), -- eye space: straight out, a touch down, when nobody is near
+	FACE_SHAKE = 3, -- degrees of pupil jitter at CRITICAL (off with Reduce motion)
+	FACE_PUPIL_LIFT = 0.018, -- studs a pupil rises per unit it shrinks, so a pin pupil stays proud of the eye
+	FACE_GLINT_OFFSET = 9, -- degrees the glint sits up and across from the pupil's centre (face.py glint_axis)
 }

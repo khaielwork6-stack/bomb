@@ -40,6 +40,8 @@ OUT = os.path.join(ROOT, "art", "out", "Bomb.Face")
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 SAMPLES = int(argv[argv.index("--samples") + 1]) if "--samples" in argv else 48
 ONLY = set(argv[argv.index("--only") + 1].split(",")) if "--only" in argv else None
+EXPORT = "--export" in argv  # write the game rig (art/out/Bomb.Face/export) instead of the review renders
+Q = 0.5 if EXPORT else 1.0  # mesh density: the game rig is lighter than the review renders (GDD §24.2)
 
 # ── The studio: build.py's Golden Fuse lights, cyclorama, camera and glare (its procedural bomb is swapped out) ───
 sys.argv = [sys.argv[0], "--", "--no-render", "--out", OUT, "--samples", str(SAMPLES)]
@@ -149,6 +151,7 @@ def obj_from_bm(name, bm, mat, coll):
 
 
 def shell(radius, pred, thickness, segs=64, rings=32):
+    segs, rings = max(16, round(segs * Q)), max(8, round(rings * Q))
     """A UV sphere cut down to the faces whose centre passes `pred`, given thickness inward."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=rings, radius=radius)
@@ -160,10 +163,26 @@ def shell(radius, pred, thickness, segs=64, rings=32):
     return bm
 
 
-def cap(radius, axis, ang_deg, thickness=0.0, segs=48, rings=48):
-    """The part of a sphere within ang_deg of `axis` (a pupil, a glint)."""
-    c = math.cos(math.radians(ang_deg))
-    return shell(radius, lambda p: p.normalized().dot(axis) >= c, thickness, segs, rings)
+def cap(radius, axis, ang_deg, segs=40, rings=8):
+    """The part of a sphere within ang_deg of `axis` (a pupil, a glint): a polar grid, so its edge is a true circle."""
+    segs = max(16, round(segs * Q))
+    rot = Vector((0, 0, 1)).rotation_difference(axis.normalized()).to_matrix()
+    bm = bmesh.new()
+    top = bm.verts.new(rot @ Vector((0, 0, radius)))
+    rows = []
+    for i in range(1, rings + 1):
+        a = math.radians(ang_deg) * i / rings
+        rows.append([bm.verts.new(rot @ (Vector((math.sin(a) * math.cos(t), math.sin(a) * math.sin(t), math.cos(a))) * radius))
+                     for t in [k / segs * math.pi * 2 for k in range(segs)]])
+    for k in range(segs):
+        bm.faces.new((top, rows[0][k], rows[0][(k + 1) % segs]))
+    for i in range(rings - 1):
+        for k in range(segs):
+            bm.faces.new((rows[i][k], rows[i + 1][k], rows[i + 1][(k + 1) % segs], rows[i][(k + 1) % segs]))
+    inward = [f for f in bm.faces if f.normal.dot(f.calc_center_median()) < 0]
+    if inward:
+        bmesh.ops.reverse_faces(bm, faces=inward)
+    return bm
 
 
 def project(bm, origin_dir, r_surface, lift):
@@ -176,7 +195,11 @@ def project(bm, origin_dir, r_surface, lift):
 
 def flat_shape(outline, holes=(), depth=0.03, cuts=3):
     """A filled 2D outline (x, z pairs) with optional holes, extruded `depth` outward (+y), finely subdivided so it can
-    wrap onto the sphere."""
+    wrap onto the sphere (the game rig subdivides only shapes big enough to need it)."""
+    if EXPORT:
+        span = max(max(x for x, _ in outline) - min(x for x, _ in outline), max(z for _, z in outline) - min(z for _, z in outline))
+        thin = min(max(x for x, _ in outline) - min(x for x, _ in outline), max(z for _, z in outline) - min(z for _, z in outline))
+        cuts = 1 if (not holes and span >= 0.25 and thin >= 0.12) else 0  # only wide filled shapes sag off the sphere
     bm = bmesh.new()
     loops = [outline, *holes]
     edges = []
@@ -207,6 +230,7 @@ def flat_shape(outline, holes=(), depth=0.03, cuts=3):
 
 
 def ellipse(w, h, n=48, cx=0.0, cz=0.0, bottom_bulge=1.0):
+    n = 32 if EXPORT else n
     pts = []
     for i in range(n):
         a = i / n * math.pi * 2
@@ -267,15 +291,15 @@ for side, sgn in (("L", 1), ("R", -1)):
     base = Matrix.Translation(centre) @ m
     eye = obj_from_bm(f"Eye{side}", shell(EYE_R, lambda p: True, 0), M_PORC, face)
     place(eye, base)
-    pupil = obj_from_bm(f"Pupil{side}", cap(EYE_R * 1.012, Vector((0, 1, 0)), PUPIL_ANG), M_INK, face)
+    pupil = obj_from_bm(f"Pupil{side}", cap(EYE_R * 1.012, Vector((0, 1, 0)), PUPIL_ANG, rings=5 if EXPORT else 8), M_INK, face)
     glint_axis = (Matrix.Rotation(math.radians(9), 3, "Z") @ Matrix.Rotation(math.radians(9), 3, "X")) @ Vector((0, 1, 0))
-    glint = obj_from_bm(f"Glint{side}", cap(EYE_R * 1.02, glint_axis, GLINT_ANG), M_GLINT, face)
+    glint = obj_from_bm(f"Glint{side}", cap(EYE_R * 1.02, glint_axis, GLINT_ANG, rings=2), M_GLINT, face)
     # the lid: the upper half-shell; rotating it about local X (+ = back into the body, − = down over the eye)
-    lid = obj_from_bm(f"Lid{side}", shell(LID_R, lambda p: p.z >= -0.002, LID_T), M_INK, face)
+    lid = obj_from_bm(f"Lid{side}", shell(LID_R, lambda p: p.z >= -0.002, LID_T, 48, 24), M_INK, face)
     # the brow: a forged bar swept along the body above the eye, tapering to its ends
     bm = bmesh.new()
     rows = []
-    n = 24
+    n = 12 if EXPORT else 24
     for i in range(n + 1):
         t = i / n - 0.5
         taper = 0.62 + 0.38 * math.cos(t * math.pi)
@@ -294,7 +318,7 @@ for side, sgn in (("L", 1), ("R", -1)):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     brow = obj_from_bm(f"Brow{side}", bm, M_BRASS, face)
     bevel = brow.modifiers.new("Bevel", "BEVEL")
-    bevel.width, bevel.segments = 0.012, 3
+    bevel.width, bevel.segments = 0.012, 1 if EXPORT else 3
     rig[side] = {
         "sgn": sgn, "base": base, "eye": eye, "pupil": pupil, "glint": glint, "lid": lid, "brow": brow,
         "brow_dir": direction(sgn * EYE_AZ, BROW_EL), "right": frame(d) @ Vector((1, 0, 0)),
@@ -358,6 +382,179 @@ mouths = {
     ]),
 }
 
+
+# ── Export for the game (Asset Bible §10.4): meshes in their pivot frames, pivots in the bomb's Roblox space ─────
+# Roblox model space = (−x, z, y) of Blender's (a proper rotation; the bomb's front is +Z there). Each part's vertices
+# are written in its own pivot frame (x right along the surface, y out, z up), so the game rotates the part about the
+# pivot exactly as pose() does here.
+if EXPORT:
+    import json
+
+    sys.path.insert(0, HERE)
+    import skins as skinlib  # its bake() (EMIT for colour/metal, NORMAL tangent, ROUGHNESS)
+
+    EXP = os.path.join(OUT, "export")
+    os.makedirs(EXP, exist_ok=True)
+
+    def to_rbx(v):
+        return [-v.x, v.z, v.y]
+
+    def pivot_of(m3, pos):
+        cols = [m3.col[i] for i in range(3)]
+        return {"pos": to_rbx(pos), "x": to_rbx(cols[0]), "y": to_rbx(cols[1]), "z": to_rbx(cols[2])}
+
+    dg = bpy.context.evaluated_depsgraph_get()
+
+    def mesh_data(o, to_local, uv_fn, keep=None):
+        """Triangles of the evaluated mesh, in the pivot frame (to_local maps object-local coords there)."""
+        ev = o.evaluated_get(dg)
+        me = ev.to_mesh()
+        me.calc_loop_triangles()
+        rot = to_local.to_3x3()
+        verts, normals, uvs, tris, index = [], [], [], [], {}
+        for tri in me.loop_triangles:
+            if keep and not keep(to_local @ Vector(tri.center)):
+                continue
+            ids = []
+            for li, vi in zip(tri.loops, tri.vertices):
+                co = to_local @ me.vertices[vi].co
+                n = (rot @ me.loops[li].normal).normalized()
+                key = (vi, round(n.x, 3), round(n.y, 3), round(n.z, 3))
+                if key not in index:
+                    index[key] = len(verts)
+                    verts.append([round(co.x, 5), round(co.y, 5), round(co.z, 5)])
+                    normals.append([round(n.x, 4), round(n.y, 4), round(n.z, 4)])
+                    uvs.append([round(c, 5) for c in uv_fn(co)])
+                ids.append(index[key])
+            tris.append(ids)
+        ev.to_mesh_clear()
+        return {"verts": verts, "normals": normals, "uvs": uvs, "tris": tris}
+
+    def sphere_uv(radius):
+        def f(co):
+            return (math.atan2(co.x, co.y) / (2 * math.pi) + 0.5, 0.5 + 0.5 * max(-1, min(1, co.z / radius)))
+        return f
+
+    def planar_uv(span):
+        return lambda co: (co.x / span + 0.5, co.z / span + 0.5)
+
+    out = {"version": 1, "parts": {}}
+    tri_total = 0
+
+    def add(name, material, pivot, data, role):
+        global tri_total
+        tri_total += len(data["tris"])
+        out["parts"][name] = {"material": material, "pivot": pivot, "role": role, **data}
+
+    for side, s_ in rig.items():
+        base = s_["base"]
+        m3, pos = base.to_3x3(), base.to_translation()
+        piv = pivot_of(m3, pos)
+        eye_keep = lambda c, base=base: (base @ c).length > R - 0.03  # the part of the dome that shows
+        add(f"Eye{side}", "Porcelain", piv, mesh_data(s_["eye"], Matrix.Identity(4), sphere_uv(EYE_R), eye_keep), "eye")
+        add(f"Pupil{side}", "Ink", piv, mesh_data(s_["pupil"], Matrix.Identity(4), sphere_uv(EYE_R)), "pupil")
+        add(f"Glint{side}", "Glint", piv, mesh_data(s_["glint"], Matrix.Identity(4), sphere_uv(EYE_R)), "glint")
+        add(f"Lid{side}", "Ink", piv, mesh_data(s_["lid"], Matrix.Identity(4), sphere_uv(LID_R)), "lid")
+        # the brow turns about the body centre: X = the eye's right, Y = toward the brow, Z = X × Y
+        bx = s_["right"].normalized()
+        by = (s_["brow_dir"] - bx * s_["brow_dir"].dot(bx)).normalized()
+        bm3 = Matrix((bx, by, bx.cross(by))).transposed()
+        add(f"Brow{side}", "Brass", pivot_of(bm3, Vector((0, 0, 0))),
+            mesh_data(s_["brow"], bm3.inverted().to_4x4(), lambda co: (co.x / 0.6 + 0.5, co.z / 0.3 + 0.5)), "brow")
+    mf = frame(md)
+    mpos = md * R
+    to_mouth = (Matrix.Translation(mpos) @ mf.to_4x4()).inverted()
+    for shape, objs in mouths.items():
+        by_mat = {}
+        for o in objs:
+            mat = o.data.materials[0]
+            key = {"Brass": "Brass", "Porcelain": "Porcelain", "InkEnamel": "Ink", "MouthCore": "Core", "Recess": "Recess"}.get(
+                mat.name.split(".")[0], "Ink")
+            by_mat.setdefault(key, []).append(o)
+        for key, group in by_mat.items():
+            merged = {"verts": [], "normals": [], "uvs": [], "tris": []}
+            for o in group:
+                d = mesh_data(o, to_mouth @ o.matrix_world, planar_uv(0.7))
+                k = len(merged["verts"])
+                for f in ("verts", "normals", "uvs"):
+                    merged[f] += d[f]
+                merged["tris"] += [[a + k, b + k, c + k] for a, b, c in d["tris"]]
+            add(f"Mouth{shape}_{key}", key, pivot_of(mf, mpos), merged, "mouth:" + shape)
+    out["triangles"] = tri_total
+    with open(os.path.join(EXP, "FaceRig.json"), "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print("parts", len(out["parts"]), "triangles", tri_total, flush=True)
+
+    # Three shared PBR sets, baked from the very materials of the review renders onto a 0.6-stud tile
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = 16
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.3)
+    uvl = bm.loops.layers.uv.new("UVMap")
+    for f_ in bm.faces:
+        for loop in f_.loops:
+            loop[uvl].uv = (loop.vert.co.x / 0.6 + 0.5, loop.vert.co.y / 0.6 + 0.5)
+    me = bpy.data.meshes.new("Tile")
+    bm.to_mesh(me)
+    bm.free()
+    tile = bpy.data.objects.new("Tile", me)
+    scene.collection.objects.link(tile)
+    tile.location = (0, 0, 20)
+    for name, mat in (("Porcelain", M_PORC), ("Brass", M_BRASS), ("Ink", M_INK)):
+        give(tile, mat.copy())
+        for kind in ("COLOR", "ROUGHNESS", "NORMAL", "METAL"):
+            img = bpy.data.images.new(f"Face{name}_{kind}", 512, 512, alpha=False, float_buffer=(kind == "NORMAL"))
+            if kind != "COLOR":
+                img.colorspace_settings.name = "Non-Color"
+            skinlib.bake(tile, img, kind)
+            img.filepath_raw = os.path.join(EXP, f"Face{name}_{kind}.png")
+            img.file_format = "PNG"
+            img.save()
+        print("baked", name, flush=True)
+    # The rig at rest for Studio's 3D Importer (meshes can't be published from code yet): every part where it sits on
+    # the bomb, named as in FaceRig.json, so the importer's model can be laid out and wired automatically.
+    for o in bpy.data.objects:
+        o.select_set(False)
+    for o in list(face.objects):
+        mw = o.matrix_world.copy()
+        o.parent = None
+        o.matrix_world = mw
+    joined = []
+    for shape, objs in mouths.items():  # one object per (shape, material), like the JSON
+        groups = {}
+        for o in objs:
+            groups.setdefault(o.data.materials[0].name.split(".")[0], []).append(o)
+        for mname, group in groups.items():
+            key = {"Brass": "Brass", "Porcelain": "Porcelain", "InkEnamel": "Ink", "MouthCore": "Core", "Recess": "Recess"}.get(mname, "Ink")
+            bpy.context.view_layer.objects.active = group[0]
+            for o in group:
+                o.select_set(True)
+            if len(group) > 1:
+                bpy.ops.object.join()
+            group[0].name = f"Mouth{shape}_{key}"
+            joined.append(group[0])
+            for o in bpy.data.objects:
+                o.select_set(False)
+    for side in rig:  # drop the part of each eye dome that sits inside the body (as in the JSON)
+        o = rig[side]["eye"]
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        mw = o.matrix_world
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if (mw @ f.calc_center_median()).length <= R - 0.03], context="FACES")
+        bm.to_mesh(o.data)
+        bm.free()
+    for o in face.objects:
+        o.select_set(True)
+    bpy.ops.export_scene.gltf(
+        filepath=os.path.join(EXP, "FaceRig.glb"),
+        export_format="GLB",
+        use_selection=True,
+        export_yup=True,
+        export_apply=True,
+        export_materials="NONE",
+    )
+    print("EXPORTED", EXP, flush=True)
+    raise SystemExit(0)
 
 # ── Expressions: the poses the game drives (angles in degrees) ───────────────────────────────────────────────────
 #   lid      + swings back into the body (open), 0 = half-lidded, −95 closed     slant: + droops the outer corner (sad)

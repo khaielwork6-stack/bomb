@@ -15,7 +15,9 @@ local TweenService = game:GetService("TweenService")
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
+local BombFace = require(script.Parent.Parent.BombFace)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Settings = require(script.Parent.Parent.Settings)
 local Sfx = require(script.Parent.Parent.Sfx)
 local SkinApply = require(script.Parent.Parent.SkinApply)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -55,9 +57,13 @@ type Visual = {
 	lastVel: Vector3,
 	stuckAt: number, -- os.clock() of the stick slam (the wobble waits for it to land)
 	artFuse: boolean, -- the imported hero bomb's fuse segments stand along Y (the part-built ones along X)
+	face: BombFace.Rig?, -- the face rig (Asset Bible §3.8), when the art has one
+	gazeTarget: Vector3?, -- who the face is staring at (a head), re-picked every FACE_GAZE_RATE
+	gazeAt: number,
 }
 
 local visuals: { [Instance]: Visual } = {}
+local gotchaUntil: { [Instance]: number } = {} -- a Bomber's tag just stuck this bomb on: the face grins
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -230,7 +236,7 @@ local function buildFromArt(
 	torso: BasePart,
 	template: Model,
 	skinId: string?
-): (Model, BasePart, { BasePart }, { BasePart }, { BasePart }, Attachment)
+): (Model, BasePart, { BasePart }, { BasePart }, { BasePart }, Attachment, BombFace.Rig?)
 	local model = template:Clone()
 	model.Name = "FV_Bomb"
 	SkinApply.apply(model, skinId) -- the Carrier's equipped bomb skin (Asset Bible §3.6: textures only)
@@ -259,12 +265,13 @@ local function buildFromArt(
 	})
 	model.PrimaryPart = mount
 	mount.CFrame = CFrame.new(centre)
+	local face = BombFace.attach(model, mount) -- welds the face rig while the model is still in bomb space
 	model:PivotTo(torso.CFrame * MOUNT * turn)
 	local segments: { BasePart } = {}
 	local lamps: { BasePart } = {}
 	local seams: { BasePart } = {}
 	for _, d in ipairs(model:GetDescendants()) do
-		if d:IsA("BasePart") and d ~= mount then
+		if d:IsA("BasePart") and d ~= mount and not BombFace.isFace(d) then
 			d.Anchored = false
 			d.CanCollide = false
 			d.CanQuery = false
@@ -291,7 +298,7 @@ local function buildFromArt(
 	end
 	mount.Anchored = false
 	local sparkAtt = new("Attachment", { Name = "Spark", Parent = mount })
-	return model, mount, segments, lamps, seams, sparkAtt
+	return model, mount, segments, lamps, seams, sparkAtt, face
 end
 local function buildRing(adornee: BasePart): (BillboardGui, { Frame })
 	local gui = new("BillboardGui", {
@@ -367,10 +374,10 @@ local function attach(host: Instance): Visual?
 		return nil
 	end
 	local template = artTemplate()
-	local model, mount, segments, lamps, seams, sparkAtt
+	local model, mount, segments, lamps, seams, sparkAtt, face
 	if template then
 		local skin = host:GetAttribute("Eq_BombSkin")
-		model, mount, segments, lamps, seams, sparkAtt =
+		model, mount, segments, lamps, seams, sparkAtt, face =
 			buildFromArt(torso, template, if type(skin) == "string" then skin else nil)
 	else
 		model, mount, segments, lamps, seams, sparkAtt = build(torso)
@@ -431,6 +438,9 @@ local function attach(host: Instance): Visual?
 		lastVel = Vector3.zero,
 		stuckAt = os.clock(),
 		artFuse = template ~= nil,
+		face = face,
+		gazeTarget = nil,
+		gazeAt = 0,
 	}
 	visuals[host] = v
 	-- Stick: the bomb slams onto the back with a squash and a snap (GDD §10.3).
@@ -455,6 +465,20 @@ local function attach(host: Instance): Visual?
 		end)
 	end
 	return v
+end
+
+local function hosts(): { Instance }
+	local out: { Instance } = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		table.insert(out, p)
+	end
+	local bots = workspace:FindFirstChild("Bots")
+	if bots then
+		for _, m in ipairs(bots:GetChildren()) do
+			table.insert(out, m)
+		end
+	end
+	return out
 end
 
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -530,20 +554,37 @@ local function update(v: Visual, dt: number, t: number)
 		local s = 64 * (1 + pulse * 0.12)
 		v.ring.Size = UDim2.fromOffset(s, s)
 	end
-end
-
-local function hosts(): { Instance }
-	local out: { Instance } = {}
-	for _, p in ipairs(Players:GetPlayers()) do
-		table.insert(out, p)
-	end
-	local bots = workspace:FindFirstChild("Bots")
-	if bots then
-		for _, m in ipairs(bots:GetChildren()) do
-			table.insert(out, m)
+	-- The face (Asset Bible §3.8): smug while LIT, nervous at HOT, panicking at CRITICAL, a grin when it just stuck,
+	-- blinking while LIT and staring at the nearest player.
+	if v.face then
+		local clock = os.clock()
+		if clock - v.gazeAt >= F.FACE_GAZE_RATE then
+			v.gazeAt = clock
+			v.gazeTarget = nil
+			local from = v.mount.Position
+			local best = F.FACE_GAZE_RANGE
+			local own = characterOf(v.host)
+			for _, h in ipairs(hosts()) do
+				local char = characterOf(h)
+				local other = char and char ~= own and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if other then
+					local d = (other.Position - from).Magnitude
+					if d < best then
+						best = d
+						v.gazeTarget = other.Position + Vector3.new(0, 1.5, 0) -- the head
+					end
+				end
+			end
 		end
+		local gotcha = (gotchaUntil[v.host] or 0) > clock
+		local pose = if gotcha
+			then "GOTCHA"
+			elseif stage == "CRITICAL" then "PANIC"
+			elseif stage == "HOT" then "UHOH"
+			else "SMUG"
+		local jitter = if stage == "CRITICAL" and not Settings.get("reduceMotion") then F.FACE_SHAKE else 0
+		BombFace.update(v.face, dt, pose, v.gazeTarget, stage == "LIT" and not gotcha, jitter)
 	end
-	return out
 end
 
 local function step(dt: number)
@@ -590,6 +631,7 @@ local function passArc(fromId: string, toId: string)
 	ghost.Name = "FV_BombFlight"
 	local skin = fromHost and fromHost:GetAttribute("Eq_BombSkin")
 	SkinApply.apply(ghost, if type(skin) == "string" then skin else nil)
+	BombFace.pose(ghost, "WHEE", Vector3.new(0, 1, 0.25)) -- wide-eyed and looking up as it flies
 	for _, d in ipairs(ghost:GetDescendants()) do
 		if d:IsA("BasePart") then
 			d.Anchored = true
@@ -639,6 +681,12 @@ end
 function BombController.start()
 	RunService.RenderStepped:Connect(step)
 	Net.listen("BombFx", function(payload)
+		if type(payload) == "table" and payload.kind == "Stick" and type(payload.who) == "string" then
+			local host = ClientState.byId(payload.who)
+			if host then
+				gotchaUntil[host] = os.clock() + F.FACE_GOTCHA_TIME
+			end
+		end
 		if
 			type(payload) == "table"
 			and payload.kind == "Pass"

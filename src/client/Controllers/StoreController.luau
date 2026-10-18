@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Cosmetics)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Progress = require(script.Parent.Parent.Progress)
+local BombFace = require(script.Parent.Parent.BombFace)
 local SkinApply = require(script.Parent.Parent.SkinApply)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -101,6 +102,7 @@ local function bombPreview(parent: Instance, skinId: string): ViewportFrame?
 	}) :: ViewportFrame
 	local model = (template :: Model):Clone()
 	SkinApply.apply(model, skinId)
+	BombFace.pose(model, "SMUG") -- the face, as it ticks (Asset Bible §3.8)
 	local lamps = {}
 	for _, d in ipairs(model:GetDescendants()) do
 		if d:IsA("BasePart") then
