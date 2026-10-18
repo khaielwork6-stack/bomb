@@ -227,7 +227,7 @@ local function bodyTag(amount: number, word: string, comboN: number)
 	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
 	TweenService:Create(bb, TweenInfo.new(H.TAG_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		StudsOffset = Vector3.new(2.6, 0.4 + H.TAG_RISE / 20, 0),
+		StudsOffset = Vector3.new(3.6, -0.2 + H.TAG_RISE / 20, 0),
 	}):Play()
 	task.delay(H.TAG_TIME * 0.6, function()
 		local fade = TweenInfo.new(H.TAG_TIME * 0.4)
