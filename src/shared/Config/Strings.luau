@@ -109,6 +109,7 @@ return {
 		FirstWinOfDay = "FIRST WIN OF THE DAY",
 		Saved = "Saved for the Shop",
 		GotIt = "GOT IT",
+		RuleFx = { "TAG!", "PASS!", "BOOM!", "SAFE!" }, -- the How to Play scenes' pop words
 		InviteFriends = "SHOW YOUR FRIENDS",
 		GroupPerk = "Thanks for joining the group!",
 		StarterTitle = "NEW PLAYER OFFER",

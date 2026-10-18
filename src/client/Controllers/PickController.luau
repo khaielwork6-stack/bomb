@@ -40,8 +40,26 @@ local LOCK_DIST = 6.5 -- studs from the Bomber's chest for the lock-on shot
 local HANDBACK_FRAMES = 4 -- frames the snap-behind is re-applied after the sequence
 local PUSH_SPEED = 0.7 -- studs / s of slow push-in while a shot holds
 local GLOW_FADE = 1.2 -- seconds the gold glow lingers into READY
-local HIDE_GUIS =
-	{ "FV_Hud", "FV_Callouts", "FV_Carrier", "FV_Progress", "FV_Dock", "FV_Quests", "FV_Mega", "FV_Mobile" }
+-- the HUD, and any open panel (rules, Daily / store, wheel, offer, crate, menu, emotes): the pick owns the screen for
+-- its few seconds and they come back as they were
+local HIDE_GUIS = {
+	"FV_Hud",
+	"FV_Callouts",
+	"FV_Carrier",
+	"FV_Progress",
+	"FV_Dock",
+	"FV_Quests",
+	"FV_Mega",
+	"FV_Mobile",
+	"FV_Onboarding",
+	"FV_Tips",
+	"FV_Daily",
+	"FV_Wheel",
+	"FV_Offer",
+	"FV_Crate",
+	"FV_Menu",
+	"FV_Emotes",
+}
 
 local gui: ScreenGui
 local running = 0 -- a token: a newer INTRO cancels the old sequence

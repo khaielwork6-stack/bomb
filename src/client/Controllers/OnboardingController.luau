@@ -20,6 +20,7 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
+local RulesDiorama = require(script.Parent.Parent.UI.RulesDiorama)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
 
@@ -45,90 +46,7 @@ local tipsShown: { [string]: boolean } = {}
 local introShown = false
 
 -- ── The four rules card ─────────────────────────────────────────────────────────────────────────────────────────
--- Each panel's 2 s looping illustration, built from the icon set.
-local function illustrate(stage: Frame, i: number)
-	local function person(tint: Color3, x: number): Frame
-		-- the 3D team icons (the Runner / Bomber figures from art/icons)
-		local img = Widgets.icon(stage, if tint == P.Bomber then "Bomber" else "Runner", 60, {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(x, 0, 1, -4),
-			ZIndex = 6,
-		})
-		return img.Parent :: Frame
-	end
-	local function bomb(x: number, y: number, size: number?): Frame
-		local img = Widgets.icon(stage, "Bomb", size or 34, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(x, 0, y, 0),
-			ZIndex = 7,
-		})
-		return img.Parent :: Frame
-	end
-	local loop = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-	if i == 1 then
-		-- a Bomber leans in to touch; the bomb pops onto the Runner
-		local bomber = person(P.Bomber, 0.28)
-		person(P.Runner, 0.7)
-		TweenService:Create(bomber, loop, { Position = UDim2.new(0.46, 0, 1, -6) }):Play()
-		local b = bomb(0.74, 0.32)
-		local sc = new("UIScale", { Scale = 0, Parent = b })
-		TweenService
-			:Create(sc, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out, -1, true), { Scale = 1 })
-			:Play()
-	elseif i == 2 then
-		-- the bomb hops between two Runners
-		person(P.Runner, 0.26)
-		person(P.Runner, 0.74)
-		local b = bomb(0.3, 0.3)
-		TweenService:Create(b, loop, { Position = UDim2.new(0.7, 0, 0.3, 0), Rotation = 30 }):Play()
-	elseif i == 3 then
-		-- a fuse burning down that never resets
-		bomb(0.5, 0.42, 58)
-		local well = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -12),
-			Size = UDim2.new(0.8, 0, 0, 12),
-			BackgroundColor3 = P.Ink,
-			ZIndex = 6,
-			Parent = stage,
-		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = well })
-		local fill = new("Frame", {
-			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = P.Fuse,
-			ZIndex = 7,
-			Parent = well,
-		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = fill })
-		TweenService:Create(
-			fill,
-			TweenInfo.new(4, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1),
-			{ Size = UDim2.fromScale(0, 1) }
-		):Play()
-	else
-		-- a Runner reaches the green safe side; the shield pops
-		local strip = new("Frame", {
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -4, 1, -4),
-			Size = UDim2.new(0.3, 0, 0, 10),
-			BackgroundColor3 = P.Safe,
-			ZIndex = 5,
-			Parent = stage,
-		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = strip })
-		local runner = person(P.Runner, 0.25)
-		TweenService:Create(runner, loop, { Position = UDim2.new(0.82, 0, 1, -6) }):Play()
-		local shield = Widgets.icon(stage, "Shield", 34, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.82, 0, 0.26, 0),
-			ZIndex = 7,
-		})
-		local sc = new("UIScale", { Scale = 0, Parent = shield.Parent })
-		TweenService
-			:Create(sc, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out, -1, true), { Scale = 1 })
-			:Play()
-	end
-end
+-- Each panel's looping live 3D scene: UI/RulesDiorama.
 
 function OnboardingController.showRules()
 	if rulesOpen then
@@ -144,7 +62,7 @@ function OnboardingController.showRules()
 		Name = "Rules",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.53),
-		Size = UDim2.fromOffset(720, 360),
+		Size = UDim2.fromOffset(800, 420),
 		color = Color3.fromRGB(58, 64, 96),
 		color2 = Color3.fromRGB(30, 32, 52),
 		dots = Color3.new(1, 1, 1),
@@ -153,7 +71,7 @@ function OnboardingController.showRules()
 	local holder = face.Parent :: Frame
 	holder.ZIndex = 5
 	local v = Screen.size()
-	new("UIScale", { Scale = math.min(1, (v.Y - 80) / 380, (v.X - 30) / 720), Parent = holder })
+	new("UIScale", { Scale = math.min(1, (v.Y - 80) / 440, (v.X - 30) / 800), Parent = holder })
 	Skin.ribbon(holder, S.RulesTitle, P.Gold, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 0),
@@ -162,7 +80,7 @@ function OnboardingController.showRules()
 	})
 	local row = new("Frame", {
 		Position = UDim2.fromOffset(20, 50),
-		Size = UDim2.new(1, -40, 0, 200),
+		Size = UDim2.new(1, -40, 0, 270),
 		BackgroundTransparency = 1,
 		ZIndex = 4,
 		Parent = face,
@@ -177,7 +95,7 @@ function OnboardingController.showRules()
 	for i, rule in ipairs(S.Rules) do
 		local card = Theme.panel(row, {
 			Name = "Rule" .. i,
-			Size = UDim2.fromOffset(156, 214),
+			Size = UDim2.fromOffset(178, 262),
 			color = RULE_FILL[i][1],
 			color2 = RULE_FILL[i][2],
 			border = Color3.new(1, 1, 1),
@@ -207,15 +125,15 @@ function OnboardingController.showRules()
 		local stage = new("Frame", {
 			Name = "Stage",
 			Position = UDim2.fromOffset(8, 30),
-			Size = UDim2.new(1, -16, 0, 96),
+			Size = UDim2.new(1, -16, 0, 132),
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,
 			ZIndex = 5,
 			Parent = card,
 		})
-		illustrate(stage, i)
+		RulesDiorama.build(stage, i, RULE_FILL[i][1])
 		Widgets.label(card, {
-			Position = UDim2.fromOffset(6, 130),
+			Position = UDim2.fromOffset(6, 168),
 			Size = UDim2.new(1, -12, 0, 26),
 			TextSize = 18,
 			font = Theme.Font.Display,
@@ -224,8 +142,8 @@ function OnboardingController.showRules()
 			ZIndex = 6,
 		})
 		Widgets.label(card, {
-			Position = UDim2.fromOffset(8, 158),
-			Size = UDim2.new(1, -16, 0, 50),
+			Position = UDim2.fromOffset(8, 198),
+			Size = UDim2.new(1, -16, 0, 56),
 			TextSize = 15,
 			font = Theme.Font.Bold,
 			wrap = true,
@@ -366,6 +284,14 @@ function OnboardingController.start()
 		end
 	end
 	Progress.Changed:Connect(onProgress)
+	-- Studio preview: set the player's FV_PreviewRules attribute to true to open the rules card
+	if game:GetService("RunService"):IsStudio() then
+		player:GetAttributeChangedSignal("FV_PreviewRules"):Connect(function()
+			if player:GetAttribute("FV_PreviewRules") then
+				OnboardingController.showRules()
+			end
+		end)
+	end
 	local s = Progress.get()
 	if s then
 		onProgress(s)
