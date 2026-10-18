@@ -9,26 +9,22 @@ function Util.init(theme)
 	return Util
 end
 
-local VISIBLE_FACES = {
-	Enum.NormalId.Top,
-	Enum.NormalId.Front,
-	Enum.NormalId.Back,
-	Enum.NormalId.Left,
-	Enum.NormalId.Right,
-}
-
--- Apply the shared stud texture to a part's visible faces.
-function Util.stud(part, tile, faces)
-	tile = tile or T.StudTile
-	for _, face in ipairs(faces or VISIBLE_FACES) do
-		local tex = Instance.new("Texture")
-		tex.Name = "Studs"
-		tex.Texture = T.StudTexture
-		tex.Face = face
-		tex.StudsPerTileU = tile
-		tex.StudsPerTileV = tile
-		tex.Parent = part
+-- Real Roblox studs (the owner, 2026-10-18: "the actual roblox studs texture from the properties, this looks
+-- painted"): the part's own Studs surface on top and Inlet underneath, like a classic brick. Surfaces only render on
+-- the Plastic material, so a studded part becomes Plastic (glow / glass / textured materials are left as they are).
+local STUDDABLE = { [Enum.Material.Plastic] = true, [Enum.Material.SmoothPlastic] = true }
+function Util.realStuds(part: BasePart)
+	if not STUDDABLE[part.Material] then
+		return
 	end
+	part.Material = Enum.Material.Plastic
+	part.TopSurface = Enum.SurfaceType.Studs
+	part.BottomSurface = Enum.SurfaceType.Inlet
+end
+
+-- Stud a part (kept for the older builders' call shape: the tile size and faces no longer apply).
+function Util.stud(part, _tile, _faces)
+	Util.realStuds(part)
 end
 
 -- Create an anchored, studded part.
@@ -58,8 +54,8 @@ function Util.block(parent, name, size, cframe, color, opts)
 	if opts.shadow == false then
 		p.CastShadow = false
 	end
-	if opts.stud ~= false and p.Material ~= Enum.Material.Neon then
-		Util.stud(p, opts.stud ~= true and opts.stud or nil, opts.faces)
+	if opts.stud ~= false then
+		Util.realStuds(p)
 	end
 	p.Parent = parent
 	return p

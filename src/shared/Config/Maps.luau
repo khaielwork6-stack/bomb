@@ -12,13 +12,21 @@ end
 
 return {
 	-- P3 (2026-10-17): the Fireworks Yard is the launch map (builders/MapYard); the Meadow stays parked as a fallback.
-	Order = { "Yard", "Meadow" },
+	Order = { "Yard", "Meadow", "Quarry" }, -- the Quarry is map 2 (rotation / the map vote: partner request #1)
 	List = {
 		Yard = {
 			displayName = "The Fireworks Yard",
 			hazards = {},
 			sockets = SOCKETS_4x4,
 			thumbnail = "rbxassetid://83978149323296", -- the vote card (an overview of the toy restyle, art/out/MapThumbs)
+		},
+		-- 2026-10-18 map 2 (builders/MapQuarry, docs/maps/QUARRY_BRIEF.md): the sandstone quarry. Same field frame and
+		-- hooks as the Yard (HazardLanes = its mine rails, FuseCords in timber troughs, Cover = mine carts + dynamite).
+		Quarry = {
+			displayName = "The Quarry",
+			hazards = {},
+			sockets = SOCKETS_4x4,
+			thumbnail = "", -- the vote card: an overview shot once the map is dressed
 		},
 		-- 2026-10-09 v2 (builders/MapMeadow): the home farm stadium. Its round hay bales roll (Templates.Roller), its
 		-- square hay bales rise (Templates.BlockTemplate), the sheep stampede stays.

@@ -85,6 +85,7 @@ end
 
 return function(ctx)
 	local T = ctx.req("Theme")
+	local U = ctx.req("Util").init(T)
 	local maps = workspace:FindFirstChild("Maps")
 	local map = maps and maps:FindFirstChild("Yard")
 	assert(map, "Build MapYard first (workspace.Maps.Yard)")
@@ -99,17 +100,12 @@ return function(ctx)
 	local zf = map:FindFirstChild("Zones", true)
 	local fz = zf and zf:FindFirstChild("Field")
 	local floorYGuess = if fz and fz:IsA("BasePart") then fz.Position.Y - fz.Size.Y / 2 else 0
+	-- real Roblox studs on the top face (Util.realStuds: Plastic + the Studs surface), not a painted texture
 	local function stud(p: BasePart, faces: { Enum.NormalId })
-		for _, f in ipairs(faces) do
-			local tex = Instance.new("Texture")
-			tex.Name = "Studs"
-			tex.Texture = T.StudTexture
-			tex.Face = f
-			tex.StudsPerTileU = T.StudTile
-			tex.StudsPerTileV = T.StudTile
-			tex.Parent = p
+		if table.find(faces, Enum.NormalId.Top) then
+			U.realStuds(p)
+			studded += 1
 		end
-		studded += 1
 	end
 	for _, d in ipairs(map:GetDescendants()) do
 		if d:IsA("Decal") or d:IsA("Texture") then
