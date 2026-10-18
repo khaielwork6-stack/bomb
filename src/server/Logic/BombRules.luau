@@ -31,6 +31,8 @@ export type Body = {
 	safe: boolean, -- inside a Safe Strip
 	carrying: boolean,
 	tagReadyAt: number, -- Bombers: server time their tag cooldown ends
+	reach: number?, -- extra contact reach (the MEGA BOMBER's size, GDD §16): its tags, and passes onto it
+	mega: boolean?, -- the MEGA BOMBER
 }
 
 local BombRules = {}
@@ -70,7 +72,7 @@ function BombRules.canTag(bomber: Body, target: Body, now: number): boolean
 		and target.active
 		and not target.safe -- F-CROSS-03: nobody is tagged inside a Safe Strip
 		and not target.carrying -- one bomb per Runner; a touch on a Carrier does nothing
-		and BombRules.inReach(bomber.pos, target.pos, B.TAG_RANGE)
+		and BombRules.inReach(bomber.pos, target.pos, B.TAG_RANGE + (bomber.reach or 0))
 end
 
 -- F-BOMB-03/05: can this Carrier pass its bomb at all right now?
@@ -97,7 +99,7 @@ end
 local function closest(from: Vector3, bodies: { Body }, range: number, ok: (Body) -> boolean): Body?
 	local best, bestD = nil, math.huge
 	for _, b in ipairs(bodies) do
-		if ok(b) and BombRules.inReach(from, b.pos, range) then
+		if ok(b) and BombRules.inReach(from, b.pos, range + (b.reach or 0)) then
 			local d = flatDist(from, b.pos)
 			if d < bestD then
 				best, bestD = b, d
@@ -135,17 +137,17 @@ function BombRules.pickTagTarget(bomber: Body, bodies: { Body }, now: number): B
 	if bomber.role ~= "Bomber" or not bomber.active or now < bomber.tagReadyAt then
 		return nil
 	end
-	return closest(bomber.pos, bodies, B.TAG_RANGE, function(b)
+	return closest(bomber.pos, bodies, B.TAG_RANGE + (bomber.reach or 0), function(b)
 		return b.id ~= bomber.id and BombRules.canTag(bomber, b, now)
 	end)
 end
 
 -- A fresh bomb from a tag.
-function BombRules.newBomb(id: number, bomber: Body, target: Body, now: number): Bomb
+function BombRules.newBomb(id: number, bomber: Body, target: Body, now: number, fuse: number?): Bomb
 	return {
 		id = id,
 		carrier = target.id,
-		explodeAt = now + B.FUSE,
+		explodeAt = now + (fuse or B.FUSE),
 		origin = bomber.id,
 		chain = { target.id },
 		lastGiver = bomber.id,

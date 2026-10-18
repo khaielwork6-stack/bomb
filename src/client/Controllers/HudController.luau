@@ -384,7 +384,9 @@ local function step()
 	if os.clock() < holdUntil then
 		return
 	end
-	if phase == Ph.Intro then
+	if phase == Ph.Intro and gs:GetAttribute("MegaId") then
+		show(Config.Strings.Round.Mega, Config.Strings.Round.MegaSub, P.Mega) -- GDD §16
+	elseif phase == Ph.Intro then
 		show("BOMBERS", "watch out for the red team", P.Bomber)
 	elseif phase == Ph.Ready then
 		show(if left <= 1 then "GO!" else "GET READY", "")

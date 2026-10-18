@@ -325,7 +325,11 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 			if s.p.role == R.Bomber and remaining < BC.REVENGE_WINDOW then
 				d -= 6
 			end
-			if d < best and d < 32 then
+			local feed = s.p.data.mega == true -- F-MEGA-06: feeding the giant is the Runners' whole play
+			if feed then
+				d -= 14
+			end
+			if d < best and d < (if feed then 44 else 32) then
 				target, best = s, d
 			end
 		end
@@ -382,6 +386,23 @@ local function bomberDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 	local f = assert(Arena.current, "no arena")
 	local from = GameState.get("StartSide") or -1
 	local to = -from
+	-- F-MEGA-04: a giant stomps when it can catch two or more Runners in the ring
+	if p.data.mega and MovementCore.canDash(brain.ms) then
+		local caught = 0
+		for _, s in ipairs(seen) do
+			if
+				s.p.role == R.Runner
+				and s.active
+				and not s.safe
+				and ((s.pos - pos) * FLAT).Magnitude <= Config.Mega.STOMP_RADIUS
+			then
+				caught += 1
+			end
+		end
+		if caught >= 2 then
+			technique(p, brain, "Dash", if brain.desired.Magnitude > 0 then brain.desired else Vector3.new(0, 0, -1))
+		end
+	end
 	if target then
 		brain.targetId = target.p.id
 		-- D-BOT-01: cut a Runner off on its way to the strip rather than tail it; plain lead pursuit up close

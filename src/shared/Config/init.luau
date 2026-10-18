@@ -10,6 +10,7 @@ local Config = {
 	Round = require(script.Round),
 	Bomb = require(script.Bomb),
 	Feel = require(script.Feel),
+	Mega = require(script.Mega),
 	Bots = require(script.Bots),
 	Callouts = require(script.Callouts),
 	Economy = require(script.Economy),

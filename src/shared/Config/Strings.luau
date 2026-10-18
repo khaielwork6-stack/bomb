@@ -78,6 +78,12 @@ return {
 		Streak = "Hot Streak",
 		Squad = "Squad bonus",
 		Hurry = "HURRY!",
+		Mega = "MEGA BOMB",
+		MegaSub = "feed it bombs, then get to a safe side",
+		MegaNext = "MEGA BOMB IN %s",
+		MegaLeft = "MEGA %s",
+		MegaFeed = "-%d s!",
+		MegaBoom = "MEGA BOOM",
 		HurrySub = "the fuse is cut short",
 	},
 	Tips = {

@@ -63,6 +63,23 @@ local function grantItem(p: Participant, d: { [string]: any }, id: string, why: 
 	return true
 end
 
+-- Event rewards (the MEGA BOMB): an item (once) and a free crate opening, saved and announced.
+function StoreService.grantItem(p: Participant, id: string, why: string): boolean
+	local d = DataService.get(p)
+	return d ~= nil and grantItem(p, d, id, why)
+end
+
+function StoreService.grantCrate(p: Participant, kind: string, why: string)
+	local d = DataService.get(p)
+	if not d then
+		return
+	end
+	d.crates[kind] = (d.crates[kind] or 0) + 1
+	if p.player then
+		Net.fire(p.player, "Reward", { kind = "CrateToken", crate = kind, why = why })
+	end
+end
+
 -- Items of each rarity that can drop from crates (ready, sellable).
 local function cratePool(): { [string]: { string } }
 	local pool: { [string]: { string } } = {}

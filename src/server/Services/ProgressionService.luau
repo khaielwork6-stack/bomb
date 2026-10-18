@@ -284,6 +284,9 @@ local function payRound(p: Participant, outcome: string, won: boolean, isMvp: bo
 		xp += r.xp
 		stars += r.stars
 	end
+	if won and GameState.get("MegaRound") then
+		stars *= Config.Mega.REWARD_MULT -- F-MEGA-08: a MEGA BOMB win pays ×3 round Stars
+	end
 	local st = p.stats
 	-- Hot Streak: a win, or reaching crossing STREAK_CROSSING as a Runner (crossings survived + the one you're on)
 	local reached = if st.crossings > 0 then st.crossings + 1 else 0

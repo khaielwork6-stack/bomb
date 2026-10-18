@@ -38,6 +38,8 @@ local BombService = {
 	Tagged = Signal.new(),
 	-- (runner, bomber) a Runner slipped a ready Bomber's reach by a hair (DODGE!, GDD §11.1)
 	Dodged = Signal.new(),
+	-- MEGA BOMB (GDD §16): a Carrier passed its bomb onto the giant (the bomb is gone). Args: (from, giant, remaining)
+	Fed = Signal.new(),
 	-- (p) a boomed Runner is back on their feet as a Bomber.
 	BecameBomber = Signal.new(),
 }
@@ -101,6 +103,8 @@ local function bodyOf(p: Participant, t: number): Body?
 		safe = inAnySafe(pos),
 		carrying = byCarrier[p.id] ~= nil,
 		tagReadyAt = p.data.tagReadyAt or 0,
+		reach = if p.data.mega then Config.Mega.REACH else nil,
+		mega = p.data.mega == true,
 	}
 end
 
@@ -247,7 +251,7 @@ end
 
 local function tag(bomber: Participant, target: Participant, bBody: Body, tBody: Body, t: number)
 	nextId += 1
-	local bomb = BombRules.newBomb(nextId, bBody, tBody, t)
+	local bomb = BombRules.newBomb(nextId, bBody, tBody, t, if bBody.mega then Config.Mega.TAG_FUSE else nil)
 	bomber.data.tagReadyAt = t + B.TAG_COOLDOWN
 	bomber.attrs:SetAttribute("TagReadyAt", bomber.data.tagReadyAt)
 	bomber.stats.tags += 1
@@ -257,6 +261,15 @@ local function tag(bomber: Participant, target: Participant, bBody: Body, tBody:
 end
 
 local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body, tBody: Body, t: number)
+	if tBody.mega then
+		-- F-MEGA-06: fed to the giant. The bomb is gone (MegaService staggers it and burns its fuse).
+		local remaining = BombRules.remaining(bomb, t)
+		detach(bomb)
+		from.stats.passes += 1
+		Net.fireAll("BombFx", { kind = "Feed", bomb = bomb.id, from = from.id, who = to.id, at = t })
+		BombService.Fed:Fire(from, to, remaining)
+		return
+	end
 	byCarrier[from.id] = nil
 	setCarrierAttrs(from, nil)
 	BombRules.pass(bomb, fBody, tBody, t)

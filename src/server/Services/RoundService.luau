@@ -17,6 +17,7 @@ local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
 local CalloutService = require(script.Parent.CalloutService)
+local MegaService = require(script.Parent.MegaService)
 local DataService = require(script.Parent.DataService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
@@ -217,6 +218,7 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 		Characters.setLocked(p, false)
 	end
 	BombService.live = true
+	MegaService.go() -- the first GO of a MEGA BOMB round lights its fuse (F-MEGA-05)
 	local result = "fuse"
 	local warned = false
 	local hurried = lastStand -- the Last Stand keeps its full fuse
@@ -274,6 +276,10 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 		end
 		if #alive == 0 then
 			result = "wiped"
+			break
+		end
+		if MegaService.expired() then
+			result = "mega" -- F-MEGA-05: the MEGA BOMB goes off (playRound runs the finale)
 			break
 		end
 		if allSafe then
@@ -368,6 +374,7 @@ end
 
 -- ── The round ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function resetToLobby()
+	MegaService.finish()
 	BombService.live = false
 	BombService.clear()
 	GameState.headline("")
@@ -410,7 +417,9 @@ end
 local function playRound()
 	local list = eligible()
 	local count = BombRules.bomberCount(#list)
-	local bombers = pickBombers(list, count)
+	-- F-MEGA-01/02: a MEGA BOMB round has one giant and no regular Bombers at the start
+	local giant = MegaService.claim(list)
+	local bombers = if giant then { [giant] = true } else pickBombers(list, count)
 	table.clear(lastBombers)
 	for _, p in ipairs(list) do
 		p.stats = Participants.newStats()
@@ -424,6 +433,9 @@ local function playRound()
 		else
 			Participants.setRole(p, R.Runner)
 		end
+	end
+	if giant then
+		MegaService.begin(giant)
 	end
 	local startRunners = #runnersAlive()
 	GameState.set("MaxCrossings", RC.MAX_CROSSINGS)
@@ -465,7 +477,23 @@ local function playRound()
 		local ready = if k == 1 then RC.READY else RC.READY_LATER
 		setPhase(Ph.Ready, ready)
 		hold(ready)
-		local result = crossing(k, startSide, BombRules.fieldFuse(k) * lengthFactor(), false)
+		local result = if MegaService.expired()
+			then "mega"
+			else crossing(k, startSide, BombRules.fieldFuse(k) * lengthFactor(), false)
+		if result == "mega" then
+			-- F-MEGA-05: Runners in a Safe Strip win; everyone else booms. No Runners left → the giant's side wins.
+			local winners = MegaService.detonate()
+			hold(RC.RESOLVE)
+			BombService.finishGetups()
+			if #winners > 0 then
+				MegaService.reward("Survivors", winners)
+				finish("Survivors", winners)
+			else
+				MegaService.reward("Bombers", withRole(R.Bomber))
+				finish("Bombers", withRole(R.Bomber))
+			end
+			return
+		end
 		local resolve = if result == "fuse" then RC.RESOLVE else RC.RESOLVE_QUICK
 		setPhase(Ph.Resolve, resolve)
 		hold(resolve)
@@ -473,6 +501,7 @@ local function playRound()
 		local alive = runnersAlive()
 		publishCounts()
 		if #alive == 0 or result == "wiped" then
+			MegaService.reward("Bombers", withRole(R.Bomber))
 			finish("Bombers", withRole(R.Bomber))
 			return
 		end

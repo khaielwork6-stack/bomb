@@ -117,6 +117,11 @@ local function count(p: Participant, event: string, amount: number?)
 	ProgressionService.push(p)
 end
 
+-- Count a quest event from elsewhere (the MEGA BOMB: MegaRound, MegaFeed).
+function DailyService.event(p: Participant, event: string, amount: number?)
+	count(p, event, amount)
+end
+
 local CALLOUT_EVENTS: { [string]: { string } } = {
 	Pass = { "Pass" },
 	CloseOne = { "Pass" },
