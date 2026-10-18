@@ -69,7 +69,30 @@ An asset is premium when **someone who has never seen the game could screenshot 
 
 ---
 
-## 2. Art direction: "Arcade Pyrotechnic"
+## 2. Art direction: the reference-video look ("Toy Arcade"), 2026-10-17
+
+> **Supersedes the original "Arcade Pyrotechnic" direction where they conflict** (DECISIONS 2026-10-17: the owner's
+> reference video wins for UI layout, colours, buttons, motion and world brightness; the fireworks / bomb theme stays).
+> The rest of this section (2.1–2.7) is the original direction, kept for the bomb's materials and everything the video
+> doesn't cover.
+
+| Area | The rule now | Where it lives |
+|---|---|---|
+| World | Bright, sunny, toy-like: studded plastic surfaces (Theme.StudTexture), saturated toy colours, palms and voxel trees, puffy clouds, crisp midday light | `builders/MapYardToy.luau` (the Yard restyle pass), concept `art/ref/map/yard_concept_overview.png` |
+| UI panels | Flat rounded bodies with a soft vertical gradient and a gloss band, a coloured border ring, a thick ink outline; screen headers are a gradient strip (rainbow for the Shop) with the title in big round type and its 3D icon breaking out over the corner; a red square close button | `src/client/UI/Skin.luau`, `DailyController.panel` |
+| Buttons | Bright arcade buttons: lighter top, darker lip, gloss band, ink outline, white text with an ink stroke; green = buy / play, red = close, a colour per tab | `Skin.button`, `Skin.Preset` |
+| Cards | Rarity-gradient cards (Common grey-white, Rare blue, Epic purple, Legendary gold, Exclusive pink) with a white border, halftone wash, the item's art large | `StoreController` |
+| Type | Fredoka One everywhere (display, numbers, labels), Builder Sans Bold only for long body copy; Luckiest Guy for the logo | `Theme.Font`, `Skin.Font` |
+| Icons | Glossy, chunky 3D icons modelled and rendered in Blender (art/icons/set_*.py) after ChatGPT style sheets (art/ref/icons — references only) | `Assets.Icon` |
+| HUD | Left dock of square tiles (icon, name, shortcut key, "!" badge), the Stars wallet bottom-left (under the top bar on phones), the gear menu in the top-bar row | `UI/Dock.luau`, `ProgressController`, `SettingsController` |
+| Screens | Video-style join screen (logo + PLAY!), STARTER PACK rainbow card, crate opening with rays and confetti | `src/first`, `OfferController`, `CrateController` |
+| Sound | The in-house UI pack and SFX set (art/audio/make_ui.py, make_sfx.py) + the licensed library | `Assets.SFX` |
+
+The Quality Bar (§1) is unchanged: no AI-generated finals, no Toolbox models, everything crafted, animated and paired
+with a sound. "Generic two-stop gradients" stay banned *as decoration on dark panels*; the reference's bright gradient
+cards, tabs and headers are the house style now.
+
+## 2b. The original direction: "Arcade Pyrotechnic"
 
 ### 2.1 One sentence
 **A hand-crafted fireworks workshop at golden hour:** warm iron, polished brass, glazed ceramic and braided fuse cord, lit by sparks. It's stylised and chunky like a premium arcade game, but every surface is made of a real material.
@@ -373,6 +396,11 @@ Same timing and 7-stud splash ring as the default (GDD §10.4):
 | Champagne | Exclusive (VIP) | A gold foil cork pop, bubbles and gold confetti |
 
 ## 6. UI
+
+> **2026-10-17:** the UI follows the owner's reference video (see §2, "Toy Arcade"). The implemented kit is
+> `src/client/UI/Skin.luau` (native UICorner / UIStroke / UIGradient, no textures) with the panel frame in
+> `DailyController.panel`, the dock tiles in `UI/Dock.luau`, and the sounds `UiHover` / `UiPress` / `UiRelease` /
+> `UiDeny` / `UiOpen` / `UiClose` / `UiTab`. The specs below are the original ones; where they differ, the kit wins.
 
 ### 6.1 The look: "Workshop Arcade"
 - **Chunky, tactile and lit.** Panels feel like painted enamel signs with brass fittings.

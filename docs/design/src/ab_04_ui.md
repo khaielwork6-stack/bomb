@@ -1,5 +1,10 @@
 ## 6. UI
 
+> **2026-10-17:** the UI follows the owner's reference video (see §2, "Toy Arcade"). The implemented kit is
+> `src/client/UI/Skin.luau` (native UICorner / UIStroke / UIGradient, no textures) with the panel frame in
+> `DailyController.panel`, the dock tiles in `UI/Dock.luau`, and the sounds `UiHover` / `UiPress` / `UiRelease` /
+> `UiDeny` / `UiOpen` / `UiClose` / `UiTab`. The specs below are the original ones; where they differ, the kit wins.
+
 ### 6.1 The look: "Workshop Arcade"
 - **Chunky, tactile and lit.** Panels feel like painted enamel signs with brass fittings.
 - **Buttons feel like real arcade buttons:** they physically sink when pressed.
