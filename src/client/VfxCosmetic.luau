@@ -83,6 +83,14 @@ local function cone(deg: number): Vector2
 end
 local UP = Enum.NormalId.Top
 local PARALLEL = Enum.ParticleOrientation.VelocityParallel
+-- Particles draw square, so the tall sprites get their shape back through Squash (measured in Studio: Squash ½ draws
+-- a 1:2 sprite true, 1 a 1:4 one). A layer that sets its own Squash keeps it.
+local SQUASH: { [string]: number } = {
+	boom_ink_droplet = 0.5, -- 128 × 256
+	boom_peony_star = 1, -- 128 × 512
+	spark_sparkler_needle = 1, -- 64 × 256
+	victory_fountain_spark = 1, -- 128 × 512
+}
 
 -- Classic motion, reused where a recipe says "Classic" (FxController's smoke and embers, Asset Bible §5.1).
 local SMOKE: Layer = {
@@ -372,7 +380,10 @@ VfxCosmetic.Explosions = {
 				Lifetime = r(2.5),
 				Transparency = keys({ { 0, 0 }, { 0.7, 0 }, { 1, 1 } }),
 			},
-			with(SMOKE, { t = 0.15, n = 4, Size = ramp(5, 7), Lifetime = r(1.0), Color = cs("#DDEBFF") }),
+			with(
+				SMOKE,
+				{ t = 0.15, n = 4, Size = ramp(5, 7), Lifetime = r(1.0), Color = cs("#DDEBFF"), LightEmission = 0.45 }
+			), -- icy, not grey
 		},
 	},
 	Boom_BlackHole = {
@@ -512,6 +523,10 @@ local function emitter(layer: Layer, parent: Instance): ParticleEmitter
 	e.Color = ColorSequence.new(Color3.new(1, 1, 1))
 	if layer.tex then
 		e.Texture = texture(layer.tex)
+		local sq = SQUASH[layer.tex]
+		if sq then
+			e.Squash = NumberSequence.new(sq)
+		end
 	end
 	if layer.grid then
 		e.FlipbookLayout = if layer.grid == "2x2"
@@ -810,6 +825,7 @@ local function apply(e: ParticleEmitter, base: Layer?, layer: Layer)
 	if merged.tex then
 		e.Texture = texture(merged.tex)
 	end
+	e.Squash = NumberSequence.new(SQUASH[merged.tex or ""] or 0) -- a re-dressed emitter drops the last spark's shape
 	e.FlipbookLayout = Enum.ParticleFlipbookLayout.None
 	if merged.grid then
 		e.FlipbookLayout = if merged.grid == "2x2"
