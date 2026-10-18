@@ -93,7 +93,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 | D7 | Engine plumbing (networking, saving, participants, game state) | **Transferred** from Chase Game | §23 |
 | D8 | Bots | **Yes**: Chase Game's bot movement, new bomb-aware brains | §18 |
 | D9 | Roblox owner | **Same group as Chase Game** (keeps published animations and map props working) | §23.4 |
-| D10 | Team split | User: gameplay scripting · Partner: art, UI, maps · Claude Code builds both from this document | `docs/INTEGRATION.md` |
+| D10 | Team split | **Changed 2026-10-17:** Partner: all gameplay scripting · User: UI, maps, assets (art, VFX, audio, models) · Claude Code builds both from this document | `docs/ART_BACKLOG.md` |
 | D11 | Art direction | **New: "Arcade Pyrotechnic"** (Asset Bible §2). It does not use Chase Game's studded look. | Asset Bible |
 
 ---
