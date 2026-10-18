@@ -405,6 +405,12 @@ return function(_ctx: any): string
 		m.Name = "Shutter"
 		if #slats > 0 then
 			fitHit(m, slats, rot) -- closed: it blocks exactly where the slats did
+			-- the camera stops only at parts that are both solid and visible (Roblox's Poppercam), and the Hit box is
+			-- invisible: make the visible panel solid too, so the camera never swings through a closed door
+			local panel = m:FindFirstChild("Panel")
+			if panel and panel:IsA("BasePart") then
+				panel.CanCollide, panel.CanQuery = true, true
+			end
 		else
 			-- the open door: no slat panel, the bottom bar rolled up under the hood, nothing in the way
 			local panel = m:FindFirstChild("Panel")

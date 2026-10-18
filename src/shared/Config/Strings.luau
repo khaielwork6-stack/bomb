@@ -96,6 +96,8 @@ return {
 		StreakDays = "%d day streak",
 		StreakStart = "Start your streak today!",
 		CalendarMissed = "You missed a day: back %d days.",
+		Today = "TODAY!",
+		NextRewardIn = "Next reward in %s",
 		GiftNext = "%s",
 		GiftReady = "CLAIM",
 		LevelUp = "LEVEL UP!",

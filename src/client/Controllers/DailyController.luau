@@ -23,6 +23,7 @@ local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
+local StreakScreen = require(script.Parent.Parent.UI.StreakScreen)
 local ProgressController = require(script.Parent.ProgressController)
 
 local D = Config.Daily
@@ -39,14 +40,6 @@ local TIER_FILL = {
 	Easy = { Color3.fromRGB(120, 228, 110), Color3.fromRGB(44, 162, 60) },
 	Medium = { Color3.fromRGB(255, 220, 96), Color3.fromRGB(236, 150, 24) },
 	Hard = { Color3.fromRGB(255, 120, 110), Color3.fromRGB(206, 36, 48) },
-}
-local REWARD_ICON =
-	{ Stars = "Star", SparkCrate = "Crate", GiftBox = "GiftBox", RareItem = "Gift", StreakBomb = "Bomb" }
--- The calendar's day cards (the reference video's bright cards): blue days, today green, the big Day 7 gold.
-local DAY_FILL = {
-	Day = { Color3.fromRGB(110, 190, 255), Color3.fromRGB(40, 110, 220) },
-	Today = { Color3.fromRGB(120, 228, 110), Color3.fromRGB(44, 162, 60) },
-	Big = { Color3.fromRGB(255, 220, 96), Color3.fromRGB(236, 150, 24) },
 }
 
 local hud: ScreenGui
@@ -429,183 +422,45 @@ local function buildQuests(s: { [string]: any }, refresh: boolean?)
 end
 
 -- ── The Daily Calendar ──────────────────────────────────────────────────────────────────────────────────────────
-local function rewardIndex(day: number): number
-	local n = #D.LOGIN
-	if day <= n then
-		return math.max(1, day)
-	end
-	local span = n - D.LOOP_FROM + 1
-	return D.LOOP_FROM + (day - n - 1) % span
-end
 
+local popToday: (() -> ())? = nil -- the open streak screen's confetti pop
+
+-- The Daily Streak (UI/StreakScreen): this frames the panel, the screen fills it.
 local function buildCalendar(s: { [string]: any }, refresh: boolean?)
-	local d = s.daily
-	if not d then
+	if not s.daily then
 		return
 	end
-	local login = d.login
-	local face = panel("Calendar", S.Ui.CalendarTitle, Vector2.new(700, 360), P.Fuse, refresh)
-	local day = login.day
-	local idx = rewardIndex(day)
-	local first = if day <= #D.LOGIN then 1 else day - (idx - D.LOOP_FROM) - (D.LOOP_FROM - 1)
-	Widgets.label(face, {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 34),
-		Size = UDim2.new(1, -40, 0, 22),
-		TextSize = 16,
-		color = if login.missed then P.Ember else P.Ash,
-		Text = if login.missed
-			then string.format(S.Ui.CalendarMissed, D.STREAK_MISS_PENALTY)
-			elseif login.streakDay <= 0 then S.Ui.StreakStart
-			else string.format(S.Ui.StreakDays, login.streakDay),
-		ZIndex = 4,
-	})
-	local row = new("Frame", {
-		Name = "Days",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 66),
-		Size = UDim2.new(1, -36, 0, 170),
-		BackgroundTransparency = 1,
-		ZIndex = 3,
-		Parent = face,
-	})
-	new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Bottom,
-		Padding = UDim.new(0, 6),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = row,
-	})
-	for k = 0, 6 do
-		local n = first + k
-		local ri = rewardIndex(n)
-		local reward = D.LOGIN[ri]
-		local big = ri == #D.LOGIN
-		local isToday = n == day
-		local claimed = n < day or (isToday and not login.claimable)
-		local fill = if big then DAY_FILL.Big elseif isToday then DAY_FILL.Today else DAY_FILL.Day
-		local card = Theme.panel(row, {
-			Name = "Day" .. n,
-			Size = UDim2.fromOffset(if big then 118 else 80, if big then 172 else 142),
-			color = fill[1],
-			color2 = fill[2],
-			border = if isToday and login.claimable
-				then Color3.new(1, 1, 1)
-				elseif big then P.Gold
-				else Color3.fromRGB(226, 230, 240),
-			border2 = if big then P.Gold:Lerp(P.Ink, 0.25) else Color3.fromRGB(190, 196, 210),
-			glow = if isToday and login.claimable then Color3.new(1, 1, 1) elseif big then P.Gold else nil,
-			glowT = 0.45,
-			dots = Color3.new(1, 1, 1),
-			dotsT = 0.86,
-		})
-		local holder = card.Parent :: Frame
-		holder.LayoutOrder = k
-		Widgets.label(card, {
-			Position = UDim2.fromOffset(0, 6),
-			Size = UDim2.new(1, 0, 0, 22),
-			TextSize = if big then 20 else 17,
-			font = Theme.Font.Display,
-			stroke = 2,
-			Text = string.format(S.Ui.CalendarDay, n),
-			ZIndex = 4,
-		})
-		Widgets.icon(card, REWARD_ICON[reward.kind] or "Star", if big then 76 else 52, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.48),
-			ZIndex = 5,
-		})
-		Widgets.label(card, {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -6),
-			Size = UDim2.new(1, -6, 0, 32),
-			TextSize = if reward.kind == "Stars" then (if big then 26 else 20) else 13,
-			font = Theme.Font.Display,
-			wrap = true,
-			stroke = 2,
-			Text = if reward.kind == "Stars"
-				then tostring(reward.amount)
-				else (S.Rewards :: any)[reward.kind] or reward.kind,
-			ZIndex = 5,
-		})
-		if claimed then
-			-- a claimed day dims under a green check and the CLAIMED stamp
-			local dim = new("Frame", {
-				Name = "Dim",
-				Size = UDim2.fromScale(1, 1),
-				BackgroundColor3 = P.Ink,
-				BackgroundTransparency = 0.45,
-				ZIndex = 6,
-				Parent = card,
-			})
-			new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dim })
-			Widgets.icon(card, "Check", 40, {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.42),
-				ZIndex = 7,
-			})
-			local stamp = Widgets.label(card, {
-				Name = "Stamp",
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.66),
-				Size = UDim2.new(1, 4, 0, 26),
-				TextSize = 16,
-				font = Theme.Font.Display,
-				stroke = 2.5,
-				color = P.Safe,
-				Text = S.Ui.Claimed,
-				ZIndex = 8,
-			})
-			stamp.Rotation = -12
-		end
-		if isToday and login.claimable then
-			Widgets.pulse(holder)
-		end
-	end
-	if login.claimable then
-		local b = Widgets.button(face, S.Ui.Claim, "green", UDim2.fromOffset(180, 48), function()
+	local face = panel("Calendar", S.Ui.CalendarTitle, Vector2.new(720, 440), P.Fuse, refresh)
+	popToday = StreakScreen.build(face, s, {
+		refresh = refresh,
+		onClaim = function()
 			Progress.action("ClaimLogin")
-		end, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -16), TextSize = 24, ZIndex = 6 })
-		Widgets.pulse(b)
-	end
+		end,
+	})
 end
 
--- The stamp slam on today's card after a claim (Asset Bible §7.5).
+-- The stamp slam on today's card after a claim (Asset Bible §7.5): confetti now, then the card turns CLAIMED (with
+-- the stamp slamming down) as soon as the server's new snapshot arrives (applyDock).
+local stampPending = false
 local function stampToday()
-	local face = openPanel
-	if not face or openName ~= "Calendar" then
+	if not openPanel or openName ~= "Calendar" then
 		return
 	end
 	Sfx.play("Stamp")
-	local s = Progress.get()
-	if s then
-		task.delay(0.05, function()
-			buildCalendar(s, true)
-			local f = openPanel
-			if not f then
-				return
-			end
-			for _, d in ipairs(f:GetDescendants()) do
-				if d.Name == "Stamp" and d:IsA("TextLabel") then
-					local holderDay = d.Parent
-					if
-						holderDay
-						and holderDay.Parent
-						and holderDay.Parent.Name == "Day" .. tostring(s.daily.login.day)
-					then
-						local sc = new("UIScale", { Scale = 2.4, Parent = d })
-						TweenService
-							:Create(
-								sc,
-								TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-								{ Scale = 1 }
-							)
-							:Play()
-					end
-				end
-			end
-		end)
+	if popToday then
+		popToday()
+	end
+	stampPending = true
+end
+
+local function slamStamp(day: number)
+	local f = openPanel
+	local slot = f and f:FindFirstChild("Day" .. tostring(day), true)
+	local stamp = slot and slot:FindFirstChild("Stamp", true)
+	if stamp and stamp:IsA("TextLabel") then
+		local sc = new("UIScale", { Scale = 2.4, Parent = stamp })
+		TweenService:Create(sc, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 1 })
+			:Play()
 	end
 end
 
@@ -727,6 +582,10 @@ local function applyDock(s: { [string]: any })
 	-- live refresh of an open screen
 	if openName == "Quests" then
 		buildQuests(s, true)
+	elseif openName == "Calendar" and stampPending and not d.login.claimable then
+		stampPending = false
+		buildCalendar(s, true)
+		slamStamp(d.login.day)
 	end
 	-- first visit of the day: open the calendar once (after the rules card, OnboardingController)
 	if claimable and not autoCalendarDone and d.flags and d.flags.tutorial then
