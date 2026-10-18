@@ -37,6 +37,17 @@ StoreController.RARITY = {
 }
 local RARITY = StoreController.RARITY
 
+-- Each category's 3D icon (art/icons), for cards whose item has no live preview.
+local CATEGORY_ICON = {
+	BombSkin = "Palette",
+	Explosion = "Explosion",
+	FuseSpark = "Sparkler",
+	Trail = "Trail",
+	VictoryBoom = "Firework",
+	Title = "Plate",
+	Emote = "Wave",
+}
+
 local screen = "" -- "Shop" | "Locker" | ""
 local tab = "Featured"
 local viewports: { { vf: ViewportFrame, cam: Camera, model: Model, lamps: { BasePart } } } = {}
@@ -148,274 +159,376 @@ local function spinPreviews()
 	viewports = alive
 end
 
--- ── Cards ───────────────────────────────────────────────────────────────────────────────────────────────────────
+-- ── Cards (the reference video's shop: bright rarity-gradient cards, the art filling them, big round type) ──────
 local confirmBuy: (id: string) -> ()
 
-local function itemCard(parent: Instance, s: { [string]: any }, id: string, mode: string, order: number)
-	local item = St.ById[id]
-	if not item then
-		return
-	end
-	local color = RARITY[item.rarity] or P.Ash
-	local card = Theme.panel(parent, {
-		Name = id,
-		Size = UDim2.fromOffset(150, 206),
-		color = Color3.fromRGB(40, 32, 52),
-		border = color,
-		border2 = color:Lerp(P.Ink, 0.45),
-		glow = if item.rarity == "Legendary" or item.rarity == "Epic" then color else nil,
-		glowT = 0.65,
+-- Card fills by rarity (top → bottom of the gradient).
+local CARD_FILL = {
+	Default = { Color3.fromRGB(190, 196, 210), Color3.fromRGB(120, 126, 142) },
+	Common = { Color3.fromRGB(236, 240, 246), Color3.fromRGB(164, 174, 190) },
+	Rare = { Color3.fromRGB(120, 204, 255), Color3.fromRGB(38, 118, 232) },
+	Epic = { Color3.fromRGB(204, 158, 255), Color3.fromRGB(128, 66, 236) },
+	Legendary = { Color3.fromRGB(255, 226, 120), Color3.fromRGB(255, 152, 28) },
+	Exclusive = { Color3.fromRGB(255, 150, 214), Color3.fromRGB(214, 52, 146) },
+}
+
+-- A rarity card body: gradient fill, white border ring, ink outline, the faint halftone wash. Returns the face.
+local function cardBody(parent: Instance, name: string, size: UDim2, rarity: string, order: number): Frame
+	local fill = CARD_FILL[rarity] or CARD_FILL.Common
+	local face = Theme.panel(parent, {
+		Name = name,
+		Size = size,
+		color = fill[1],
+		color2 = fill[2],
+		border = Color3.new(1, 1, 1),
+		border2 = Color3.fromRGB(226, 230, 240),
+		dots = Color3.new(1, 1, 1),
+		dotsT = 0.8,
+		glow = if rarity == "Legendary" or rarity == "Exclusive" then fill[1] else nil,
+		glowT = 0.6,
+	});
+	(face.Parent :: Frame).LayoutOrder = order
+	return face
+end
+
+-- The green price button: a Star and the price in big white type. `h` = its height in pixels (for the type size).
+local function priceButton(
+	parent: Instance,
+	price: number,
+	size: UDim2,
+	onClick: () -> (),
+	props: { [string]: any }?,
+	h: number?
+)
+	local b, setOn = Widgets.button(parent, "", "green", size, onClick, props)
+	local row = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 9, Parent = b })
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 6),
+		Parent = row,
 	})
-	local holder = card.Parent :: Frame
-	holder.LayoutOrder = order
-	local stage = new("Frame", {
-		Name = "Stage",
-		Position = UDim2.fromOffset(10, 10),
-		Size = UDim2.new(1, -20, 0, 112),
-		BackgroundColor3 = P.Ink,
-		BackgroundTransparency = 0.35,
-		ZIndex = 3,
-		Parent = card,
+	local px = h or (if size.Y.Offset > 0 then size.Y.Offset else 40)
+	local text = tostring(price)
+	Widgets.icon(row, "Star", math.floor(px * 0.8), { ZIndex = 10 })
+	Widgets.label(row, {
+		Size = UDim2.fromOffset(math.ceil(#text * px * 0.4) + 4, px),
+		TextSize = math.floor(px * 0.62),
+		font = Theme.Font.Display,
+		stroke = 2.5,
+		Text = tostring(price),
+		ZIndex = 10,
 	})
-	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = stage })
-	new("UIGradient", {
-		Color = ColorSequence.new(color:Lerp(P.Ink, 0.55), P.Ink),
-		Rotation = 90,
-		Parent = stage,
+	return b, setOn
+end
+
+-- A small tag in the card's top-right ("RARE", "DEAL -20%", "EQUIPPED").
+local function tag(parent: Instance, text: string, color: Color3, z: number)
+	Widgets.label(parent, {
+		Name = "Tag",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 8),
+		Size = UDim2.fromOffset(150, 22),
+		TextSize = 18,
+		font = Theme.Font.Display,
+		align = Enum.TextXAlignment.Right,
+		color = color,
+		stroke = 2.5,
+		Text = text,
+		ZIndex = z,
 	})
+end
+
+local function preview(stage: Instance, item: { [string]: any })
 	if item.category == "BombSkin" then
-		bombPreview(stage, id)
+		bombPreview(stage, item.id)
 	elseif item.category == "Title" then
 		local plate = new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, -16, 0, 34),
+			Size = UDim2.new(1, -20, 0, 40),
 			BackgroundColor3 = P.Brass,
 			ZIndex = 5,
 			Parent = stage,
 		})
 		new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = plate })
-		new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = plate })
+		new("UIStroke", { Color = P.Ink, Thickness = 3, Parent = plate })
+		new("UIGradient", {
+			Color = ColorSequence.new(Color3.fromRGB(255, 226, 140), Color3.fromRGB(196, 140, 48)),
+			Rotation = 90,
+			Parent = plate,
+		})
 		Widgets.label(plate, {
 			Size = UDim2.fromScale(1, 1),
-			TextSize = 15,
+			TextSize = 18,
 			font = Theme.Font.Display,
-			color = P.Ink,
+			color = Color3.fromRGB(70, 40, 10),
 			stroke = false,
 			Text = item.name,
 			ZIndex = 6,
 		})
+	else
+		Widgets.icon(stage, CATEGORY_ICON[item.category] or "Star", 96, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			ZIndex = 5,
+		})
 	end
-	-- rarity strip + name
-	local strip = new("Frame", {
-		Position = UDim2.fromOffset(10, 126),
-		Size = UDim2.new(1, -20, 0, 16),
-		BackgroundColor3 = color,
-		ZIndex = 4,
+end
+
+-- The action row: EQUIPPED / EQUIP when owned (or in the Locker), else the green price button (gold for the DEAL).
+local function action(
+	parent: Instance,
+	s: { [string]: any },
+	id: string,
+	mode: string,
+	size: UDim2,
+	props: { [string]: any },
+	h: number
+)
+	local has = owned(s, id)
+	if mode == "Locker" or has then
+		if equipped(s, id) then
+			local b = Widgets.button(parent, "EQUIPPED", "dark", size, function() end, props)
+			b.Active = false
+		else
+			Widgets.button(parent, "EQUIP", "cyan", size, function()
+				Net.send("StoreAction", { kind = "Equip", id = id })
+			end, props)
+		end
+	else
+		local price = priceOf(s, id)
+		if price then
+			priceButton(parent, price, size, function()
+				confirmBuy(id)
+			end, props, h)
+		end
+	end
+end
+
+-- A grid card (category tabs): the art fills the top, name + rarity at the bottom, the action under it.
+local function itemCard(parent: Instance, s: { [string]: any }, id: string, mode: string, order: number)
+	local item = St.ById[id]
+	if not item then
+		return
+	end
+	local card = cardBody(parent, id, UDim2.fromOffset(158, 214), item.rarity, order)
+	local stage = new("Frame", {
+		Name = "Stage",
+		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.new(1, -12, 0, 118),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
 		Parent = card,
 	})
-	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = strip })
-	Widgets.label(strip, {
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 11,
-		color = P.Ink,
-		stroke = false,
-		Text = string.upper(item.rarity),
-		ZIndex = 5,
-	})
-	local name = Widgets.label(card, {
-		Position = UDim2.fromOffset(6, 144),
-		Size = UDim2.new(1, -12, 0, 22),
-		TextSize = 15,
+	preview(stage, item)
+	local _, deal = priceOf(s, id)
+	if deal and not owned(s, id) and mode == "Shop" then
+		tag(card, ("DEAL -%d%%"):format(math.floor(St.DEAL_OFF * 100)), P.Spark, 8)
+	end
+	local nameL = Widgets.label(card, {
+		Position = UDim2.fromOffset(6, 120),
+		Size = UDim2.new(1, -12, 0, 26),
+		TextSize = 20,
+		font = Theme.Font.Display,
+		stroke = 2.5,
 		Text = item.name,
-		ZIndex = 4,
+		ZIndex = 6,
 	})
-	name.TextTruncate = Enum.TextTruncate.AtEnd
-	-- the action
-	local has = owned(s, id)
-	local action = new("Frame", {
-		Position = UDim2.new(0, 10, 1, -40),
-		Size = UDim2.new(1, -20, 0, 32),
+	nameL.TextTruncate = Enum.TextTruncate.AtEnd
+	Widgets.label(card, {
+		Position = UDim2.fromOffset(6, 144),
+		Size = UDim2.new(1, -12, 0, 18),
+		TextSize = 15,
+		font = Theme.Font.Display,
+		stroke = 2,
+		color = if item.rarity == "Common" then Color3.fromRGB(240, 244, 250) else Color3.new(1, 1, 1),
+		Text = string.upper(item.rarity),
+		ZIndex = 6,
+	})
+	local row = new("Frame", {
+		Position = UDim2.new(0, 10, 1, -46),
+		Size = UDim2.new(1, -20, 0, 36),
 		BackgroundTransparency = 1,
 		ZIndex = 4,
 		Parent = card,
 	})
-	if mode == "Locker" or has then
-		if equipped(s, id) then
-			Widgets.label(action, {
-				Size = UDim2.fromScale(1, 1),
-				TextSize = 15,
-				font = Theme.Font.Display,
-				color = P.Safe,
-				Text = "EQUIPPED",
-				ZIndex = 5,
-			})
-		else
-			Widgets.button(action, "EQUIP", "green", UDim2.fromScale(1, 1), function()
-				Net.send("StoreAction", { kind = "Equip", id = id })
-			end, { TextSize = 16, ZIndex = 6 })
-		end
-	else
-		local price, deal = priceOf(s, id)
-		if price then
-			local b = Widgets.button(action, "", if deal then "gold" else "fuse", UDim2.fromScale(1, 1), function()
-				confirmBuy(id)
-			end, { ZIndex = 6 })
-			local row = new("Frame", {
-				Size = UDim2.fromScale(1, 1),
-				BackgroundTransparency = 1,
-				ZIndex = 9,
-				Parent = b,
-			})
-			new("UIListLayout", {
-				FillDirection = Enum.FillDirection.Horizontal,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 4),
-				Parent = row,
-			})
-			Widgets.icon(row, "Star", 22, { ZIndex = 10 })
-			Widgets.label(row, {
-				AutomaticSize = Enum.AutomaticSize.X,
-				Size = UDim2.fromOffset(0, 26),
-				TextSize = 17,
-				font = Theme.Font.Display,
-				Text = tostring(price),
-				ZIndex = 10,
-			})
-			if deal then
-				local tag = new("Frame", {
-					AnchorPoint = Vector2.new(1, 0),
-					Position = UDim2.new(1, 4, 0, -6),
-					Size = UDim2.fromOffset(62, 22),
-					BackgroundColor3 = P.Detonate,
-					Rotation = 8,
-					ZIndex = 8,
-					Parent = holder,
-				})
-				new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = tag })
-				new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = tag })
-				Widgets.label(tag, {
-					Size = UDim2.fromScale(1, 1),
-					TextSize = 13,
-					font = Theme.Font.Display,
-					Text = ("DEAL -%d%%"):format(math.floor(St.DEAL_OFF * 100)),
-					ZIndex = 9,
-				})
-			end
-		end
+	action(row, s, id, mode, UDim2.fromScale(1, 1), { TextSize = 20, ZIndex = 6 }, 36)
+end
+
+-- A big Featured card (two per row): the name and rarity top-left, the art large on the right, the action
+-- bottom-left — the reference's "Soul Reaper" card.
+local function featuredCard(parent: Instance, s: { [string]: any }, id: string, mode: string, order: number)
+	local item = St.ById[id]
+	if not item then
+		return
 	end
+	local card = cardBody(parent, id, UDim2.fromOffset(330, 214), item.rarity, order)
+	Widgets.label(card, {
+		Position = UDim2.fromOffset(16, 10),
+		Size = UDim2.new(0.62, 0, 0, 40),
+		TextSize = 32,
+		font = Theme.Font.Display,
+		align = Enum.TextXAlignment.Left,
+		stroke = 3,
+		wrap = true,
+		Text = item.name,
+		ZIndex = 6,
+	})
+	Widgets.label(card, {
+		Position = UDim2.fromOffset(16, 52),
+		Size = UDim2.new(0.55, 0, 0, 22),
+		TextSize = 18,
+		font = Theme.Font.Display,
+		align = Enum.TextXAlignment.Left,
+		stroke = 2.5,
+		Text = (St.CATEGORY_NAME[item.category] or "") .. " · " .. string.upper(item.rarity),
+		ZIndex = 6,
+	})
+	local _, deal = priceOf(s, id)
+	if deal and not owned(s, id) then
+		tag(card, ("DEAL  -%d%%"):format(math.floor(St.DEAL_OFF * 100)), P.Spark, 8)
+	end
+	local stage = new("Frame", {
+		Name = "Stage",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -8, 1, -8),
+		Size = UDim2.fromOffset(160, 160),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = card,
+	})
+	preview(stage, item)
+	local row = new("Frame", {
+		Position = UDim2.new(0, 16, 1, -62),
+		Size = UDim2.fromOffset(150, 48),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = card,
+	})
+	action(row, s, id, mode, UDim2.fromScale(1, 1), { TextSize = 24, ZIndex = 6 }, 48)
 end
 
 local function crateCard(parent: Instance, s: { [string]: any }, kind: string, order: number)
 	local crate = St.CRATES[kind]
 	local store = s.store or {}
-	local card = Theme.panel(parent, {
-		Name = kind,
-		Size = UDim2.fromOffset(300, 206),
-		color = Color3.fromRGB(52, 38, 30),
-		border = if kind == "Inferno" then P.Fuse else P.Spark,
-		border2 = P.Brass,
-		glow = if kind == "Inferno" then P.Fuse else nil,
-		glowT = 0.6,
-	});
-	(card.Parent :: Frame).LayoutOrder = order
-	Widgets.icon(card, "Crate", 92, { Position = UDim2.fromOffset(10, 14), ZIndex = 5 })
+	local rarity = if kind == "Inferno" then "Legendary" elseif kind == "GiftBox" then "Epic" else "Rare"
+	local card = cardBody(parent, kind, UDim2.fromOffset(330, 300), rarity, order)
 	Widgets.label(card, {
-		Position = UDim2.fromOffset(110, 10),
-		Size = UDim2.fromOffset(180, 26),
-		TextSize = 22,
+		Position = UDim2.fromOffset(16, 10),
+		Size = UDim2.new(1, -32, 0, 40),
+		TextSize = 32,
 		font = Theme.Font.Display,
 		align = Enum.TextXAlignment.Left,
-		Text = string.upper(crate.name),
+		stroke = 3,
+		Text = crate.name,
+		ZIndex = 6,
+	})
+	local icon = if kind == "Inferno" then "CrateInferno" elseif kind == "GiftBox" then "GiftBox" else "Crate"
+	Widgets.icon(card, icon, 132, {
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.fromOffset(8, 52),
 		ZIndex = 5,
 	})
-	-- the odds, always shown (F-STORE-06)
-	local y = 40
-	for _, r in ipairs({ "Common", "Rare", "Epic", "Legendary" }) do
+	-- the odds, always shown (F-STORE-06): a chance row per rarity in its colour (the reference's CHANCES list)
+	local list = new("Frame", {
+		Position = UDim2.fromOffset(150, 54),
+		Size = UDim2.fromOffset(166, 150),
+		BackgroundTransparency = 1,
+		ZIndex = 5,
+		Parent = card,
+	})
+	new("UIListLayout", { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	for i, r in ipairs({ "Common", "Rare", "Epic", "Legendary" }) do
 		local p = crate.odds[r]
 		if p then
-			local dot = new("Frame", {
-				Position = UDim2.fromOffset(112, y + 5),
-				Size = UDim2.fromOffset(10, 10),
-				BackgroundColor3 = RARITY[r],
-				ZIndex = 5,
-				Parent = card,
-			})
-			new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
-			Widgets.label(card, {
-				Position = UDim2.fromOffset(128, y),
-				Size = UDim2.fromOffset(160, 20),
-				TextSize = 14,
+			local fill = CARD_FILL[r]
+			local chip = Theme.panel(list, {
+				Name = r,
+				Size = UDim2.fromOffset(166, 30),
+				radius = 999,
+				color = fill[1],
+				color2 = fill[2],
+				border = Color3.new(1, 1, 1),
+				scale = 0.35,
+			});
+			(chip.Parent :: Frame).LayoutOrder = i
+			Widgets.label(chip, {
+				Position = UDim2.fromOffset(10, 0),
+				Size = UDim2.new(1, -20, 1, 0),
+				TextSize = 16,
+				font = Theme.Font.Display,
 				align = Enum.TextXAlignment.Left,
-				Text = ("%s  %s%%"):format(r, tostring(math.floor(p * 1000 + 0.5) / 10)),
-				stroke = 1.5,
-				ZIndex = 5,
+				stroke = 2,
+				Text = r,
+				ZIndex = 7,
 			})
-			y += 20
+			Widgets.label(chip, {
+				Position = UDim2.fromOffset(10, 0),
+				Size = UDim2.new(1, -20, 1, 0),
+				TextSize = 16,
+				font = Theme.Font.Display,
+				align = Enum.TextXAlignment.Right,
+				stroke = 2,
+				Text = tostring(math.floor(p * 1000 + 0.5) / 10) .. "%",
+				ZIndex = 7,
+			})
 		end
 	end
 	if crate.pity then
 		Widgets.label(card, {
-			Position = UDim2.fromOffset(12, 112),
-			Size = UDim2.fromOffset(110, 18),
-			TextSize = 13,
+			Position = UDim2.fromOffset(16, 192),
+			Size = UDim2.fromOffset(140, 20),
+			TextSize = 16,
+			font = Theme.Font.Display,
 			color = P.Spark,
 			align = Enum.TextXAlignment.Left,
+			stroke = 2,
 			Text = ("Epic+ in %d"):format(math.max(1, crate.pity - (store.pity or 0))),
-			ZIndex = 5,
+			ZIndex = 6,
 		})
 	end
 	local row = new("Frame", {
-		Position = UDim2.new(0, 10, 1, -46),
-		Size = UDim2.new(1, -20, 0, 38),
+		Position = UDim2.new(0, 16, 1, -66),
+		Size = UDim2.new(1, -32, 0, 50),
 		BackgroundTransparency = 1,
 		ZIndex = 4,
 		Parent = card,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 8),
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10),
 		Parent = row,
 	})
 	local tokens = store.crates and store.crates[kind] or 0
 	if tokens > 0 then
-		Widgets.button(row, ("OPEN FREE x%d"):format(tokens), "green", UDim2.fromOffset(140, 38), function()
+		Widgets.button(row, ("OPEN FREE x%d"):format(tokens), "cyan", UDim2.fromOffset(170, 48), function()
 			Net.send("StoreAction", { kind = "OpenCrate", crate = kind, source = "Token" })
-		end, { TextSize = 15, ZIndex = 6 })
+		end, { TextSize = 20, ZIndex = 6 })
 	end
 	if store.restricted then
 		Widgets.label(row, {
-			Size = UDim2.fromOffset(200, 38),
-			TextSize = 13,
-			color = P.Ash,
+			Size = UDim2.fromOffset(280, 48),
+			TextSize = 16,
+			font = Theme.Font.Display,
+			color = Color3.new(1, 1, 1),
 			wrap = true,
+			stroke = 2,
 			Text = "Not available in your region",
 			ZIndex = 6,
 		})
 	elseif not crate.free then
-		local b, setOn = Widgets.button(row, "", "fuse", UDim2.fromOffset(120, 38), function()
-			Net.send("StoreAction", { kind = "OpenCrate", crate = kind, source = "Stars" })
+		priceButton(row, crate.stars, UDim2.fromOffset(150, 48), function()
+			local now = Progress.get()
+			if now and (now.stars or 0) >= crate.stars then
+				Net.send("StoreAction", { kind = "OpenCrate", crate = kind, source = "Stars" })
+			else
+				Sfx.play("UiDeny")
+			end
 		end, { ZIndex = 6 })
-		setOn((s.stars or 0) >= crate.stars)
-		local inner = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 9, Parent = b })
-		new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-			Padding = UDim.new(0, 4),
-			Parent = inner,
-		})
-		Widgets.icon(inner, "Star", 22, { ZIndex = 10 })
-		Widgets.label(inner, {
-			AutomaticSize = Enum.AutomaticSize.X,
-			Size = UDim2.fromOffset(0, 26),
-			TextSize = 17,
-			font = Theme.Font.Display,
-			Text = tostring(crate.stars),
-			ZIndex = 10,
-		})
 	end
 end
 
@@ -448,6 +561,21 @@ local function tabsFor(s: { [string]: any }, mode: string): { string }
 	return out
 end
 
+-- Tab colours, in the reference's order of bright presets.
+local TAB_PRESET = {
+	Featured = "gold",
+	BombSkin = "orange",
+	Explosion = "red",
+	FuseSpark = "pink",
+	Trail = "cyan",
+	VictoryBoom = "purple",
+	Title = "brass",
+	Emote = "pink",
+	Crates = "green",
+}
+
+local TAB_NAME = { Featured = "Featured", Crates = "Crates", BombSkin = "Skins", FuseSpark = "Sparks" }
+
 render = function(refresh: boolean?)
 	local s = Progress.get()
 	if not s or screen == "" then
@@ -456,53 +584,74 @@ render = function(refresh: boolean?)
 	table.clear(viewports)
 	local face = DailyController.panel(
 		screen,
-		if screen == "Shop" then "SHOP" else "LOCKER",
-		Vector2.new(780, 470),
-		P.Fuse,
+		if screen == "Shop" then "SHOP" else "ITEMS",
+		Vector2.new(880, 520),
+		if screen == "Shop" then P.Fuse else Color3.fromRGB(56, 150, 255),
 		refresh
 	)
 	local tabs = tabsFor(s, screen)
 	if not table.find(tabs, tab) then
 		tab = tabs[1] or "Crates"
 	end
-	-- tab column
-	local col = new("Frame", {
-		Name = "Tabs",
-		Position = UDim2.fromOffset(18, 44),
-		Size = UDim2.new(0, 150, 1, -60),
-		BackgroundTransparency = 1,
-		ZIndex = 3,
-		Parent = face,
-	})
-	new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = col })
-	for i, t in ipairs(tabs) do
-		local label = if t == "Featured" then "FEATURED" elseif t == "Crates" then "CRATES" else St.CATEGORY_NAME[t] or t
-		local b = Widgets.button(col, label, if t == tab then "fuse" else "dark", UDim2.new(1, 0, 0, 40), function()
-			tab = t
-			render(true)
-		end, { TextSize = 16, LayoutOrder = i, ZIndex = 4 })
-		b.LayoutOrder = i
+	-- tabs in the header strip (the reference's coloured tab row)
+	local slot = DailyController.headerTabs()
+	if slot then
+		for i, t in ipairs(tabs) do
+			local label = TAB_NAME[t]
+				or (St.CATEGORY_NAME[t] and (string.sub(St.CATEGORY_NAME[t], 1, 1) .. string.lower(
+					string.sub(St.CATEGORY_NAME[t], 2)
+				)))
+				or t
+			local w = math.max(96, 16 * #label + 30)
+			local b = Widgets.button(slot, label, TAB_PRESET[t] or "cyan", UDim2.fromOffset(w, 46), function()
+				if tab ~= t then
+					Sfx.play("UiTab")
+				end
+				tab = t
+				render(true)
+			end, { TextSize = 24, LayoutOrder = i, ZIndex = 7 })
+			if t == tab then
+				local ring = new("UIStroke", {
+					Color = Color3.new(1, 1, 1),
+					Thickness = 3,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					Parent = b,
+				})
+				ring:SetAttribute("Keep", true)
+			else
+				b.Size = UDim2.fromOffset(w, 42)
+			end
+		end
 	end
 	-- the grid
 	local grid = new("ScrollingFrame", {
 		Name = "Grid",
-		Position = UDim2.fromOffset(184, 44),
-		Size = UDim2.new(1, -200, 1, -60),
+		Position = UDim2.fromOffset(18, 44),
+		Size = UDim2.new(1, -36, 1, -58),
 		BackgroundTransparency = 1,
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = P.Ash,
+		ScrollBarThickness = 8,
+		ScrollBarImageColor3 = Color3.fromRGB(150, 146, 170),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ZIndex = 3,
 		Parent = face,
 	})
+	local big = tab == "Crates" or tab == "Featured"
 	new("UIGridLayout", {
-		CellSize = if tab == "Crates" then UDim2.fromOffset(280, 206) else UDim2.fromOffset(136, 206),
-		CellPadding = UDim2.fromOffset(10, 10),
+		CellSize = if tab == "Crates"
+			then UDim2.fromOffset(406, 300)
+			elseif big then UDim2.fromOffset(406, 214)
+			else UDim2.fromOffset(158, 214),
+		CellPadding = UDim2.fromOffset(14, 14),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = grid,
 	})
-	new("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 4), Parent = grid })
+	new("UIPadding", {
+		PaddingTop = UDim.new(0, 8),
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		Parent = grid,
+	})
 	if tab == "Crates" then
 		crateCard(grid, s, "Spark", 1)
 		crateCard(grid, s, "Inferno", 2)
@@ -511,7 +660,7 @@ render = function(refresh: boolean?)
 		end
 	elseif tab == "Featured" then
 		for i, id in ipairs(s.store.featured) do
-			itemCard(grid, s, id, screen, i)
+			featuredCard(grid, s, id, screen, i)
 		end
 	else
 		local order = 0
@@ -524,6 +673,14 @@ render = function(refresh: boolean?)
 					order += 1
 					itemCard(grid, s, it.id, screen, order)
 				end
+			end
+		end
+	end
+	-- fill the wider Featured / Crates cells
+	if big then
+		for _, c in ipairs(grid:GetChildren()) do
+			if c:IsA("Frame") then
+				c.Size = UDim2.fromScale(1, 1)
 			end
 		end
 	end

@@ -78,7 +78,21 @@ local function closePanel()
 end
 DailyController.close = closePanel
 
--- A modal panel scaled to fit the screen. Returns the content face.
+-- The screens' header art (the reference video): the title's 3D icon and the strip's colours.
+local PANEL_ICON = { Shop = "Shop", Locker = "Items", Quests = "Scroll", Calendar = "Calendar" }
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 96, 130)),
+	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 168, 64)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 230, 96)),
+	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(120, 226, 120)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 176, 255)),
+})
+local HEADER = 74 -- the header strip's height
+local headerSlot: Frame? = nil -- where a screen puts its tabs (DailyController.headerTabs)
+
+-- A modal panel scaled to fit the screen, in the reference video's frame: a dark body outlined in ink, a gradient
+-- header strip with the title in big round type and its 3D icon breaking out over the top-left corner, a red close
+-- square at the strip's right end and a slot for tabs in between. Returns the content face (below the header).
 local function panel(name: string, title: string, size: Vector2, accent: Color3, refresh: boolean?): Frame
 	for _, c in ipairs(modal:GetChildren()) do
 		c:Destroy()
@@ -88,20 +102,110 @@ local function panel(name: string, title: string, size: Vector2, accent: Color3,
 		back.BackgroundTransparency = 0.4 -- a live refresh: no fade, no spring
 	end
 	back.MouseButton1Click:Connect(closePanel)
-	local face = Theme.panel(modal, {
+	local total = Vector2.new(size.X, size.Y + HEADER - 40)
+	local body = Theme.panel(modal, {
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.53),
-		Size = UDim2.fromOffset(size.X, size.Y),
-		color = P.Ink2,
-		border = accent,
-		border2 = accent:Lerp(P.Ink, 0.35),
-		dots = accent,
-		dotsT = 0.9,
-		glow = accent,
-		glowT = 0.6,
+		Size = UDim2.fromOffset(total.X, total.Y),
+		color = Color3.fromRGB(46, 43, 54),
+		color2 = Color3.fromRGB(28, 26, 34),
+		border = Color3.fromRGB(20, 18, 26),
+		border2 = Color3.fromRGB(20, 18, 26),
+		bevelT = 0.95,
 	})
-	local holder = face.Parent :: Frame
+	local holder = body.Parent :: Frame
+	-- header strip
+	local strip = new("Frame", {
+		Name = "Header",
+		Position = UDim2.fromOffset(0, 0),
+		Size = UDim2.new(1, 0, 0, HEADER),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 2,
+		Parent = body,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = strip })
+	new("UIGradient", {
+		Color = if name == "Shop"
+			then RAINBOW
+			else ColorSequence.new(accent:Lerp(Color3.new(1, 1, 1), 0.25), accent:Lerp(P.Ink, 0.15)),
+		Rotation = if name == "Shop" then 0 else 90,
+		Parent = strip,
+	})
+	-- square off the strip's bottom corners and draw the ink line under it
+	new("Frame", {
+		Name = "Base",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 14),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = strip,
+	}):SetAttribute("Base", true)
+	local baseGrad = strip:FindFirstChildOfClass("UIGradient") :: UIGradient
+	baseGrad:Clone().Parent = strip:FindFirstChild("Base")
+	new("Frame", {
+		Name = "Line",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 2),
+		Size = UDim2.new(1, 0, 0, 4),
+		BackgroundColor3 = P.Ink,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+		Parent = strip,
+	})
+	local iconName = PANEL_ICON[name]
+	local titleX = 22
+	if iconName then
+		Widgets.icon(holder, iconName, 112, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(34, 18),
+			Rotation = -10,
+			ZIndex = 12,
+		})
+		titleX = 92
+	end
+	Widgets.label(strip, {
+		Name = "Title",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, titleX, 0.5, -2),
+		Size = UDim2.fromOffset(260, 60),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = title,
+		TextSize = 50,
+		font = Theme.Font.Display,
+		align = Enum.TextXAlignment.Left,
+		stroke = 4,
+		ZIndex = 6,
+	})
+	local slot = new("Frame", {
+		Name = "Tabs",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -86, 0.5, -2),
+		Size = UDim2.new(1, -titleX - 96 - math.min(260, 26 * #title + 20), 0, 50),
+		BackgroundTransparency = 1,
+		ZIndex = 6,
+		Parent = strip,
+	})
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = slot,
+	})
+	headerSlot = slot
+	-- the content area, below the header
+	local face = new("Frame", {
+		Name = "Content",
+		Position = UDim2.fromOffset(0, HEADER - 34),
+		Size = UDim2.new(1, 0, 1, -(HEADER - 34)),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = body,
+	})
 	holder.ZIndex = 5
 	-- clicks inside the panel (previews, gaps) must not reach the backdrop and close it: an Active Frame doesn't
 	-- stop a GuiButton underneath, so an invisible button behind the content takes them
@@ -115,25 +219,20 @@ local function panel(name: string, title: string, size: Vector2, accent: Color3,
 		Parent = holder,
 	})
 	local v = Screen.size()
-	local fit = math.min(1, (v.Y - 70) / size.Y, (v.X - 40) / size.X)
+	local fit = math.min(1, (v.Y - 70) / total.Y, (v.X - 60) / total.X)
 	new("UIScale", { Name = "Fit", Scale = fit, Parent = holder })
-	Skin.ribbon(holder, title, accent, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 0),
-		Size = UDim2.fromOffset(300, 54),
-		ZIndex = 9,
-	})
-	local close = Skin.close(holder, 44, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -6, 0, 6),
+	local close = Skin.close(holder, 60, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0, HEADER / 2 - 2),
 		ZIndex = 9,
 	})
 	close.Activated:Connect(function()
-		Sfx.play("UiPress")
+		Sfx.play("UiClose")
 		closePanel()
 	end)
 	if not refresh then
 		Widgets.springIn(holder)
+		Sfx.play("UiOpen")
 	end
 	openPanel, openName = face, name
 	Modal.set("Daily", true)
@@ -731,6 +830,11 @@ end
 -- A panel in the shared modal layer (other screens use it so only one is ever open).
 function DailyController.panel(name: string, title: string, size: Vector2, accent: Color3, refresh: boolean?): Frame
 	return panel(name, title, size, accent, refresh)
+end
+
+-- The open panel's header slot for tabs (right of the title, left of the close square).
+function DailyController.headerTabs(): Frame?
+	return headerSlot
 end
 
 -- The name of the open panel ("" when none), so other screens can tell whether theirs is still up.
