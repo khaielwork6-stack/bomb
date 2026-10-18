@@ -69,12 +69,18 @@ Assets.SFX = {
 	CrowdCheer = s(9120974378, 0.6, "PSE"),
 	CrowdGasp = s(9114013354, 0.6, "PSE"),
 	WinSting = s(1841980129, 0.85, "APM"),
-	-- UI (Asset Bible §6.3, §6.5), built from sounds already in the set: the in-house escapement pitched up is a crisp
-	-- mechanical button click and a coin-counter tick; the clamp low is the deny thunk and the calendar's stamp.
-	UiPress = s(91973479747444, 0.32, "FV", { pitch = { 1.7, 1.8 } }),
-	UiDeny = s(9125782643, 0.3, "PSE", { pitch = { 0.62, 0.66 } }),
-	CoinTick = s(132119182630967, 0.18, "FV", { pitch = { 2.1, 2.3 } }),
-	Claim = s(18448089848, 0.6, "C"),
+	-- UI (Asset Bible §6.3, §6.5): the in-house UI pack (art/audio/make_ui.py, modal synthesis) — an arcade
+	-- microswitch press / release, a soft hover tick, the deny buzz, panel open / close whooshes, a wooden tab tok,
+	-- the coin chime (pitched up per coin by the counter) and the claim chime. The clamp low stays the calendar stamp.
+	UiPress = s(81143391231439, 0.4, "FV", { pitch = { 0.97, 1.03 } }),
+	UiRelease = s(84273825969787, 0.3, "FV", { pitch = { 0.97, 1.03 } }),
+	UiHover = s(88139694011190, 0.16, "FV", { pitch = { 0.95, 1.05 } }),
+	UiDeny = s(120904740098220, 0.38, "FV"),
+	UiOpen = s(84771068236030, 0.35, "FV"),
+	UiClose = s(136899153333162, 0.3, "FV"),
+	UiTab = s(74212251876794, 0.35, "FV", { pitch = { 0.96, 1.04 } }),
+	CoinTick = s(136647661605856, 0.22, "FV", { pitch = { 1.0, 1.06 } }),
+	Claim = s(72019982036724, 0.55, "FV"),
 	Stamp = s(9125782643, 0.75, "PSE", { pitch = { 0.8, 0.86 } }),
 	LevelUp = s(1841980129, 0.9, "APM"),
 	QuestDone = s(9047103106, 0.6, "APM"),

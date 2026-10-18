@@ -85,39 +85,43 @@ local function build()
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	-- Stars pill
-	local pill = Theme.panel(corner, {
-		Name = "Stars",
-		Size = UDim2.fromOffset(150, 40),
-		radius = 999,
-		color = P.Ink2,
-		border = P.Spark,
-		border2 = P.Gold,
+	-- The wallet (the reference video's bottom-left cash readout): a big 3D Star and the count in large round type
+	-- with a gold gradient and a thick ink stroke. Always on screen; rewards fly into it.
+	starsPill = new("Frame", {
+		Name = "Wallet",
+		AnchorPoint = Vector2.new(0, 1),
+		Size = UDim2.fromOffset(320, 72),
+		BackgroundTransparency = 1,
+		Parent = gui,
 	})
-	starsPill = pill.Parent :: Frame
-	starsPill.AnchorPoint = Vector2.new(1, 0)
-	starsPill.Position = UDim2.fromScale(1, 0)
-	starsIcon = Widgets.icon(pill, "Star", 44, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 10, 0.5, 0),
+	starsIcon = Widgets.icon(starsPill, "Star", 64, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 0, 0.5, 0),
 		ZIndex = 4,
 	})
-	starsLabel = Widgets.label(pill, {
+	starsLabel = Widgets.label(starsPill, {
 		Name = "Count",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 36, 0.5, 0),
-		Size = UDim2.new(1, -46, 1, 0),
-		TextSize = 22,
-		color = P.Spark,
-		align = Enum.TextXAlignment.Right,
+		Position = UDim2.new(0, 72, 0.5, 2),
+		Size = UDim2.new(1, -72, 1, 0),
+		TextSize = 56,
+		font = Theme.Font.Display,
+		color = Color3.new(1, 1, 1),
+		align = Enum.TextXAlignment.Left,
 		Text = "0",
+		stroke = 4,
 		ZIndex = 5,
+	})
+	new("UIGradient", {
+		Color = ColorSequence.new(Color3.fromRGB(255, 238, 120), Color3.fromRGB(255, 170, 24)),
+		Rotation = 90,
+		Parent = starsLabel,
 	})
 	-- Level badge + XP bar
 	local row = new("Frame", {
 		Name = "Level",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 48),
+		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(200, 44),
 		BackgroundTransparency = 1,
 		Parent = corner,
@@ -158,7 +162,7 @@ local function build()
 	flameHolder = new("Frame", {
 		Name = "Streak",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -158, 0, -4),
+		Position = UDim2.new(1, -206, 0, -2),
 		Size = UDim2.fromOffset(44, 48),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -187,7 +191,27 @@ local function build()
 end
 
 -- ── Place (phones: the Stars pill rides in the top bar row) ─────────────────────────────────────────────────────
+-- The wallet: bottom-left; on phones under the top bar (the thumbstick owns the bottom-left there).
+local function placeWallet()
+	local tb = Screen.topbar()
+	local safe = Screen.safe()
+	local fit = starsPill:FindFirstChild("Fit") :: UIScale?
+	if not fit then
+		fit = new("UIScale", { Name = "Fit", Parent = starsPill })
+	end
+	if touch() then
+		starsPill.AnchorPoint = Vector2.new(0, 0)
+		starsPill.Position = UDim2.new(0, 16 + safe.left, 0, tb.Max.Y + 6);
+		(fit :: UIScale).Scale = 0.62
+	else
+		starsPill.AnchorPoint = Vector2.new(0, 1)
+		starsPill.Position = UDim2.new(0, 22 + safe.left, 1, -18 - safe.bottom);
+		(fit :: UIScale).Scale = 1
+	end
+end
+
 local function place()
+	placeWallet()
 	local tb = Screen.topbar()
 	local safe = Screen.safe()
 	local x = if shown then -12 - safe.right else 260
@@ -262,9 +286,6 @@ end
 function ProgressController.fly(from: Vector2, amount: number)
 	if amount <= 0 then
 		return
-	end
-	if not shown then
-		return -- the counter is tucked away (a round): the snapshot updates it, nothing flies at an empty corner
 	end
 	local count = math.clamp(math.floor(amount / 15) + 3, 3, 10)
 	holdStars += amount

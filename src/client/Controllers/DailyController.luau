@@ -17,6 +17,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Dock = require(script.Parent.Parent.UI.Dock)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -35,12 +36,10 @@ local DailyController = {}
 
 local TIER_COLOR = { Easy = P.Safe, Medium = P.Spark, Hard = P.Bomber }
 local REWARD_ICON = { Stars = "Star", SparkCrate = "Crate", GiftBox = "Gift", RareItem = "Gift", StreakBomb = "Bomb" }
-local RING = 20
 
 local hud: ScreenGui
 local modal: ScreenGui
 local dock: Frame
-local giftDots: { Frame } = {}
 local giftLabel: TextLabel
 local giftButton: GuiButton
 local stopGiftPulse: (() -> ())? = nil
@@ -471,157 +470,84 @@ local function stampToday()
 end
 
 -- ── The dock ────────────────────────────────────────────────────────────────────────────────────────────────────
-local function dockButton(name: string, icon: string, order: number, onClick: () -> ()): (TextButton, Frame)
-	local b = new("TextButton", {
-		Name = name,
-		Size = UDim2.fromOffset(64, 64),
-		BackgroundTransparency = 1,
-		Text = "",
-		AutoButtonColor = false,
-		LayoutOrder = order,
-		Parent = dock,
-	})
-	local face = Theme.panel(b, {
-		Name = "Face",
-		Size = UDim2.fromScale(1, 1),
-		radius = 999,
-		color = P.Ink2,
-		border = P.Paper,
-		border2 = P.Ash,
-	})
-	Widgets.icon(face, icon, 50, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.46),
-		ZIndex = 5,
-	})
-	local dot = new("Frame", {
-		Name = "Dot",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(18, 18),
-		BackgroundColor3 = P.Detonate,
-		Visible = false,
-		ZIndex = 9,
-		Parent = b,
-	})
-	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
-	new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = dot })
-	local sc = new("UIScale", { Parent = b })
-	b.MouseButton1Down:Connect(function()
-		TweenService:Create(sc, TweenInfo.new(0.06), { Scale = 0.92 }):Play()
-	end)
-	b.MouseButton1Up:Connect(function()
-		TweenService:Create(sc, TweenInfo.new(0.22, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	end)
-	b.Activated:Connect(function()
-		Sfx.play("UiPress")
-		onClick()
-	end)
-	return b, dot
+-- The left-side stack of square tiles (UI/Dock, the owner's reference video): the Shop and Items (StoreController),
+-- Quests, the Calendar, the playtime Gift (its countdown is its label), and AFK / Spectate (LobbyController).
+local function dockButton(
+	name: string,
+	icon: string,
+	order: number,
+	onClick: () -> (),
+	opts: Dock.TileOpts?
+): (TextButton, Frame)
+	local o: Dock.TileOpts = table.clone(opts or {})
+	o.order = order
+	local t = Dock.tile(dock, name, icon, onClick, o)
+	return t.button, t.badge
 end
 
 local function buildDock()
 	dock = new("Frame", {
 		Name = "Dock",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Size = UDim2.fromOffset(72, 400),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Size = UDim2.fromOffset(Dock.SIZE + 24, 560),
 		BackgroundTransparency = 1,
 		Parent = hud,
 	})
 	new("UIListLayout", {
-		Padding = UDim.new(0, 12),
+		Padding = UDim.new(0, 10),
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = dock,
 	})
-	-- Gift: the icon inside a segmented ring, the countdown under it
-	local gift = new("TextButton", {
-		Name = "Gift",
-		Size = UDim2.fromOffset(72, 88),
-		BackgroundTransparency = 1,
-		Text = "",
-		AutoButtonColor = false,
-		LayoutOrder = 1,
-		Parent = dock,
-	})
-	giftButton = gift
-	local ringHolder = new("Frame", {
-		Name = "Ring",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromOffset(68, 68),
-		BackgroundColor3 = P.Ink2,
-		ZIndex = 2,
-		Parent = gift,
-	})
-	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ringHolder })
-	new("UIStroke", { Color = P.Ink, Thickness = 3, Parent = ringHolder })
-	for i = 1, RING do
-		local a = (i - 1) / RING * math.pi * 2
-		local dot = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5 + math.sin(a) * 0.43, 0.5 - math.cos(a) * 0.43),
-			Size = UDim2.fromOffset(6, 10),
-			Rotation = math.deg(a),
-			BackgroundColor3 = P.Smoke,
-			BorderSizePixel = 0,
-			ZIndex = 3,
-			Parent = ringHolder,
-		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
-		table.insert(giftDots, dot)
-	end
-	Widgets.icon(ringHolder, "Gift", 44, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		ZIndex = 5,
-	})
-	giftLabel = Widgets.label(gift, {
-		Name = "Time",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, 0),
-		Size = UDim2.fromOffset(80, 20),
-		TextSize = 15,
-		Text = "",
-		ZIndex = 6,
-	})
-	gift.Activated:Connect(function()
+	-- Gift: a pink tile whose label is the countdown; it bounces when the gift is ready.
+	local gt = Dock.tile(dock, "Gift", "Gift", function()
 		local s = Progress.get()
 		if s and s.daily and s.daily.gift.ready then
-			Sfx.play("UiPress")
 			Progress.action("ClaimGift")
 		else
 			Sfx.play("UiDeny")
 		end
-	end)
-	local _, qd = dockButton("Quests", "Scroll", 2, function()
+	end, { color = "pink", order = 5, label = "" })
+	giftButton = gt.button
+	giftLabel = gt.label
+	giftLabel.TextSize = 22
+	local _, qd = dockButton("Quests", "Scroll", 3, function()
 		local s = Progress.get()
 		if s then
 			buildQuests(s)
 			Progress.action("QuestsOpened")
 		end
-	end)
+	end, { color = "green", key = Enum.KeyCode.J })
 	questDot = qd
-	local cb, cd = dockButton("Calendar", "Calendar", 3, function()
+	local cb, cd = dockButton("Calendar", "Calendar", 4, function()
 		local s = Progress.get()
 		if s then
 			buildCalendar(s)
 		end
-	end)
+	end, { color = "orange", label = "Daily" })
 	calButton, calendarDot = cb, cd
 end
 
 local function placeDock()
-	-- short phone screens: the dock shrinks to fit between the top bar and the action buttons
+	-- short phone screens: the dock shrinks to fit between the top bar and the bottom-left currency
 	local fit = dock:FindFirstChild("Fit") :: UIScale?
 	if not fit then
 		fit = new("UIScale", { Name = "Fit", Parent = dock })
 	end
-	local v = Screen.size();
-	(fit :: UIScale).Scale = math.min(1, (v.Y * 0.72) / 400)
+	local v = Screen.size()
+	local count = 0
+	for _, c in ipairs(dock:GetChildren()) do
+		if c:IsA("GuiButton") and c.Visible then
+			count += 1
+		end
+	end
+	local need = count * (Dock.SIZE + 20)
+	dock.Size = UDim2.fromOffset(Dock.SIZE + 24, need);
+	(fit :: UIScale).Scale = math.min(1, (v.Y * 0.66) / math.max(need, 1))
 	local safe = Screen.safe()
-	local x = if shown then -12 - safe.right else 100
-	local goal = UDim2.new(1, x, if touch() then 0.42 else 0.48, 0)
+	local x = if shown then 14 + safe.left else -(Dock.SIZE + 60)
+	local goal = UDim2.new(0, x, 0.5, if touch() then -10 else 10)
 	if Widgets.reduced() or dock.Position == UDim2.new() then
 		dock.Position = goal
 	else
@@ -697,12 +623,9 @@ local function tickGift()
 		else D.GIFTS[#D.GIFTS].minutes + (idx - #D.GIFTS) * D.REPEAT_EVERY
 	local span = math.max(1, (thisMin - prevMin) * 60)
 	local frac = if ready then 1 else math.clamp(1 - left / span, 0, 1)
-	local lit = math.floor(frac * RING + 0.5)
-	for i, dot in ipairs(giftDots) do
-		dot.BackgroundColor3 = if i <= lit then (if ready then P.Safe else P.Spark) else P.Smoke
-	end
+	local _ = frac
 	giftLabel.Text = if ready then S.Ui.GiftReady else Widgets.clock(left)
-	giftLabel.TextColor3 = if ready then P.Safe else P.Paper
+	giftLabel.TextColor3 = if ready then P.Spark else P.Paper
 	if ready and not giftWasReady then
 		stopGiftPulse = Widgets.pulse(giftButton)
 	elseif not ready and giftWasReady and stopGiftPulse then
@@ -794,12 +717,15 @@ function DailyController.addDockButton(
 	name: string,
 	icon: string,
 	order: number,
-	onClick: () -> ()
+	onClick: () -> (),
+	opts: Dock.TileOpts?
 ): (TextButton, Frame)
 	while not dock do
 		task.wait()
 	end
-	return dockButton(name, icon, order, onClick)
+	local b, dot = dockButton(name, icon, order, onClick, opts)
+	placeDock()
+	return b, dot
 end
 
 -- A panel in the shared modal layer (other screens use it so only one is ever open).

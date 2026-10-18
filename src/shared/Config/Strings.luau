@@ -39,6 +39,10 @@ return {
 		DailyCrate = "Daily Crate",
 	},
 	Ui = {
+		On = "ON",
+		Off = "OFF",
+		Spectating = "Spectating",
+		Exit = "EXIT",
 		QuestsTitle = "DAILY QUESTS",
 		QuestsNew = "New quests in %s",
 		Reroll = "REROLL",

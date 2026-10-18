@@ -24,7 +24,13 @@ import uuid
 from pathlib import Path
 
 API = "https://apis.roblox.com/assets/v1/"
-TYPES = {".png": ("Decal", "image/png"), ".fbx": ("Model", "model/fbx")}
+TYPES = {
+    ".png": ("Decal", "image/png"),
+    ".fbx": ("Model", "model/fbx"),
+    ".wav": ("Audio", "audio/wav"),
+    ".ogg": ("Audio", "audio/ogg"),
+    ".mp3": ("Audio", "audio/mpeg"),
+}
 
 
 def load_key(path: Path) -> str:
