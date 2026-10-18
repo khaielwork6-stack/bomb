@@ -73,7 +73,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 
 ## 8. Maps & world
 - [ ] **Fireworks Yard: Blender hero props** (FREE · AB §4.4, P3-08). Every prop is built from parts today (0 MeshParts). Priority: firework crates (3 sizes) → hand-truck → floodlight → rocket bundle → sandbags → shutter → dock bumper. Then bunting sway. *(fallenbomb 2026-10-18: firework crate, hand-truck, pallet, gas bottle, floodlight, rocket bundle modelled and swapped in by builders/MapYardProps; sandbags, shutter, dock bumper still part-built)*
-- [ ] Yard lighting: the bible's Golden Fuse is ClockTime 17.4, but MapYard sets 15.4. Pick one, and add a `Config.Lighting` preset table (FREE).
+- [x] Yard lighting: settled on the video's sunny midday (ClockTime 13.6, MapYardToy) per the owner's direction; the preset now lives in `Config.Lighting.ToyMidday`.
 - [x] **The Depot lobby** (static art is FREE · AB §4.3, needs hero sign-off): spawn plaza, clock tower, shop kiosk, quest board, leaderboard wall + statue plinths, Fuse Range, VIP balcony. There's no lobby builder yet. *(fallenbomb 2026-10-18: builders/LobbyDepot, with the modelled crate stands + spin wheel)*
   - **Request for partner:** lobby spawn and teleport (`Characters.lobbyReady` only checks for `workspace.Lobby`), the leaderboard boards' data (`LeaderboardService.top()` exists), the Fuse Range dummies, and the clock tower timer once MEGA exists.
 - [ ] Spring dummy prop (Fuse Range) (FREE art; needs partner code to work).

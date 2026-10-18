@@ -436,37 +436,20 @@ return function(ctx)
 	end
 
 	-- ── 6. Sunny midday (the video's lighting) ───────────────────────────────────────────────────────────────────
+	-- the preset lives in Config.Lighting.ToyMidday (shared, so the game and the builder agree)
 	local L = game:GetService("Lighting")
-	L.ClockTime = 13.6
-	L.GeographicLatitude = 30
-	L.Brightness = 2.6
-	L.EnvironmentDiffuseScale = 0.6
-	L.EnvironmentSpecularScale = 0.5
-	L.OutdoorAmbient = rgb(150, 160, 190)
-	L.Ambient = rgb(110, 116, 140)
-	L.ExposureCompensation = 0
-	local atm = L:FindFirstChildOfClass("Atmosphere")
-	if atm then
-		atm.Density = 0.22
-		atm.Offset = 0.1
-		atm.Color = rgb(196, 222, 255)
-		atm.Decay = rgb(120, 170, 230)
-		atm.Glare = 0.1
-		atm.Haze = 0.6
+	local preset = require(game:GetService("ReplicatedStorage").Shared.Config.Lighting).ToyMidday
+	local function apply(inst: Instance?, props: { [string]: any })
+		if inst then
+			for k, v in pairs(props) do
+				(inst :: any)[k] = v
+			end
+		end
 	end
-	local cc = L:FindFirstChildOfClass("ColorCorrectionEffect")
-	if cc then
-		cc.Saturation = 0.22
-		cc.Contrast = 0.08
-		cc.TintColor = Color3.new(1, 1, 1)
-		cc.Brightness = 0.02
-	end
-	local bloom = L:FindFirstChildOfClass("BloomEffect")
-	if bloom then
-		bloom.Intensity = 0.35
-		bloom.Threshold = 1.6
-		bloom.Size = 24
-	end
+	apply(L, preset.Lighting)
+	apply(L:FindFirstChildOfClass("Atmosphere"), preset.Atmosphere)
+	apply(L:FindFirstChildOfClass("ColorCorrectionEffect"), preset.ColorCorrection)
+	apply(L:FindFirstChildOfClass("BloomEffect"), preset.Bloom)
 	local sky = L:FindFirstChildOfClass("Sky")
 	if sky then
 		sky.SunAngularSize = 14

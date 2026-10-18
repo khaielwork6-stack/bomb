@@ -18,6 +18,7 @@ return {
 			displayName = "The Fireworks Yard",
 			hazards = {},
 			sockets = SOCKETS_4x4,
+			thumbnail = "rbxassetid://83978149323296", -- the vote card (an overview of the toy restyle, art/out/MapThumbs)
 		},
 		-- 2026-10-09 v2 (builders/MapMeadow): the home farm stadium. Its round hay bales roll (Templates.Roller), its
 		-- square hay bales rise (Templates.BlockTemplate), the sheep stampede stays.
