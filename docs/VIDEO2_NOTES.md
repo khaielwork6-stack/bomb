@@ -106,6 +106,11 @@ Key: **CLIENT** = the art/UI side can build it now · **PARTNER** = needs server
   - lobby / intermission and Safe Strip only, so they never interrupt a run.
 - **PARTNER (nice to have):** an Emote equip slot (request #8) for a "favourite" order.
 
+## Status
+- §4 juke intensity: **done** (HypeController.juke, art/vfx/make_juke.py).
+- §6 takedown / reward to the body: **done** (HypeController.reward; the callout word stays CalloutController's).
+- §2 pick camera: **done** (PickController; fits the current 4 s INTRO, Studio preview FV_PreviewPick).
+
 ## Order of work (CLIENT now)
 1. Juke intensity (4).
 2. Takedown / reward-to-body (6).

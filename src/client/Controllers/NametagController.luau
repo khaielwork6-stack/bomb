@@ -14,6 +14,7 @@ local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local CameraController = require(script.Parent.CameraController)
 local ProgressController = require(script.Parent.ProgressController)
 
 local St = Config.Store
@@ -210,6 +211,7 @@ local function refresh(host: Instance, t: Tag)
 end
 
 local function step()
+	local hide = CameraController.cinematic -- a cinematic (the pick camera) shows the picked names its own way
 	local seen: { [Model]: boolean } = {}
 	for _, host in ipairs(hosts()) do
 		local char = characterOf(host)
@@ -225,6 +227,7 @@ local function step()
 				tags[char] = t
 			end
 			refresh(host, t)
+			t.gui.Enabled = not hide
 		end
 	end
 	for char, t in pairs(tags) do
@@ -239,7 +242,7 @@ function NametagController.start()
 	task.spawn(function()
 		while true do
 			step()
-			task.wait(0.4)
+			task.wait(0.15)
 		end
 	end)
 end

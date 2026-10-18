@@ -219,7 +219,12 @@ function CalloutController.start()
 	})
 	Net.listen("Callout", function(p)
 		if type(p) == "table" and type(p.key) == "string" then
-			CalloutController.show(p.key, if type(p.n) == "number" then p.n else nil)
+			CalloutController.show(
+				p.key,
+				if type(p.n) == "number" then p.n else nil,
+				if type(p.xp) == "number" then p.xp else nil,
+				if type(p.stars) == "number" then p.stars else nil
+			)
 		end
 	end)
 end

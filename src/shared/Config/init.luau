@@ -22,6 +22,7 @@ local Config = {
 	Wheel = require(script.Wheel),
 	Mobile = require(script.Mobile),
 	Lighting = require(script.Lighting),
+	Hype = require(script.Hype),
 	Arena = require(script.Arena),
 	Maps = require(script.Maps),
 	Data = require(script.Data),

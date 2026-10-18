@@ -50,6 +50,7 @@ return {
 		"The last Runner standing gets the LAST STAND.",
 	},
 	Ui = {
+		PickBomber = "BOMBER!",
 		StarsTab = "Stars",
 		Preview = "PREVIEW",
 		NewItemsIn = "NEW ITEMS IN %s",

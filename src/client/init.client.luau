@@ -61,6 +61,8 @@ local ORDER: { string } = {
 	"StatusFxController",
 	"MobileController",
 	"NametagController",
+	"HypeController",
+	"PickController",
 	"DepotController",
 }
 
