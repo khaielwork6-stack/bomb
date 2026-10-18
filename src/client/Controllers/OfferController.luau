@@ -162,7 +162,7 @@ local function show(endsIn: number, preview: boolean?)
 	local t1 = tile(row, "Stars", 1)
 	Widgets.icon(
 		t1,
-		"Star",
+		"GemChest",
 		96,
 		{ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.55), ZIndex = 7 }
 	)

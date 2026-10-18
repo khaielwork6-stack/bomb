@@ -105,7 +105,7 @@ local function payRow(parent: Instance, xp: number, stars: number, y: number)
 		})
 	end
 	if stars > 0 then
-		Widgets.icon(row, "Star", 20, { LayoutOrder = 2 })
+		Widgets.icon(row, "Gem", 20, { LayoutOrder = 2 })
 		Widgets.label(row, {
 			Text = "+" .. tostring(stars),
 			AutomaticSize = Enum.AutomaticSize.X,

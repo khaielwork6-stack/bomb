@@ -18,7 +18,10 @@
 --     FV_Art.Props.Shutter, scaled from the floor to the roll box's top. A closed door keeps the old slats' collision
 --     (the "Hit" box is fitted to them); the open (middle) door loses its slat panel, its bottom bar lifts up under
 --     the hood, and nothing on it collides. The orange door frames stay;
---   • every "Bumper" (and its "BumperStripe") → FV_Art.Props.DockBumper, the same box, still solid.
+--   • every "Bumper" (and its "BumperStripe") → FV_Art.Props.DockBumper, the same box, still solid;
+--   • MapYardToy's four corner "GiantRocket"s → FV_Art.Props.GiantRocket, scaled to the old one's height, bottom on
+--     the same ground, its fuse turned toward the field; its "Body" tinted with the old colour A and its "Stripes"
+--     (spirals, fins, nose) with colour B (SurfaceAppearance.Color, as the gas bottles); decoration, as before.
 -- Each swapped model keeps the original's name and parent (the folder structure doesn't change; a door's model is
 -- named "Shutter") and is tagged with the attribute FV_Prop. A prop type whose FV_Art model is missing is left
 -- exactly as MapYard built it.
@@ -31,6 +34,7 @@ local Props: { [string]: string } = {
 	Pallet = "Pallet",
 	GasBottle = "GasBottle",
 	Floodlight = "Floodlight",
+	GiantRocket = "GiantRocket",
 }
 -- MapYard's dock dressing is loose BaseParts (no Model per prop)
 local Loose: { [string]: string } = {
@@ -126,6 +130,25 @@ return function(_ctx: any): string
 		return if x and x:IsA("BasePart") then x else nil
 	end
 
+	-- tint a near-white MeshPart (SurfaceAppearance.Color; if the engine can't tint a SurfaceAppearance, the part drops
+	-- its maps and takes the colour as plain plastic)
+	local function tint(p: BasePart?, c: Color3)
+		if not p then
+			return
+		end
+		p.Color = c
+		local sa = p:FindFirstChildOfClass("SurfaceAppearance")
+		if sa then
+			local ok = pcall(function()
+				(sa :: any).Color = c
+			end)
+			if not ok then
+				sa:Destroy()
+				p.Material = Enum.Material.SmoothPlastic
+			end
+		end
+	end
+
 	-- Gather first (the swaps change the tree).
 	local found: { [string]: { Instance } } = {}
 	for _, d in ipairs(map:GetDescendants()) do
@@ -216,24 +239,11 @@ return function(_ctx: any): string
 		if not ob then
 			continue
 		end
-		local tint = ob.Color
+		local bodyColor = ob.Color
 		local foot = ob.Position - Vector3.new(0, ob.Size.X / 2, 0) -- the body is a vertical cylinder (length on X)
 		local m = swap(old, "GasBottle", CFrame.new(foot) * CFrame.Angles(0, math.pi, 0), 1)
 		if m then
-			local body = part(m, "Body")
-			if body then
-				body.Color = tint
-				local sa = body:FindFirstChildOfClass("SurfaceAppearance")
-				if sa then
-					local ok = pcall(function()
-						(sa :: any).Color = tint
-					end)
-					if not ok then
-						sa:Destroy()
-						body.Material = Enum.Material.SmoothPlastic
-					end
-				end
-			end
+			tint(part(m, "Body"), bodyColor)
 			tally("GasBottle")
 		end
 	end
@@ -459,6 +469,36 @@ return function(_ctx: any): string
 		end
 	end
 
+	-- ── MapYardToy's giant corner rockets, in their two colours, fuses toward the field ─────────────────────────
+	local rp = proto("GiantRocket")
+	local rh = if rp then hitOf(rp) else nil
+	for _, old in ipairs(found.GiantRocket or {}) do
+		local b1, b2 = part(old, "Body1"), part(old, "Body2")
+		if not rh or not b1 or not b2 then
+			continue
+		end
+		-- MapYardToy: the odd body segments (and the fins) are colour B, the even ones (and the nose) colour A
+		local colA, colB = b2.Color, b1.Color
+		local bbCF, bbSize = (old :: Model):GetBoundingBox()
+		local bottom = b1.Position.Y - b1.Size.X / 2 -- the segments are cylinders standing on end (length on X)
+		local top = bbCF.Position.Y + bbSize.Y / 2
+		local foot = Vector3.new(b1.Position.X, bottom, b1.Position.Z)
+		local at = CFrame.lookAt(foot, Vector3.new(centre.X, bottom, centre.Z))
+		local m = swap(old, "GiantRocket", at, (top - bottom) / rh.Size.Y)
+		if m then
+			-- the pivot is the bounding box's bottom centre, which the fuse pulls forward: centre the tube on the old one
+			local body = part(m, "Body")
+			if body then
+				local d = foot - body.Position
+				m:PivotTo(m:GetPivot() + Vector3.new(d.X, 0, d.Z))
+			end
+			tint(body, colA)
+			tint(part(m, "Stripes"), colB)
+			noCollide(m) -- dressing beyond the yard, as before
+			tally("GiantRocket")
+		end
+	end
+
 	-- the field cover stands ON the yard floor (MapYard's TOP sits 1.3 below the restyled slabs' tops): drop each
 	-- cover prop onto whatever is under its centre, ignoring the zone volumes and the cover itself
 	local cover = map:FindFirstChild("Cover", true)
@@ -487,6 +527,7 @@ return function(_ctx: any): string
 		"Sandbags",
 		"Shutter",
 		"DockBumper",
+		"GiantRocket",
 	}) do
 		table.insert(parts, ("%s %d%s"):format(kind, count[kind] or 0, if proto(kind) then "" else " (missing)"))
 	end

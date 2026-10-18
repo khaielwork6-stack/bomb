@@ -1,0 +1,104 @@
+{
+  "key": "Prop.Dispenser",
+  "tris": {
+    "Body": 488,
+    "Trim": 5272,
+    "Bomb": 2616,
+    "Spark": 188
+  },
+  "tris_total": 8564,
+  "pivot_blender": [
+    0.2448,
+    -0.12,
+    0.0
+  ],
+  "size_studs": [
+    3.2495,
+    5.6454,
+    3.0
+  ],
+  "cabinet_size_studs": [
+    2.4,
+    3.4200000000000004,
+    2.4
+  ],
+  "parts": {
+    "Body": {
+      "COLOR": "Prop_Dispenser_Body_COLOR.png",
+      "ROUGHNESS": "Prop_Dispenser_Body_ROUGHNESS.png",
+      "NORMAL": "Prop_Dispenser_Body_NORMAL.png",
+      "METAL": "Prop_Dispenser_Body_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_Dispenser_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_Dispenser_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_Dispenser_Trim_NORMAL.png",
+      "METAL": "Prop_Dispenser_Trim_METAL.png"
+    },
+    "Bomb": {
+      "COLOR": "Prop_Dispenser_Bomb_COLOR.png",
+      "ROUGHNESS": "Prop_Dispenser_Bomb_ROUGHNESS.png",
+      "NORMAL": "Prop_Dispenser_Bomb_NORMAL.png",
+      "METAL": "Prop_Dispenser_Bomb_METAL.png"
+    }
+  },
+  "glow": [
+    "Spark"
+  ],
+  "markers": {
+    "BombCentre": {
+      "blender": [
+        0.0,
+        0.0,
+        4.1
+      ],
+      "roblox_from_pivot": [
+        0.2448,
+        4.1,
+        0.12
+      ]
+    },
+    "Spark": {
+      "blender": [
+        0.48,
+        -0.12,
+        5.4
+      ],
+      "roblox_from_pivot": [
+        -0.2352,
+        5.4,
+        0.0
+      ]
+    }
+  },
+  "front_note": "The chute faces the front (-Y in Blender = the model's LookVector in Roblox); the crank is on the right.",
+  "ids": {
+    "model": 115207641252547,
+    "maps": {
+      "Body": [
+        84875609044910,
+        90861860197938,
+        86857934697170,
+        93228990722074
+      ],
+      "Bomb": [
+        78540136549446,
+        122405086338983,
+        130433305105392,
+        135543345338034
+      ],
+      "Trim": [
+        79120629062084,
+        70714363495129,
+        84302347273272,
+        115604079640347
+      ]
+    },
+    "maps_order": [
+      "COLOR",
+      "ROUGHNESS",
+      "NORMAL",
+      "METAL"
+    ]
+  }
+}

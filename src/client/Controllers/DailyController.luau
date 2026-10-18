@@ -338,7 +338,7 @@ local function buildQuests(s: { [string]: any }, refresh: boolean?)
 		})
 		-- the payout, under the tier chip
 		local r = D.TIER_REWARD[q.tier]
-		Widgets.icon(card, "Star", 20, { Position = UDim2.fromOffset(12, 36), ZIndex = 5 })
+		Widgets.icon(card, "Gem", 20, { Position = UDim2.fromOffset(12, 36), ZIndex = 5 })
 		Widgets.label(card, {
 			Position = UDim2.fromOffset(34, 36),
 			Size = UDim2.fromOffset(56, 20),

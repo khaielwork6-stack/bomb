@@ -1,0 +1,162 @@
+{
+  "key": "Prop.Crown",
+  "tris": {
+    "Gold": 5676,
+    "Velvet": 720,
+    "Gems": 1190,
+    "Finials": 3260
+  },
+  "tris_total": 10846,
+  "pivot_blender": [
+    0.0,
+    -0.039,
+    0.0
+  ],
+  "size_studs": [
+    1.3697,
+    1.2162,
+    1.3621
+  ],
+  "parts": {
+    "Gold": {
+      "COLOR": "Prop_Crown_Gold_COLOR.png",
+      "ROUGHNESS": "Prop_Crown_Gold_ROUGHNESS.png",
+      "NORMAL": "Prop_Crown_Gold_NORMAL.png",
+      "METAL": "Prop_Crown_Gold_METAL.png"
+    },
+    "Velvet": {
+      "COLOR": "Prop_Crown_Velvet_COLOR.png",
+      "ROUGHNESS": "Prop_Crown_Velvet_ROUGHNESS.png",
+      "NORMAL": "Prop_Crown_Velvet_NORMAL.png",
+      "METAL": "Prop_Crown_Velvet_METAL.png"
+    },
+    "Gems": {
+      "COLOR": "Prop_Crown_Gems_COLOR.png",
+      "ROUGHNESS": "Prop_Crown_Gems_ROUGHNESS.png",
+      "NORMAL": "Prop_Crown_Gems_NORMAL.png",
+      "METAL": "Prop_Crown_Gems_METAL.png"
+    },
+    "Finials": {
+      "COLOR": "Prop_Crown_Finials_COLOR.png",
+      "ROUGHNESS": "Prop_Crown_Finials_ROUGHNESS.png",
+      "NORMAL": "Prop_Crown_Finials_NORMAL.png",
+      "METAL": "Prop_Crown_Finials_METAL.png"
+    }
+  },
+  "parts_obsidian": {
+    "Gold": {
+      "COLOR": "Prop_CrownObsidian_Gold_COLOR.png",
+      "ROUGHNESS": "Prop_CrownObsidian_Gold_ROUGHNESS.png",
+      "NORMAL": "Prop_CrownObsidian_Gold_NORMAL.png",
+      "METAL": "Prop_CrownObsidian_Gold_METAL.png"
+    },
+    "Velvet": {
+      "COLOR": "Prop_CrownObsidian_Velvet_COLOR.png",
+      "ROUGHNESS": "Prop_CrownObsidian_Velvet_ROUGHNESS.png",
+      "NORMAL": "Prop_CrownObsidian_Velvet_NORMAL.png",
+      "METAL": "Prop_CrownObsidian_Velvet_METAL.png"
+    },
+    "Gems": {
+      "COLOR": "Prop_CrownObsidian_Gems_COLOR.png",
+      "ROUGHNESS": "Prop_CrownObsidian_Gems_ROUGHNESS.png",
+      "NORMAL": "Prop_CrownObsidian_Gems_NORMAL.png",
+      "METAL": "Prop_CrownObsidian_Gems_METAL.png"
+    },
+    "Finials": {
+      "COLOR": "Prop_CrownObsidian_Finials_COLOR.png",
+      "ROUGHNESS": "Prop_CrownObsidian_Finials_ROUGHNESS.png",
+      "NORMAL": "Prop_CrownObsidian_Finials_NORMAL.png",
+      "METAL": "Prop_CrownObsidian_Finials_METAL.png"
+    }
+  },
+  "obsidian_textures_dir": "export/textures_obsidian",
+  "markers": {
+    "SparklerBase": {
+      "blender": [
+        0.0,
+        -0.039,
+        1.2162
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        1.2162,
+        0.0
+      ]
+    },
+    "BandCentre": {
+      "blender": [
+        0.0,
+        0.0,
+        0.18
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        0.18,
+        0.039
+      ]
+    }
+  },
+  "markers_note": "SparklerBase = the top centre of the crown (the star's tip); the code stands its own sparkler there. BandCentre = the middle of the band (the old part-built crown's origin).",
+  "glow": [],
+  "ids": {
+    "model": 111475008028202,
+    "maps": {
+      "Finials": [
+        99321491495125,
+        99604333569393,
+        134313039835822,
+        85272513025984
+      ],
+      "Gems": [
+        116902536764406,
+        113797045815920,
+        122920156350520,
+        130160214346231
+      ],
+      "Gold": [
+        79013086805809,
+        104963681948528,
+        135883912259531,
+        104792963475879
+      ],
+      "Velvet": [
+        130906693633010,
+        75214750923844,
+        112059815997782,
+        89204613160125
+      ]
+    },
+    "obsidian": {
+      "Finials": [
+        99095943397895,
+        125352620081453,
+        72660473728509,
+        95571595056369
+      ],
+      "Gems": [
+        102544611254807,
+        108515882764435,
+        139051864096312,
+        96767480288701
+      ],
+      "Gold": [
+        124756092254353,
+        140459337623030,
+        140713244437225,
+        102824952111723
+      ],
+      "Velvet": [
+        85654968631679,
+        85566662751752,
+        104217522555893,
+        83402807930332
+      ]
+    },
+    "maps_order": [
+      "COLOR",
+      "ROUGHNESS",
+      "NORMAL",
+      "METAL"
+    ]
+  }
+}

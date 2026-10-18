@@ -98,7 +98,7 @@ local function build()
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	starsIcon = Widgets.icon(starsPill, "Star", 64, {
+	starsIcon = Widgets.icon(starsPill, "Gem", 64, {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 0, 0.5, 0),
 		ZIndex = 4,
@@ -326,7 +326,7 @@ function ProgressController.fly(from: Vector2, amount: number)
 	local landed = 0
 	for i = 1, count do
 		task.delay((i - 1) * 0.05, function()
-			local img = Widgets.icon(gui, "Star", 30, { AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 20 })
+			local img = Widgets.icon(gui, "Gem", 30, { AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 20 })
 			local holder = img.Parent :: Frame
 			local mid = (from + target) / 2 + Vector2.new(math.random(-120, 120), -math.random(80, 180))
 			local t0 = os.clock()

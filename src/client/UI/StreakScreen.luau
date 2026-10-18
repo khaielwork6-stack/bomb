@@ -49,8 +49,7 @@ local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0.8, rgb(196, 120, 255)),
 	ColorSequenceKeypoint.new(1, rgb(255, 90, 90)),
 })
-local REWARD_ICON =
-	{ Stars = "Star", SparkCrate = "Crate", GiftBox = "GiftBox", RareItem = "Gift", StreakBomb = "Bomb" }
+local REWARD_ICON = { Stars = "Gem", SparkCrate = "Crate", GiftBox = "GiftBox", RareItem = "Gift", StreakBomb = "Bomb" }
 local CARD = Vector2.new(84, 150)
 local BIG = Vector2.new(124, 182)
 local GAP = 8

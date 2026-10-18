@@ -592,8 +592,8 @@ return function(ctx)
 			c.Parent = stands
 		end
 		local labels = {
-			Spark = { "SPARK CRATE", "600 Stars" },
-			Inferno = { "INFERNO CRATE", "1,500 Stars" },
+			Spark = { "SPARK CRATE", "600 Gems" },
+			Inferno = { "INFERNO CRATE", "1,500 Gems" },
 			GiftBox = { "GIFT BOX", "playtime gift" },
 		}
 		billboard(

@@ -11,8 +11,12 @@
 --   • the pivot at the bottom centre.
 -- builders/MapYardProps.luau then swaps the Yard's part-built props for clones of these.
 
--- [Name] = { model id, { [MeshPart] = { COLOR, ROUGHNESS, NORMAL, METAL decal ids } } }
-local PROPS: { [string]: { model: number, maps: { [string]: { number } } } } = {
+-- [Name] = { model id, { [MeshPart] = { COLOR, ROUGHNESS, NORMAL, METAL decal ids } } }; an optional `obsidian` is a
+-- second texture set for the same mesh (the Crown's level-50 variant), built as its own prop <Name>Obsidian (a
+-- SurfaceAppearance's maps can't be changed at run time, so CrownController picks the prop instead).
+local PROPS: {
+	[string]: { model: number, maps: { [string]: { number } }, obsidian: { [string]: { number } }? },
+} = {
 	FireworkCrate = {
 		model = 99527339693045,
 		maps = {
@@ -79,13 +83,49 @@ local PROPS: { [string]: { model: number, maps: { [string]: { number } } } } = {
 			Plate = { 73145146886910, 121330359159250, 80823161776074, 76767131028317 },
 		},
 	},
+	GiantRocket = {
+		model = 88640243731732,
+		maps = {
+			Body = { 79770112857605, 91566644164800, 77111815795880, 72754162952880 }, -- near-white: MapYardProps tints it (colour A)
+			Stripes = { 124223839758639, 102438008879381, 93475950553892, 134827126368155 }, -- near-white: tinted colour B
+			Trim = { 120902600797384, 120307932374469, 132867453222589, 118248059776738 },
+		},
+	},
+	Dispenser = {
+		model = 115207641252547,
+		maps = {
+			Body = { 84875609044910, 90861860197938, 86857934697170, 93228990722074 },
+			Trim = { 79120629062084, 70714363495129, 84302347273272, 115604079640347 },
+			Bomb = { 78540136549446, 122405086338983, 130433305105392, 135543345338034 },
+		},
+	},
+	Crown = { -- the winner's crown (CrownController); `obsidian` = the level-50 Obsidian Crown's maps on the same mesh
+		model = 111475008028202,
+		maps = {
+			Gold = { 79013086805809, 104963681948528, 135883912259531, 104792963475879 },
+			Velvet = { 130906693633010, 75214750923844, 112059815997782, 89204613160125 },
+			Gems = { 116902536764406, 113797045815920, 122920156350520, 130160214346231 },
+			Finials = { 99321491495125, 99604333569393, 134313039835822, 85272513025984 },
+		},
+		obsidian = {
+			Gold = { 124756092254353, 140459337623030, 140713244437225, 102824952111723 },
+			Velvet = { 85654968631679, 85566662751752, 104217522555893, 83402807930332 },
+			Gems = { 102544611254807, 108515882764435, 139051864096312, 96767480288701 },
+			Finials = { 99095943397895, 125352620081453, 72660473728509, 95571595056369 },
+		},
+	},
 }
 local GLOW: { [string]: Color3 } = {
 	Lens = Color3.fromRGB(255, 240, 210),
+	Spark = Color3.fromRGB(255, 216, 74), -- the lit fuse tips (GiantRocket, Dispenser)
 }
 local HIT_H: { [string]: number } = { -- collision height where the bounding box's top is decoration
 	FireworkCrate = 2.6, -- the crate body, not the rockets
 	HandTruck = 3.4, -- as the part-built one
+	Dispenser = 3.4, -- the cabinet, not the bomb (MapDepotToy keeps the old box as the collision anyway)
+}
+local NO_HIT: { [string]: boolean } = { -- worn / decorative only: the Hit box exists (the PrimaryPart) but never blocks
+	Crown = true,
 }
 local ONLY: string? = nil -- set to a prop name to re-import just that one
 
@@ -169,7 +209,7 @@ for name, def in pairs(PROPS) do
 	hit.Name = "Hit"
 	hit.Size = Vector3.new(size.X, h, size.Z)
 	hit.CFrame = pivot * CFrame.new(0, h / 2, 0)
-	hit.Anchored, hit.CanCollide, hit.CanQuery, hit.CanTouch = true, true, true, false
+	hit.Anchored, hit.CanCollide, hit.CanQuery, hit.CanTouch = true, not NO_HIT[name], not NO_HIT[name], false
 	hit.Transparency = 1
 	hit.CastShadow = false
 	hit.TopSurface, hit.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
@@ -184,6 +224,26 @@ for name, def in pairs(PROPS) do
 		old:Destroy()
 	end
 	model.Parent = lib
+	if def.obsidian then
+		local alt = model:Clone()
+		alt.Name = name .. "Obsidian"
+		for part, ids in pairs(def.obsidian) do
+			local mp = alt:FindFirstChild(part)
+			local sa = mp and mp:FindFirstChildOfClass("SurfaceAppearance")
+			if sa then
+				sa.ColorMap = texOf(ids[1])
+				sa.RoughnessMap = texOf(ids[2])
+				sa.NormalMap = texOf(ids[3])
+				sa.MetalnessMap = texOf(ids[4])
+				table.insert(sas, sa)
+			end
+		end
+		local oldAlt = (lib :: Instance):FindFirstChild(alt.Name)
+		if oldAlt then
+			oldAlt:Destroy()
+		end
+		alt.Parent = lib
+	end
 	table.insert(report, ("%s %s (%d parts)"):format(name, tostring(size), #model:GetChildren()))
 end
 game:GetService("ContentProvider"):PreloadAsync(sas)

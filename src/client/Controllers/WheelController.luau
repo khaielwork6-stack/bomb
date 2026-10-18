@@ -48,7 +48,7 @@ local function segIcon(seg: { [string]: any }): string
 	if seg.kind == "Crate" then
 		return if seg.crate == "GiftBox" then "GiftBox" elseif seg.crate == "Inferno" then "CrateInferno" else "Crate"
 	end
-	return "Star"
+	return "Gem"
 end
 
 local function segText(seg: { [string]: any }): string

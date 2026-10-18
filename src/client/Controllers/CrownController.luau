@@ -1,10 +1,12 @@
 --!strict
 -- The WINNER crown (GDD §8.3, Asset Bible §5.5): anyone who won the last round wears a gold crown with a lit
 -- sparkler above their head, turning slowly, for the whole next round — everyone sees it (and the Dethrone quest
--- rewards booming them). Built client-side from parts (gold band, five points, gems, the sparkler with its sparks
--- and a warm light) and follows the head every frame.
+-- rewards booming them). The modelled crown (ReplicatedStorage.FV_Art.Props.Crown: gold band, red velvet cap,
+-- jewels, finials and a star; art/props/build_crown.py) with a lit sparkler rising from its star; it follows the head
+-- every frame. (A part-built crown stands in if the model isn't in the place.)
 -- The OBSIDIAN CROWN (Asset Bible §8.6, the level-50 reward): anyone wearing the Obsidian Crown title wears the same
--- crown in black volcanic glass with violet gems and tips, violet embers drifting up instead of the sparkler — all the
+-- crown in black volcanic glass with violet veins and amethysts (Props.CrownObsidian), violet embers drifting up
+-- instead of the sparkler — all the
 -- time, not just after a win (the gold winner's crown takes its place while they're Crowned).
 -- Implements: F-WIN-04 (presentation), AB §8.6 (the crown cosmetic).
 
@@ -27,6 +29,11 @@ local OBSIDIAN_TITLE = "Title_ObsidianCrown"
 local OBSIDIAN = Color3.fromRGB(28, 22, 38)
 local OBSIDIAN_EDGE = Color3.fromRGB(64, 48, 92)
 local VIOLET = Color3.fromRGB(176, 76, 255)
+
+-- the modelled crown: its pivot is the bottom centre; the band's centre (our origin) sits this far above it, and the
+-- star's tip (where the sparkler stands) this far above the band's centre
+local MODEL_BAND = CFrame.new(0, 0.18, 0.039)
+local STAR_TOP = 1.04
 
 type Kind = "Gold" | "Obsidian"
 type Crown = { model: Model, root: BasePart, head: BasePart, kind: Kind }
@@ -58,8 +65,33 @@ local function part(
 	return p
 end
 
--- The crown model in local space (origin = the band's centre); every part keeps its offset as an attribute.
-local function build(kind: Kind): (Model, BasePart)
+-- The modelled crown, cloned from FV_Art.Props, every part's offset from the band's centre kept as an attribute.
+local function modelled(kind: Kind): (Model?, BasePart?)
+	local art = ReplicatedStorage:FindFirstChild("FV_Art")
+	local props = art and art:FindFirstChild("Props")
+	local src = props and props:FindFirstChild(if kind == "Obsidian" then "CrownObsidian" else "Crown")
+	if not src or not src:IsA("Model") then
+		return nil, nil
+	end
+	local m = new("Model", { Name = "FV_Crown" }) :: Model
+	local root = part(m, "Root", Vector3.one * 0.1, GOLD, Enum.Material.Metal)
+	root.Transparency = 1
+	root:SetAttribute("Offset", CFrame.identity)
+	local origin = src:GetPivot() * MODEL_BAND
+	for _, d in ipairs(src:GetChildren()) do
+		if d:IsA("BasePart") and d.Name ~= "Hit" then
+			local c = d:Clone()
+			c.Anchored, c.CanCollide, c.CanQuery, c.CanTouch, c.CastShadow = true, false, false, false, false
+			c:SetAttribute("Offset", origin:ToObjectSpace(d.CFrame))
+			c.Parent = m
+		end
+	end
+	m.PrimaryPart = root
+	return m, root
+end
+
+-- The part-built crown in local space (origin = the band's centre), when the model isn't in the place.
+local function partBuilt(kind: Kind): (Model, BasePart)
 	local obsidian = kind == "Obsidian"
 	local bandA = if obsidian then OBSIDIAN else GOLD
 	local bandB = if obsidian then OBSIDIAN_EDGE else GOLD_DEEP
@@ -100,11 +132,20 @@ local function build(kind: Kind): (Model, BasePart)
 		)
 		add(gem, CFrame.Angles(0, a, 0) * CFrame.new(0, 0.02, -R - 0.07))
 	end
-	if obsidian then
-		-- violet embers drifting up out of the crown, and a cold violet glow
+	m.PrimaryPart = root
+	return m, root
+end
+
+-- The crown's life: violet embers and a cold glow for the Obsidian Crown; for the winner's gold crown a lit sparkler
+-- standing up out of the top (`top` = how far above the band's centre it stands).
+local function effects(m: Model, kind: Kind, top: number)
+	local function add(p: BasePart, cf: CFrame)
+		p:SetAttribute("Offset", cf)
+	end
+	if kind == "Obsidian" then
 		local core = part(m, "Core", Vector3.one * 0.3, VIOLET, Enum.Material.Neon, Enum.PartType.Ball)
-		core.Transparency = 0.6
-		add(core, CFrame.new(0, 0.2, 0))
+		core.Transparency = 1 -- just the embers' source and the light, inside the cap
+		add(core, CFrame.new(0, 0.5, 0))
 		local att = new("Attachment", { Parent = core })
 		new("ParticleEmitter", {
 			Texture = Assets.Vfx.Ember,
@@ -121,14 +162,12 @@ local function build(kind: Kind): (Model, BasePart)
 			Parent = att,
 		})
 		new("PointLight", { Color = VIOLET, Range = 6, Brightness = 1.2, Parent = core })
-		m.PrimaryPart = root
-		return m, root
+		return
 	end
-	-- the lit sparkler, standing up out of the middle
-	local wand = part(m, "Sparkler", Vector3.new(0.05, 0.9, 0.05), Color3.fromRGB(90, 90, 96), Enum.Material.Metal)
-	add(wand, CFrame.new(0, 0.5, 0) * CFrame.Angles(0, 0, math.rad(12)))
+	local wand = part(m, "Sparkler", Vector3.new(0.05, 0.7, 0.05), Color3.fromRGB(90, 90, 96), Enum.Material.Metal)
+	add(wand, CFrame.new(0, top + 0.26, 0) * CFrame.Angles(0, 0, math.rad(12)))
 	local tipPart = part(m, "SparkTip", Vector3.one * 0.12, P.Spark, Enum.Material.Neon, Enum.PartType.Ball)
-	add(tipPart, CFrame.new(0.1, 0.95, 0))
+	add(tipPart, CFrame.new(-0.07, top + 0.6, 0))
 	local att = new("Attachment", { Parent = tipPart })
 	new("ParticleEmitter", {
 		Texture = Assets.Vfx.Streak,
@@ -158,8 +197,17 @@ local function build(kind: Kind): (Model, BasePart)
 		Parent = att,
 	})
 	new("PointLight", { Color = P.Spark, Range = 7, Brightness = 1.6, Parent = tipPart })
-	m.PrimaryPart = root
-	return m, root
+end
+
+local function build(kind: Kind): (Model, BasePart)
+	local m, root = modelled(kind)
+	if m and root then
+		effects(m, kind, STAR_TOP)
+		return m, root
+	end
+	local pm, proot = partBuilt(kind)
+	effects(pm, kind, 0.6)
+	return pm, proot
 end
 
 local function attach(host: Instance, model: Model, kind: Kind)

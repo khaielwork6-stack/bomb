@@ -1,0 +1,91 @@
+{
+  "key": "Prop.GiantRocket",
+  "tris": {
+    "Body": 280,
+    "Stripes": 5600,
+    "Trim": 4872,
+    "Spark": 188
+  },
+  "tris_total": 10940,
+  "pivot_blender": [
+    0.0,
+    -1.3417,
+    -0.0315
+  ],
+  "size_studs": [
+    8.9932,
+    28.8315,
+    11.6766
+  ],
+  "parts": {
+    "Body": {
+      "COLOR": "Prop_GiantRocket_Body_COLOR.png",
+      "ROUGHNESS": "Prop_GiantRocket_Body_ROUGHNESS.png",
+      "NORMAL": "Prop_GiantRocket_Body_NORMAL.png",
+      "METAL": "Prop_GiantRocket_Body_METAL.png"
+    },
+    "Stripes": {
+      "COLOR": "Prop_GiantRocket_Stripes_COLOR.png",
+      "ROUGHNESS": "Prop_GiantRocket_Stripes_ROUGHNESS.png",
+      "NORMAL": "Prop_GiantRocket_Stripes_NORMAL.png",
+      "METAL": "Prop_GiantRocket_Stripes_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_GiantRocket_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_GiantRocket_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_GiantRocket_Trim_NORMAL.png",
+      "METAL": "Prop_GiantRocket_Trim_METAL.png"
+    }
+  },
+  "tintable": {
+    "Body": "colour A (MapYardToy rocket colA)",
+    "Stripes": "colour B (colB: spirals, fins, nose)"
+  },
+  "glow": [
+    "Spark"
+  ],
+  "markers": {
+    "Spark": {
+      "blender": [
+        -0.2,
+        -7.0,
+        1.4
+      ],
+      "roblox_from_pivot": [
+        0.2,
+        1.4315,
+        -5.6583
+      ]
+    }
+  },
+  "front_note": "The fuse runs out to the front (-Y in Blender = the model's LookVector in Roblox).",
+  "ids": {
+    "model": 88640243731732,
+    "maps": {
+      "Body": [
+        79770112857605,
+        91566644164800,
+        77111815795880,
+        72754162952880
+      ],
+      "Stripes": [
+        124223839758639,
+        102438008879381,
+        93475950553892,
+        134827126368155
+      ],
+      "Trim": [
+        120902600797384,
+        120307932374469,
+        132867453222589,
+        118248059776738
+      ]
+    },
+    "maps_order": [
+      "COLOR",
+      "ROUGHNESS",
+      "NORMAL",
+      "METAL"
+    ]
+  }
+}

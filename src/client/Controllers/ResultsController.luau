@@ -244,7 +244,7 @@ local function line(list: Frame, order: number, text: string, delay: number, opt
 		num(opts.xp, P.Runner, " XP", 1)
 	end
 	if opts.stars and opts.stars > 0 then
-		Widgets.icon(right, "Star", 20, { LayoutOrder = 2 })
+		Widgets.icon(right, "Gem", 20, { LayoutOrder = 2 })
 		num(opts.stars, P.Spark, "", 3)
 	end
 	row.Visible = false

@@ -274,6 +274,12 @@ Assets.Icon = {
 	Slide = "rbxassetid://95001239078553",
 	Sparkler = "rbxassetid://91909837127058",
 	Star = "rbxassetid://76421262472403",
+	-- the Gems currency (art/icons/set_gems.py; the owner's red-gem reference, 2026-10-18)
+	Gem = "rbxassetid://103736628816473",
+	GemPile = "rbxassetid://124746684251508",
+	GemHeap = "rbxassetid://138626535327336",
+	GemBag = "rbxassetid://92419500414344",
+	GemChest = "rbxassetid://113263053316327",
 	Stop = "rbxassetid://129830810379344",
 	Ticket = "rbxassetid://81430764809824",
 	Trail = "rbxassetid://72488857407891",

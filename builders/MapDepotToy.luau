@@ -8,7 +8,9 @@
 --   • the shared stud texture on the walkable tops;
 --   • the part-built dressing crates become the modelled firework crate (ReplicatedStorage.FV_Art.Props);
 --   • adds the crate stands (the three crates on the modelled stands, the price on each sign) at the front-left corner
---     and the modelled spin wheel at the front-right, with the prompts the client opens screens from (FV_Open).
+--     and the modelled spin wheel at the front-right, with the prompts the client opens screens from (FV_Open);
+--   • the Fuse Range's part-built practice-bomb dispenser becomes the modelled machine (FV_Art.Props.Dispenser); the
+--     old "Dispenser" box stays, invisible, as its collision and prompt holder.
 -- Re-runnable: it rebuilds its own "Toy" folder and its colour rules are absolute. Re-run it after every MapDepot run.
 
 local rgb = Color3.fromRGB
@@ -105,8 +107,8 @@ local PLASTIC_FROM = {
 	[Enum.Material.Marble] = true,
 }
 local CRATES = { -- the stands, left to right as you face them from the plaza
-	{ kind = "Spark", title = "SPARK CRATE", price = "600 Stars", color = rgb(255, 170, 60) },
-	{ kind = "Inferno", title = "INFERNO CRATE", price = "1,500 Stars", color = rgb(255, 80, 60) },
+	{ kind = "Spark", title = "SPARK CRATE", price = "600 Gems", color = rgb(255, 170, 60) },
+	{ kind = "Inferno", title = "INFERNO CRATE", price = "1,500 Gems", color = rgb(255, 80, 60) },
 	{ kind = "GiftBox", title = "GIFT BOX", price = "playtime gift", color = rgb(196, 120, 255) },
 }
 local STAND_SPACING = 10.5
@@ -350,10 +352,44 @@ return function(ctx)
 		end
 	end
 
-	return ("Depot restyled: %d parts recoloured, %d crates swapped, %d stands, wheel %s"):format(
+	-- ── 4. The Fuse Range's practice-bomb dispenser becomes the modelled machine ─────────────────────────────────
+	-- MapDepot's "Dispenser" box stays (invisible) as the collision and keeps its PracticePrompt (DepotController /
+	-- BotService read it by name); "DispenserBomb" stays too, hidden: the model carries its own bomb on top, at the
+	-- same height. The model sits on the box's bottom, its chute turned toward the spawn.
+	local dispArt = props and props:FindFirstChild("Dispenser")
+	local range = lobby:FindFirstChild("FuseRange")
+	local disp = range and range:FindFirstChild("Dispenser")
+	local dispBomb = range and range:FindFirstChild("DispenserBomb")
+	local dispensed = false
+	if dispArt and dispArt:IsA("Model") and disp and disp:IsA("BasePart") then
+		local m = dispArt:Clone()
+		m.Name = "DispenserModel"
+		local foot = disp.Position - Vector3.new(0, disp.Size.Y / 2, 0)
+		m:PivotTo(CFrame.lookAt(foot, Vector3.new(look.X, foot.Y, look.Z)))
+		-- the pivot is the bounding box's bottom centre (the crank and the tray push it off-centre): centre the
+		-- cabinet ("Body") on the old box
+		local body = m:FindFirstChild("Body")
+		if body and body:IsA("BasePart") then
+			local d = foot - body.Position
+			m:PivotTo(m:GetPivot() + Vector3.new(d.X, 0, d.Z))
+		end
+		local hit = m:FindFirstChild("Hit")
+		if hit and hit:IsA("BasePart") then
+			hit.CanCollide, hit.CanQuery, hit.CanTouch = false, false, false -- the old box does the blocking
+		end
+		m.Parent = toy
+		disp.Transparency = 1
+		if dispBomb and dispBomb:IsA("BasePart") then
+			dispBomb.Transparency = 1
+		end
+		dispensed = true
+	end
+
+	return ("Depot restyled: %d parts recoloured, %d crates swapped, %d stands, wheel %s, dispenser %s"):format(
 		recoloured,
 		swapped,
 		#CRATES,
-		if wheelArt then "yes" else "missing"
+		if wheelArt then "yes" else "missing",
+		if dispensed then "yes" else "missing"
 	)
 end

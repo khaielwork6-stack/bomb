@@ -183,7 +183,7 @@ local function play(up: Up)
 		})
 		local holder = card.Parent :: Frame
 		holder.ZIndex = 6
-		local starImg = Widgets.icon(card, "Star", 52, {
+		local starImg = Widgets.icon(card, "Gem", 52, {
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 14, 0.5, 0),
 			ZIndex = 8,

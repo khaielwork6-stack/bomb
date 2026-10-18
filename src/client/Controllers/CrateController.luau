@@ -451,7 +451,7 @@ local function open(r: { [string]: any })
 			font = Theme.Font.Display,
 			color = P.Spark,
 			stroke = 3,
-			Text = ("Duplicate  +%d Stars"):format(r.refund or 0),
+			Text = Config.Strings.Ui.DuplicateRefund:format(r.refund or 0),
 			ZIndex = 14,
 		})
 	end

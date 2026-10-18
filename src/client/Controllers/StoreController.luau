@@ -66,6 +66,7 @@ local PREVIEWABLE = { Explosion = true, Trail = true, VictoryBoom = true }
 local TRAIL_PREVIEW = 4 -- seconds
 local BOOM_AHEAD = 10 -- studs in front of you
 local STAR_PACKS = { "Stars500", "Stars1200", "Stars3000", "Stars7000" }
+local PACK_ICON = { "GemPile", "GemHeap", "GemBag", "GemChest" }
 
 local screen = "" -- "Shop" | "Locker" | ""
 local tab = "Featured"
@@ -230,7 +231,7 @@ local function priceButton(
 	})
 	local px = h or (if size.Y.Offset > 0 then size.Y.Offset else 40)
 	local text = tostring(price)
-	Widgets.icon(row, "Star", math.floor(px * 0.8), { ZIndex = 10 })
+	Widgets.icon(row, "Gem", math.floor(px * 0.8), { ZIndex = 10 })
 	Widgets.label(row, {
 		Size = UDim2.fromOffset(math.ceil(#text * px * 0.4) + 4, px),
 		TextSize = math.floor(px * 0.62),
@@ -689,15 +690,12 @@ local function starsCard(parent: Instance, key: string, order: number)
 		ZIndex = 3,
 		Parent = card,
 	})
-	local pile = math.clamp(order, 1, 4) -- more stars in the picture for the bigger packs
-	for k = 1, pile do
-		Widgets.icon(stage, "Star", 86 - (pile - 1) * 6, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, (k - (pile + 1) / 2) * 30, 0.5, (k % 2) * 10 - 5),
-			Rotation = (k - (pile + 1) / 2) * 12,
-			ZIndex = 4 + k,
-		})
-	end
+	-- the pack's picture grows with it: a pile, a heap, a sack, a chest (the 3D gem set)
+	Widgets.icon(stage, PACK_ICON[order] or "GemChest", 116, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 5,
+	})
 	if pack.tag then
 		tag(card, S.Ui.BestValue, Color3.new(1, 1, 1), 9)
 	end
@@ -782,7 +780,7 @@ local TAB_PRESET = {
 }
 
 local TAB_NAME = { Featured = "Featured", Crates = "Crates", BombSkin = "Skins", FuseSpark = "Sparks" }
-local TAB_ICON = { Featured = "Crown", Stars = "Star", Crates = "Crate", Starter = "Gift", BombSkin = "Bomb" }
+local TAB_ICON = { Featured = "Crown", Stars = "GemPile", Crates = "Crate", Starter = "Gift", BombSkin = "Bomb" }
 local TAB_ICON_W, TAB_GAP = 50, 8
 local FEATURED_HEADROOM = 20
 
@@ -1004,7 +1002,7 @@ confirmBuy = function(id: string)
 		Size = UDim2.new(1, -32, 0, 60),
 		TextSize = 20,
 		wrap = true,
-		Text = ("Buy %s for %d Stars?"):format(item.name, price),
+		Text = S.Ui.BuyFor:format(item.name, price),
 		ZIndex = 60,
 	})
 	local function done()
