@@ -2,8 +2,8 @@
 -- The MEGA BOMB on every client (GDD §16): the event clock (F-MEGA-10: "MEGA BOMB IN 4:12" between rounds, the Mega
 -- Fuse "MEGA 1:12" during the round), the giant's huge bomb on its back — the hero bomb at the giant's scale, its fuse
 -- burning as the true Mega Fuse and its face going SMUG → UH-OH → PANIC as it runs down — the STOMP's telegraph ring,
--- the feed beat ("−6 s!"), and the whole-map detonation. The clock is functional styling only (the UI pass restyles
--- it; Asset Bible §6).
+-- the feed beat ("−6 s!"), and the whole-map detonation. The clock is a violet arcade chip with the 3D Mega icon
+-- breaking out of its left end; it pulses through the last minute before the event (Asset Bible §6, §7.6).
 -- Implements: F-MEGA-04 (telegraph), F-MEGA-05 (the clock + detonation), F-MEGA-06 (feed feedback), F-MEGA-10.
 
 local Players = game:GetService("Players")
@@ -18,6 +18,7 @@ local BombFace = require(script.Parent.Parent.BombFace)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Widgets = require(script.Parent.Parent.UI.Widgets)
 local FxController = require(script.Parent.FxController)
 
 local MG = Config.Mega
@@ -31,6 +32,10 @@ local MegaController = {}
 local gs: Configuration
 local chip: Frame
 local chipLabel: TextLabel
+local stopPulse: (() -> ())? = nil
+local lastMega: string? = nil
+local PULSE_UNDER = 60 -- seconds before the event the chip starts to pulse
+local MEGA_DARK = Color3.fromRGB(96, 30, 170)
 local bomb: { model: Model, mount: BasePart, face: BombFace.Rig?, fuse: { BasePart }, host: Instance }? = nil
 
 local function clock(seconds: number): string
@@ -101,10 +106,24 @@ local function step(dt: number)
 		chip.Visible = type(nextAt) == "number"
 		if type(nextAt) == "number" then
 			chipLabel.Text = S.MegaNext:format(clock(nextAt - t))
+			local soon = nextAt - t <= PULSE_UNDER
+			if soon and not stopPulse then
+				stopPulse = Widgets.pulse(chip)
+			elseif not soon and stopPulse then
+				stopPulse()
+				stopPulse = nil
+			end
 		end
 	else
 		chip.Visible = false
 	end
+	-- a MEGA round started: the countdown chip stops pulsing (the HUD flashes the MEGA BOMB intro)
+	local mega = if type(megaId) == "string" then megaId else nil
+	if mega and mega ~= lastMega and stopPulse then
+		stopPulse()
+		stopPulse = nil
+	end
+	lastMega = mega
 	-- the giant's bomb
 	local host, char = nil, nil
 	if type(megaId) == "string" then
@@ -179,20 +198,32 @@ function MegaController.start()
 	local face = Theme.panel(gui, {
 		Name = "MegaClock",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 172), -- top-centre, under the round chips (the top-right is the Stars / XP stack)
-		Size = UDim2.fromOffset(200, 40),
-		color = P.Ink2,
-		border = P.Mega,
-		border2 = P.Ink,
+		Position = UDim2.new(0.5, 0, 0, 70), -- top-centre, right under the round chip (clear of the Depot hint below)
+		Size = UDim2.fromOffset(250, 44),
+		color = P.Mega,
+		color2 = MEGA_DARK,
+		border = Color3.new(1, 1, 1),
+		border2 = Color3.fromRGB(220, 200, 255),
+		glow = P.Mega,
+		glowT = 0.5,
 		radius = 999,
 	})
 	chip = face.Parent :: Frame
-	chipLabel = Theme.display(face, {
-		Size = UDim2.fromScale(1, 1),
+	Widgets.icon(chip, "Mega", 58, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 10, 0.5, -2),
+		Rotation = -10,
+		ZIndex = 6,
+	})
+	chipLabel = Widgets.label(face, {
+		Position = UDim2.fromOffset(34, 0),
+		Size = UDim2.new(1, -40, 1, 0),
+		TextSize = 22,
+		font = Theme.Font.Display,
+		stroke = 2.5,
 		Text = "",
-		TextSize = 20,
-		TextColor3 = P.Paper,
-	}) :: TextLabel
+		ZIndex = 5,
+	})
 	chip.Visible = false
 	RunService.RenderStepped:Connect(step)
 	Net.listen("RoundFx", function(p)

@@ -30,7 +30,7 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
 - [x] **Shop / Locker: what's still missing** *(fallenbomb 2026-10-18: Stars tab (shown once the products exist), featured countdown, PREVIEW on your own character instead of a dummy; icon tabs. The Emotes tab shows once emotes are equippable)* (HOOKED · §17.3). Stars and Emotes tabs, explosion-on-dummy previews, the featured-rotation countdown, and "Preview in game".
 - [ ] **Emote wheel** (BLOCKED · AB §8.5). Needs the 8 clips (§6).
   - **Request for partner:** add Emote to StoreService's equip slots, plus a lobby-only phase check.
-- [ ] **MEGA BOMB chip, lobby clock, Event Card** (BLOCKED · GDD §16, AB §7.6). The whole MEGA mode is P6 server work. The art (violet poster, Mega icon, chip) can be drawn ahead of it.
+- [x] **MEGA BOMB chip, lobby clock, Event Card** *(fallenbomb 2026-10-18: the partner shipped MEGA; the chip is restyled violet with the Mega icon and pulses in the last minute; the clock tower is in the restyled Depot; his intro flash is the event card)* (BLOCKED · GDD §16, AB §7.6). The whole MEGA mode is P6 server work. The art (violet poster, Mega icon, chip) can be drawn ahead of it.
 - [ ] **Moment of the Round card** (BLOCKED · GDD §10.5). **Request for partner:** a highlight buffer plus a replay payload.
 
 ## 3. HUD upgrades (all HOOKED; the data is sent)
@@ -46,8 +46,8 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
 ## 4. Icons (FREE · AB §6.4): 11 of ≈40 done, ≈24 to draw in `art/ui/make_icons.py`
 - [x] Fuse · Spark · Crown · Trophy · Runner · Bomber · Inferno Crate · Gear · Lock · Arrow · Close · Plus · R$ price badge
 - [x] Dash · Slide · Stop (needed for §1)
-- [ ] Categories: Bomb Skin · Explosion · Spark · Trail · Victory · Title · Emote
-- [ ] Mega (art can go ahead of the MEGA mode)
+- [x] Categories: Bomb Skin · Explosion · Spark · Trail · Victory · Title · Emote *(the 3D set already had them; now the shop tabs)*
+- [x] Mega *(3D icon; on the MEGA chip)*
 
 ## 5. Cosmetics art (P5-07)
 The store already lists these but hides them until their art exists (`Cosmetics.ready()`).
