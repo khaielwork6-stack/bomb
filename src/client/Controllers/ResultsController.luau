@@ -459,13 +459,10 @@ local function show(payload: any)
 	})
 	local holder = panelFace.Parent :: Frame
 	card, face = holder, panelFace
-	local v = Screen.size()
-	new("UIScale", {
-		Name = "Fit",
-		-- room for the podium above and the HUD's round chip at the top
-		Scale = math.min(1, (v.Y - 150) / (holder.Size.Y.Offset + Podium.HEIGHT), (v.X - 30) / W),
-		Parent = holder,
-	})
+	-- room for the podium above and the HUD's round chip at the top
+	Screen.fit(holder, function(v)
+		return math.min(1, (v.Y - 150) / (holder.Size.Y.Offset + Podium.HEIGHT), (v.X - 30) / W)
+	end)
 	local top = topThree(payload)
 	if #top > 0 then
 		holder.Position =

@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -87,9 +88,9 @@ local function build(options: { Option }, endsAt: number)
 		Parent = gui,
 	})
 	card = holder
-	local fit = new("UIScale", { Parent = holder })
-	local vp = gui.AbsoluteSize
-	fit.Scale = math.min(1, (vp.Y - 120) / 320, (vp.X - 40) / 660)
+	Screen.fit(holder, function(vp)
+		return math.min(1, (vp.Y - 120) / 320, (vp.X - 40) / 660)
+	end)
 	local body = Theme.panel(holder, {
 		Size = UDim2.fromScale(1, 1),
 		color = Color3.fromRGB(40, 38, 54),

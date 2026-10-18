@@ -9,13 +9,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local P = Theme.Palette
@@ -26,6 +26,8 @@ local player = Players.LocalPlayer
 local HudController = {}
 
 local gs: Configuration
+local HEADLINE_SIZE, SUBLINE_SIZE, MOVE_SIZE = 56, 24, 48 -- the centre lines on a wide screen…
+local HEADLINE_REF_W, HEADLINE_MIN = 1000, 0.66 -- …scaled by width / 1000 below that, down to 66%
 local gui: ScreenGui
 local fuseHolder: Frame
 local fuseFill: Frame
@@ -48,7 +50,7 @@ local vignette: { GuiObject } = {}
 local lastRole = ""
 
 local function touch(): boolean
-	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	return Screen.touch() -- the touch layout (device detection lives in MobileController; Studio can simulate it)
 end
 
 local function now(): number
@@ -273,14 +275,14 @@ local function build()
 		Name = "Headline",
 		Position = UDim2.fromScale(0.5, 0.3),
 		Size = UDim2.fromOffset(700, 70),
-		TextSize = 56,
+		TextSize = HEADLINE_SIZE,
 	})
 	headlineScale = new("UIScale", { Scale = 1, Parent = headline })
 	subline = Theme.display(gui, {
 		Name = "Subline",
 		Position = UDim2.new(0.5, 0, 0.3, 46),
 		Size = UDim2.fromOffset(600, 32),
-		TextSize = 24,
+		TextSize = SUBLINE_SIZE,
 		font = Theme.Font.Heavy,
 		stroke = 2,
 	})
@@ -288,7 +290,7 @@ local function build()
 		Name = "MoveWarn",
 		Position = UDim2.fromScale(0.5, 0.62),
 		Size = UDim2.fromOffset(400, 60),
-		TextSize = 48,
+		TextSize = MOVE_SIZE,
 		color = P.Detonate,
 		Text = "MOVE!",
 	})
@@ -312,7 +314,7 @@ end
 -- ── Placement (phones: the counter sits in the top bar row) ─────────────────────────────────────────────────────
 local function place()
 	local holder = counter.Parent :: Frame
-	local inset = GuiService.TopbarInset
+	local inset = Screen.topbar()
 	if touch() then
 		holder.AnchorPoint = Vector2.new(1, 0.5)
 		holder.Position = UDim2.new(1, -12, 0, inset.Min.Y + inset.Height / 2)
@@ -321,6 +323,11 @@ local function place()
 		holder.Position = UDim2.new(1, -18, 0, inset.Max.Y + 12)
 	end
 	fuseHolder.Size = UDim2.fromOffset(if touch() then 220 else 300, 30)
+	-- the big centre lines shrink with the screen's width, so they never run edge to edge on a small phone
+	local k = math.clamp(Screen.size().X / HEADLINE_REF_W, HEADLINE_MIN, 1)
+	headline.TextSize = math.floor(HEADLINE_SIZE * k)
+	subline.TextSize = math.floor(SUBLINE_SIZE * k)
+	moveWarn.TextSize = math.floor(MOVE_SIZE * k)
 end
 
 -- A count changes like a split-flap: the old number squashes shut, the new one springs open.
@@ -506,7 +513,7 @@ function HudController.start()
 	build()
 	place()
 	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(place)
-	UserInputService.LastInputTypeChanged:Connect(place)
+	Screen.Changed:Connect(place)
 	RunService.RenderStepped:Connect(step)
 	-- "You're a Bomber" beat when my boom turns me (GDD §10.3).
 	player:GetAttributeChangedSignal("Role"):Connect(function()

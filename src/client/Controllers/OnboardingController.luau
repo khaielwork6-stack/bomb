@@ -70,8 +70,9 @@ function OnboardingController.showRules()
 	})
 	local holder = face.Parent :: Frame
 	holder.ZIndex = 5
-	local v = Screen.size()
-	new("UIScale", { Scale = math.min(1, (v.Y - 80) / 440, (v.X - 30) / 800), Parent = holder })
+	Screen.fit(holder, function(v)
+		return math.min(1, (v.Y - 80) / 440, (v.X - 30) / 800)
+	end)
 	Skin.ribbon(holder, S.RulesTitle, P.Gold, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 0),

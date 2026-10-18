@@ -20,6 +20,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudController = require(script.Parent.HudController)
 local InputController = require(script.Parent.InputController)
@@ -30,6 +31,11 @@ local S = Config.Strings.Modifiers
 local P = Theme.Palette
 local Ph = Types.Phase
 local new = Theme.new
+-- layout (px at the 720 px-tall reference screen; scaled down on shorter screens)
+local REF_H = 720
+local MIN_SCALE = 0.7
+local CHIP_DROP = 118 -- below the top bar, under the team counter
+local TOUCH_STACK_W = 170 -- room kept right of STRIKE for the touch action buttons
 local FLAT = Vector3.new(1, 0, 1)
 
 local ModifierController = {}
@@ -384,6 +390,21 @@ function ModifierController.start()
 		strike()
 	end)
 	strikeHolder.Visible = false
+	-- both scale with the screen; on short phone screens the chip tucks under the team counter and STRIKE sits left of
+	-- the touch action buttons instead of on top of them
+	local chipFit = new("UIScale", { Parent = chip }) :: UIScale
+	local strikeFit = new("UIScale", { Parent = strikeHolder }) :: UIScale
+	local function place()
+		local v = Screen.size()
+		local k = math.clamp(v.Y / REF_H, MIN_SCALE, 1)
+		chipFit.Scale, strikeFit.Scale = k, k
+		chip.Position = UDim2.new(1, -32, 0, Screen.topbar().Max.Y + CHIP_DROP * k)
+		strikeHolder.Position = if Screen.touch()
+			then UDim2.new(1, -TOUCH_STACK_W * k, 0.56, 0)
+			else UDim2.new(1, -24, 0.56, 0)
+	end
+	place()
+	Screen.Changed:Connect(place)
 	InputController.on("Ability", function(state: Enum.UserInputState)
 		if state ~= Enum.UserInputState.Begin then
 			return false

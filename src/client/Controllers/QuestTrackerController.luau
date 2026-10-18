@@ -9,7 +9,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -20,10 +19,9 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
-local Dock = require(script.Parent.Parent.UI.Dock)
 
 -- the tracker sits right of the left dock column (DailyController: the tiles + their 14 px margin and badges)
-local DOCK_CLEAR = Dock.SIZE + 40
+local DOCK_GAP = 16 -- px between the dock's right edge and the tracker
 
 local S = Config.Strings
 local P = Theme.Palette
@@ -52,10 +50,12 @@ local gui: ScreenGui
 local root: Frame
 local rows: { Row } = {}
 local expanded = false
+local headerText: TextLabel? = nil
 local revealed = false
 
-local function touch(): boolean
-	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+-- phones and short screens keep the rows folded to the rings (they'd crowd the top pills); a tap still opens them
+local function roomy(): boolean
+	return not Screen.touch() and not Screen.compact()
 end
 
 local function questText(id: string, target: number): string
@@ -97,6 +97,9 @@ local function layout()
 		r.frame.Size = UDim2.fromOffset(if expanded then 250 else 46, 46)
 	end
 	root.Size = UDim2.fromOffset(if expanded then 260 else 56, 3 * 52 + 30)
+	if headerText then
+		headerText.Visible = expanded -- folded: just the scroll icon over the rings
+	end
 end
 
 local function build()
@@ -125,7 +128,7 @@ local function build()
 		Parent = root,
 	})
 	Widgets.icon(header, "Scroll", 26, { Position = UDim2.fromOffset(4, 0), ZIndex = 4 })
-	Widgets.label(header, {
+	headerText = Widgets.label(header, {
 		Position = UDim2.fromOffset(34, 0),
 		Size = UDim2.fromOffset(126, 26),
 		TextSize = 15,
@@ -240,6 +243,11 @@ local function build()
 	end
 end
 
+-- just right of the dock (one or two columns, at its scale)
+local function besideDock(): UDim2
+	return UDim2.new(0, 14 + Screen.safe().left + DailyController.dockWidth() + DOCK_GAP, 0.4, 0)
+end
+
 local function apply(s: { [string]: any })
 	local d = s.daily
 	if not d then
@@ -249,9 +257,8 @@ local function apply(s: { [string]: any })
 	local should = (d.flags and d.flags.questsIntro) or (s.rounds or 0) >= 2
 	if should and not revealed then
 		revealed = true
-		local safe = Screen.safe()
 		TweenService:Create(root, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0, DOCK_CLEAR + safe.left, 0.4, 0),
+			Position = besideDock(),
 		}):Play()
 	end
 	for i, r in ipairs(rows) do
@@ -291,10 +298,16 @@ function QuestTrackerController.start()
 	local function auto()
 		local ph = ClientState.phase()
 		local lobby = ph == Types.Phase.Intermission or ph == Types.Phase.Results or ph == Types.Phase.Boot or ph == ""
-		expanded = lobby and not touch()
+		expanded = lobby and roomy()
 		layout()
 	end
 	auto()
+	Screen.Changed:Connect(function()
+		auto()
+		if revealed then
+			root.Position = besideDock()
+		end
+	end)
 	local gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
 	gs:GetAttributeChangedSignal("Phase"):Connect(auto)
 	Progress.Changed:Connect(apply)

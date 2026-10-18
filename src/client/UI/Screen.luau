@@ -208,4 +208,21 @@ if studio then
 	end)
 end
 
+-- A "Fit" UIScale on `holder` that keeps `rule(screen size)` applied while the holder lives, so a panel re-fits when
+-- a phone turns or the window is resized.
+function Screen.fit(holder: Instance, rule: (Vector2) -> number): UIScale
+	local sc = Instance.new("UIScale")
+	sc.Name = "Fit"
+	local function apply()
+		sc.Scale = rule(Screen.size())
+	end
+	apply()
+	sc.Parent = holder
+	local conn = changed.Event:Connect(apply)
+	holder.Destroying:Connect(function()
+		conn:Disconnect()
+	end)
+	return sc
+end
+
 return Screen

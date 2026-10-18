@@ -357,16 +357,17 @@ function Widgets.rays(parent: Instance, color: Color3, strong: boolean, position
 		local r = new("Frame", {
 			Size = UDim2.fromScale(1, 0.5),
 			BackgroundColor3 = color,
-			BackgroundTransparency = if strong then 0.5 else 0.75,
+			BackgroundTransparency = if strong then 0.6 else 0.78,
 			BorderSizePixel = 0,
 			ZIndex = 2,
 			Parent = arm,
 		})
 		new("UIGradient", {
 			Transparency = NumberSequence.new({
+				-- bright at the hub, gone well before the screen edge: a glow round the prize, never a wash over the screen
 				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.6, 0.35),
-				NumberSequenceKeypoint.new(1, 0.1),
+				NumberSequenceKeypoint.new(0.45, 0.8),
+				NumberSequenceKeypoint.new(1, 0.15),
 			}),
 			Rotation = 90,
 			Parent = r,

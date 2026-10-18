@@ -33,6 +33,7 @@ local player = Players.LocalPlayer
 local EmoteController = {}
 
 local WHEEL_RADIUS = 150
+local XP_CLEAR = 54 -- px under the top bar kept for the XP strip and level badge (top right)
 local SLOT_SIZE = 96
 local CANCEL_MOVE = 0.2 -- MoveDirection magnitude that cancels an emote
 
@@ -234,7 +235,10 @@ local function place()
 	local fit = side:FindFirstChildOfClass("UIScale") or new("UIScale", { Parent = side })
 	local v = Screen.size()
 	fit.Scale = math.clamp(v.Y / 900, 0.7, 1)
-	side.Position = UDim2.new(1, -(14 + safe.right), 0.42, 0)
+	-- centred a little above the middle, but never up under the XP strip (short phone screens)
+	local h = side.Size.Y.Offset * fit.Scale
+	local top = math.max(v.Y * 0.42 - h / 2, Screen.topbar().Max.Y + XP_CLEAR)
+	side.Position = UDim2.new(1, -(14 + safe.right), 0, top)
 end
 
 function EmoteController.start()
@@ -249,7 +253,7 @@ function EmoteController.start()
 	-- the two tiles on the right edge (the reference's EMOTES / TAUNT column)
 	side = new("Frame", {
 		Name = "EmoteDock",
-		AnchorPoint = Vector2.new(1, 0.5),
+		AnchorPoint = Vector2.new(1, 0),
 		Size = UDim2.fromOffset(Dock.SIZE + 12, (Dock.SIZE + 20) * 2),
 		BackgroundTransparency = 1,
 		Parent = gui,

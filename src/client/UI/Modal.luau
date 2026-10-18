@@ -22,4 +22,16 @@ function Modal.busy(except: string?): boolean
 	return false
 end
 
+-- The full-attention screens (the rules card, a level-up, a crate opening, the wheel, an offer): while one is up the
+-- dock's tiles and shortcuts don't open another panel over or under it.
+local BLOCKING = { Rules = true, LevelUp = true, Crate = true, Wheel = true, Offer = true }
+function Modal.blocking(): boolean
+	for name in pairs(open) do
+		if BLOCKING[name] then
+			return true
+		end
+	end
+	return false
+end
+
 return Modal

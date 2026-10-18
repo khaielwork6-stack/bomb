@@ -55,6 +55,8 @@ local stopCalPulse: (() -> ())? = nil
 local calButton: GuiButton
 local shown = true
 local openPanel: Frame? = nil
+local DOCK_GAP = 12 -- px between the dock's columns
+local TWO_COLUMNS_BELOW = 0.6 -- a single-column dock scaled under this folds into two columns
 local openName = ""
 local autoCalendarDone = false
 
@@ -224,9 +226,10 @@ local function panel(name: string, title: string, size: Vector2, accent: Color3,
 		ZIndex = 0,
 		Parent = holder,
 	})
-	local v = Screen.size()
-	local fit = math.min(1, (v.Y - 70) / total.Y, (v.X - 60) / total.X)
-	new("UIScale", { Name = "Fit", Scale = fit, Parent = holder })
+	-- fit the screen, and keep fitting it (a phone turning, a window resized) while the panel is up
+	Screen.fit(holder, function(v)
+		return math.min(1, (v.Y - 70) / total.Y, (v.X - 60) / total.X)
+	end)
 	local close = Skin.close(holder, 60, {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0, HEADER / 2 - 2),
@@ -488,8 +491,12 @@ local function buildDock()
 		BackgroundTransparency = 1,
 		Parent = hud,
 	})
-	new("UIListLayout", {
-		Padding = UDim.new(0, 10),
+	new("UIGridLayout", {
+		Name = "Grid",
+		CellSize = UDim2.fromOffset(Dock.SIZE, Dock.SIZE + 10),
+		CellPadding = UDim2.fromOffset(DOCK_GAP, 10),
+		FillDirection = Enum.FillDirection.Horizontal,
+		FillDirectionMaxCells = 1,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
@@ -548,9 +555,17 @@ local function placeDock()
 			count += 1
 		end
 	end
-	local need = count * (Dock.SIZE + 20)
-	dock.Size = UDim2.fromOffset(Dock.SIZE + 24, need);
-	(fit :: UIScale).Scale = math.min(1, (v.Y * 0.66) / math.max(need, 1))
+	-- one column while it stays readable; short phone screens fold it into two columns of bigger tiles
+	local rowH = Dock.SIZE + 20
+	local room = v.Y * 0.66
+	local cols = if room / math.max(count * rowH, 1) < TWO_COLUMNS_BELOW then 2 else 1
+	local need = math.ceil(count / cols) * rowH
+	local grid = dock:FindFirstChild("Grid") :: UIGridLayout?
+	if grid then
+		grid.FillDirectionMaxCells = cols
+	end
+	dock.Size = UDim2.fromOffset(cols * Dock.SIZE + (cols - 1) * DOCK_GAP + 24, need);
+	(fit :: UIScale).Scale = math.min(1, room / math.max(need, 1))
 	local safe = Screen.safe()
 	local x = if shown then 14 + safe.left else -(Dock.SIZE + 60)
 	local goal = UDim2.new(0, x, 0.5, if touch() then -10 else 10)
@@ -746,6 +761,15 @@ end
 -- The open panel's header slot for tabs (right of the title, left of the close square).
 function DailyController.headerTabs(): Frame?
 	return headerSlot
+end
+
+-- How far the dock reaches in from the left edge (screen px, its scale included), so the quest tracker sits beside it.
+function DailyController.dockWidth(): number
+	if not dock then
+		return Dock.SIZE + 24
+	end
+	local fit = dock:FindFirstChild("Fit") :: UIScale?
+	return dock.Size.X.Offset * (if fit then fit.Scale else 1)
 end
 
 -- The name of the open panel ("" when none), so other screens can tell whether theirs is still up.

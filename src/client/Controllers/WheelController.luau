@@ -23,6 +23,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Modal = require(script.Parent.Parent.UI.Modal)
+local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -278,9 +279,9 @@ function WheelController.open()
 		ZIndex = 3,
 		Parent = r,
 	})
-	local fit = new("UIScale", { Parent = stage })
-	local vp = gui.AbsoluteSize
-	fit.Scale = math.min(1, (vp.Y - 40) / 660, (vp.X - 40) / 580)
+	Screen.fit(stage, function(vp)
+		return math.min(1, (vp.Y - 40) / 660, (vp.X - 40) / 580)
+	end)
 	Widgets.label(stage, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),

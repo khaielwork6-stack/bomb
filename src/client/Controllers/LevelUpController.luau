@@ -257,6 +257,9 @@ function LevelUpController.start()
 				-- on the results screen, let the receipt print first
 				if ClientState.phase() == Ph.Results then
 					task.wait(3.2)
+					if Modal.busy() or not calm() then
+						continue -- something else took the screen meanwhile (the Daily screen): wait for it
+					end
 				end
 				local up = table.remove(queue, 1)
 				if up then

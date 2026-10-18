@@ -138,7 +138,9 @@ function MomentController.show(parent: Instance, m: any): () -> ()
 		border2 = P.Ember,
 	})
 	local holder = face.Parent :: Frame
-	new("UIScale", { Scale = math.min(1, Screen.size().Y / REF_H), Parent = holder })
+	Screen.fit(holder, function(v)
+		return math.min(1, v.Y / REF_H)
+	end)
 	Widgets.springIn(holder)
 	Widgets.label(face, {
 		Name = "Title",

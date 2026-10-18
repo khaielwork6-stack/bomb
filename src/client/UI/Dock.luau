@@ -8,6 +8,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Sfx = require(script.Parent.Parent.Sfx)
+local Modal = require(script.Parent.Modal)
+local Screen = require(script.Parent.Screen)
 local Skin = require(script.Parent.Skin)
 local Theme = require(script.Parent.Theme)
 local Widgets = require(script.Parent.Widgets)
@@ -119,7 +121,7 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 		ZIndex = 7,
 	})
 	if o.key then
-		Widgets.label(b, {
+		local keyLabel = Widgets.label(b, {
 			Name = "Key",
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, 8, 0, -8),
@@ -130,6 +132,11 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 			stroke = 2.5,
 			ZIndex = 8,
 		})
+		-- the shortcut letter is for keyboards only
+		keyLabel.Visible = not Screen.touch()
+		Screen.Changed:Connect(function()
+			keyLabel.Visible = not Screen.touch()
+		end)
 	end
 	local badge = new("Frame", {
 		Name = "Badge",
@@ -177,6 +184,9 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 		Sfx.play("UiRelease")
 	end)
 	b.Activated:Connect(function()
+		if Modal.blocking() then
+			return
+		end
 		Sfx.play("UiPress")
 		onClick()
 	end)
@@ -186,7 +196,7 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 			if processed or input.KeyCode ~= key or UserInputService:GetFocusedTextBox() then
 				return
 			end
-			if not b.Visible or not b:IsDescendantOf(game) then
+			if not b.Visible or not b:IsDescendantOf(game) or Modal.blocking() then
 				return
 			end
 			press()
