@@ -1,0 +1,48 @@
+{
+  "key": "Crate.Spark",
+  "tris": {
+    "BodyWood": 6312,
+    "BodyBrass": 11924,
+    "LidWood": 5128,
+    "LidBrass": 7400,
+    "InnerGlow": 12,
+    "Spark": 44,
+    "LatchSpark": 44
+  },
+  "hinge": [
+    0.0,
+    1.5,
+    -1.25
+  ],
+  "parts": {
+    "BodyWood": {
+      "COLOR": "Crate_Spark_BodyWood_COLOR.png",
+      "ROUGHNESS": "Crate_Spark_BodyWood_ROUGHNESS.png",
+      "NORMAL": "Crate_Spark_BodyWood_NORMAL.png",
+      "METAL": "Crate_Spark_BodyWood_METAL.png"
+    },
+    "BodyBrass": {
+      "COLOR": "Crate_Spark_BodyBrass_COLOR.png",
+      "ROUGHNESS": "Crate_Spark_BodyBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_Spark_BodyBrass_NORMAL.png",
+      "METAL": "Crate_Spark_BodyBrass_METAL.png"
+    },
+    "LidWood": {
+      "COLOR": "Crate_Spark_LidWood_COLOR.png",
+      "ROUGHNESS": "Crate_Spark_LidWood_ROUGHNESS.png",
+      "NORMAL": "Crate_Spark_LidWood_NORMAL.png",
+      "METAL": "Crate_Spark_LidWood_METAL.png"
+    },
+    "LidBrass": {
+      "COLOR": "Crate_Spark_LidBrass_COLOR.png",
+      "ROUGHNESS": "Crate_Spark_LidBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_Spark_LidBrass_NORMAL.png",
+      "METAL": "Crate_Spark_LidBrass_METAL.png"
+    }
+  },
+  "glow": [
+    "InnerGlow",
+    "Spark",
+    "LatchSpark"
+  ]
+}

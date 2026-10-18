@@ -52,3 +52,8 @@ art/out/Skins/**/*_COLOR.png
 art/out/Skins/**/*_NORMAL.png
 art/out/Skins/**/*_ROUGHNESS.png
 art/out/Skins/**/*_METAL.png
+
+# Baked model maps (rebuilt by art/<asset>/build.py; uploaded ids live in each export/textures/ids.json)
+art/out/Crate.*/export/textures/*.png
+# Frames pulled from the owner's reference video (the video stays on the owner's PC)
+art/ref/video/
