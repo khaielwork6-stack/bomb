@@ -3,7 +3,10 @@
 -- Logic/BombRules what happens, and applies it: tags stick fresh bombs, contact passes them, safe strips defuse them
 -- and the fuse booms them. Nothing here is triggered by a client remote (F-SEC-01): contact is measured on the server.
 -- Clients draw every bomb from the Carrier's attributes (BombId, BombExplodeAt, BombLocked) plus the BombFx beats.
--- Implements: F-BOMB-01..09, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01.
+-- Round modifiers (GDD §6.4): READ THE FACE bombs get a random fuse and keep their boom time off the Carrier
+-- (`BombMasked`) until they turn HOT; the Mole's armed STRIKE (p.data.strikeUntil, set by ModifierService) tags.
+-- The slap (F-BOMB-10): a tag shoves the tagged Runner forward, away from the Bomber; a pass bumps both bodies apart.
+-- Implements: F-BOMB-01..10, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -17,6 +20,7 @@ local BombRules = require(ServerScriptService.Server.Logic.BombRules)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local Characters = require(script.Parent.Characters)
+local GameState = require(script.Parent.GameState)
 local Participants = require(script.Parent.Participants)
 
 type Participant = Participants.Participant
@@ -24,6 +28,8 @@ type Bomb = BombRules.Bomb
 type Body = BombRules.Body
 
 local B = Config.Bomb
+local MOD = Config.Modifiers
+local fuseRng = Random.new()
 local R, S = Types.Role, Types.State
 
 local BombService = {
@@ -38,6 +44,8 @@ local BombService = {
 	Tagged = Signal.new(),
 	-- (runner, bomber) a Runner slipped a ready Bomber's reach by a hair (DODGE!, GDD §11.1)
 	Dodged = Signal.new(),
+	-- MEGA BOMB (GDD §16): a Carrier passed its bomb onto the giant (the bomb is gone). Args: (from, giant, remaining)
+	Fed = Signal.new(),
 	-- (p) a boomed Runner is back on their feet as a Bomber.
 	BecameBomber = Signal.new(),
 }
@@ -62,7 +70,10 @@ local function setCarrierAttrs(p: Participant?, bomb: Bomb?)
 		return
 	end
 	p.attrs:SetAttribute("BombId", if bomb then bomb.id else nil)
-	p.attrs:SetAttribute("BombExplodeAt", if bomb then bomb.explodeAt else nil)
+	-- F-MOD-02: a READ THE FACE bomb's boom time stays on the server until it turns HOT
+	local hidden = bomb ~= nil and bomb.masked == true and not bomb.shown
+	p.attrs:SetAttribute("BombExplodeAt", if bomb and not hidden then bomb.explodeAt else nil)
+	p.attrs:SetAttribute("BombMasked", if bomb and bomb.masked then true else nil)
 	p.attrs:SetAttribute("BombLocked", if bomb then bomb.locked else nil)
 end
 
@@ -101,6 +112,10 @@ local function bodyOf(p: Participant, t: number): Body?
 		safe = inAnySafe(pos),
 		carrying = byCarrier[p.id] ~= nil,
 		tagReadyAt = p.data.tagReadyAt or 0,
+		reach = if p.data.mega then Config.Mega.REACH else nil,
+		mega = p.data.mega == true,
+		-- F-MOD-04: the Mole's STRIKE is armed (never while they carry a bomb themselves)
+		striker = p.role == R.Runner and (p.data.strikeUntil or 0) > t and byCarrier[p.id] == nil,
 	}
 end
 
@@ -247,29 +262,49 @@ end
 
 local function tag(bomber: Participant, target: Participant, bBody: Body, tBody: Body, t: number)
 	nextId += 1
-	local bomb = BombRules.newBomb(nextId, bBody, tBody, t)
+	local face = GameState.get("Modifier") == "Face" and not bBody.mega
+	local fuse = if bBody.mega
+		then Config.Mega.TAG_FUSE
+		elseif face then fuseRng:NextNumber(MOD.FACE_FUSE_MIN, MOD.FACE_FUSE_MAX)
+		else nil
+	local bomb = BombRules.newBomb(nextId, bBody, tBody, t, fuse)
+	bomb.masked = face
 	bomber.data.tagReadyAt = t + B.TAG_COOLDOWN
 	bomber.attrs:SetAttribute("TagReadyAt", bomber.data.tagReadyAt)
 	bomber.stats.tags += 1
 	attach(bomb, target)
+	Characters.push(target, tBody.pos - bBody.pos, B.TAG_SHOVE, B.TAG_SHOVE_TIME) -- F-BOMB-10: the stumble
 	Net.fireAll("BombFx", { kind = "Stick", bomb = bomb.id, from = bomber.id, who = target.id, at = t })
 	BombService.Tagged:Fire(bomber, target, bomb)
 end
 
 local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body, tBody: Body, t: number)
+	if tBody.mega then
+		-- F-MEGA-06: fed to the giant. The bomb is gone (MegaService staggers it and burns its fuse).
+		local remaining = BombRules.remaining(bomb, t)
+		detach(bomb)
+		from.stats.passes += 1
+		Net.fireAll("BombFx", { kind = "Feed", bomb = bomb.id, from = from.id, who = to.id, at = t })
+		BombService.Fed:Fire(from, to, remaining)
+		return
+	end
 	byCarrier[from.id] = nil
 	setCarrierAttrs(from, nil)
 	BombRules.pass(bomb, fBody, tBody, t)
 	byCarrier[to.id] = bomb
 	setCarrierAttrs(to, bomb)
 	from.stats.passes += 1
+	-- the bump (F-BOMB-03): both bodies knock apart
+	local apart = tBody.pos - fBody.pos
+	Characters.push(to, apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
 	local remaining = BombRules.remaining(bomb, t)
 	Net.fireAll("BombFx", {
 		kind = "Pass",
 		bomb = bomb.id,
 		from = from.id,
 		who = to.id,
-		remaining = remaining,
+		remaining = if bomb.masked and not bomb.shown then nil else remaining, -- F-MOD-02: no time while LIT
 		chain = BombRules.chainLength(bomb),
 		at = t,
 	})
@@ -333,6 +368,9 @@ local function step()
 	for _, bomb in pairs(bombs) do
 		if t >= bomb.explodeAt then
 			boom(bomb)
+		elseif bomb.masked and not bomb.shown and t >= bomb.explodeAt - B.STAGE_HOT then
+			bomb.shown = true -- F-MOD-02: HOT, so the time shows from here (the face never lies)
+			setCarrierAttrs(Participants.get(bomb.carrier), bomb)
 		end
 	end
 	local bodies: { Body } = {}
@@ -370,9 +408,9 @@ local function step()
 			end
 		end
 	end
-	-- Tags (F-BOMB-02).
+	-- Tags (F-BOMB-02), and the Mole's STRIKE (F-MOD-04).
 	for _, b in ipairs(bodies) do
-		if b.role == R.Bomber then
+		if b.role == R.Bomber or b.striker then
 			local target = BombRules.pickTagTarget(b, bodies, t)
 			if target then
 				local bp, tp = Participants.get(b.id), Participants.get(target.id)

@@ -2,8 +2,10 @@
 -- The Starter Bundle offer (GDD §17.5 F-STORE-11), in the reference video's "STARTER PACK" card: a rainbow card with
 -- the contents as three tiles (1,500 Stars · the Rookie Brass bomb skin, live in 3D · the "Fresh Fuse" title), the
 -- 48 h countdown, the struck-through value next to the real Robux price on a big green button, and a tilted
--- "x3 VALUE" burst. Shown at most once per session as a popup, in the lobby, when nothing else is up; the server
--- only sends `store.starter` while the offer is live (and only once the product exists on the dashboard).
+-- "x3 VALUE" burst. When it pops is the server's call (`store.starter.popup`): StoreController's popStarter opens it
+-- with OfferController.open at the first calm moment of the intermission after the 3rd round's results; the server
+-- only sends `store.starter` while the offer is live (and only once the product exists on the dashboard). It closes
+-- itself if the offer goes away (bought, or the 48 h ran out).
 -- Implements: F-STORE-11 (presentation).
 
 local Players = game:GetService("Players")
@@ -12,8 +14,6 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
-local Types = require(ReplicatedStorage.Shared.Types)
-local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local SkinApply = require(script.Parent.Parent.SkinApply)
 local Sfx = require(script.Parent.Parent.Sfx)
@@ -25,14 +25,13 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local St = Config.Store
 local P = Theme.Palette
 local new = Theme.new
-local Ph = Types.Phase
 local player = Players.LocalPlayer
 
 local OfferController = {}
 
 local gui: ScreenGui
-local shownThisSession = false
 local open = false
+local closeCard: (() -> ())? = nil
 
 local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 110, 150)),
@@ -276,6 +275,7 @@ local function show(endsIn: number, preview: boolean?)
 		Parent = was,
 	})
 	local function close()
+		closeCard = nil
 		open = false
 		Modal.set("Offer", false)
 		Widgets.springOut(holder, function()
@@ -284,6 +284,7 @@ local function show(endsIn: number, preview: boolean?)
 			end
 		end)
 	end
+	closeCard = close
 	local buy = Widgets.button(card, "", "green", UDim2.fromOffset(200, 60), function()
 		if not preview then
 			Net.send("StoreAction", { kind = "BuyProduct", product = "StarterBundle" })
@@ -345,21 +346,13 @@ local function show(endsIn: number, preview: boolean?)
 	end)
 end
 
-local function maybeShow()
-	if shownThisSession or open then
-		return
+-- Open the card (StoreController.popStarter decides when). Returns false if one is already up.
+function OfferController.open(endsIn: number): boolean
+	if open then
+		return false
 	end
-	local s = Progress.get()
-	local starter = s and s.store and s.store.starter
-	if not starter then
-		return
-	end
-	local ph = ClientState.phase()
-	if ph ~= Ph.Intermission or Modal.busy() then
-		return
-	end
-	shownThisSession = true
-	show(starter.endsIn - Progress.age())
+	show(endsIn)
+	return true
 end
 
 function OfferController.start()
@@ -372,10 +365,9 @@ function OfferController.start()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	Progress.start()
-	task.spawn(function()
-		while true do
-			task.wait(1.5)
-			maybeShow()
+	Progress.Changed:Connect(function(st)
+		if open and not (st and st.store and st.store.starter) and closeCard then
+			closeCard()
 		end
 	end)
 	if RunService:IsStudio() then

@@ -10,6 +10,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -18,7 +19,8 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Logic = ServerScriptService.Server.Logic
 local CrateRoll = require(Logic.CrateRoll)
 local Daily = require(Logic.Daily)
-local ProfileSchema = require(Logic.ProfileSchema)
+local Receipts = require(Logic.Receipts)
+local StarterOffer = require(Logic.StarterOffer)
 local AdminService = require(script.Parent.AdminService)
 local DataService = require(script.Parent.DataService)
 local Participants = require(script.Parent.Participants)
@@ -35,6 +37,7 @@ local rng = Random.new()
 local restricted: { [Player]: boolean } = {}
 local vipCache: { [Player]: boolean } = {}
 local pendingItem: { [Player]: string } = {} -- the item a Robux item-product purchase is for
+local starterPopped: { [Player]: boolean } = {} -- the Starter Bundle card already popped up this session
 
 -- ── Helpers ─────────────────────────────────────────────────────────────────────────────────────────────────────
 local function owns(d: { [string]: any }, id: string): boolean
@@ -61,6 +64,23 @@ local function grantItem(p: Participant, d: { [string]: any }, id: string, why: 
 		Net.fire(p.player, "Reward", { kind = "Item", id = id, why = why })
 	end
 	return true
+end
+
+-- Event rewards (the MEGA BOMB): an item (once) and a free crate opening, saved and announced.
+function StoreService.grantItem(p: Participant, id: string, why: string): boolean
+	local d = DataService.get(p)
+	return d ~= nil and grantItem(p, d, id, why)
+end
+
+function StoreService.grantCrate(p: Participant, kind: string, why: string)
+	local d = DataService.get(p)
+	if not d then
+		return
+	end
+	d.crates[kind] = (d.crates[kind] or 0) + 1
+	if p.player then
+		Net.fire(p.player, "Reward", { kind = "CrateToken", crate = kind, why = why })
+	end
 end
 
 -- Items of each rarity that can drop from crates (ready, sellable).
@@ -104,6 +124,21 @@ local function priceOf(id: string): number?
 		return math.floor(base * (1 - St.DEAL_OFF) + 0.5)
 	end
 	return base
+end
+
+-- Seconds left on the Starter Bundle offer (F-STORE-11), or nil when it isn't on sale: no product id yet, its art
+-- isn't in the game, never started, bought or expired.
+local function starterLeft(d: { [string]: any }): number?
+	local prod = St.PRODUCTS.StarterBundle
+	if prod.id == 0 then
+		return nil
+	end
+	for _, id in ipairs(prod.items) do
+		if not Cosmetics.ready(id) then
+			return nil
+		end
+	end
+	return StarterOffer.endsIn(d.flags, St.STARTER_OFFER_HOURS, os.time())
 end
 
 -- ── Owed rewards, titles, VIP ───────────────────────────────────────────────────────────────────────────────────
@@ -262,13 +297,21 @@ local function section(p: Participant, d: { [string]: any }): (string, any)
 		end
 	end
 	local starter = nil
-	if
-		St.PRODUCTS.StarterBundle.id ~= 0
-		and not d.flags.starterBought
-		and d.flags.starterAt > 0
-		and os.time() < d.flags.starterAt + St.STARTER_OFFER_HOURS * 3600
-	then
-		starter = { endsIn = d.flags.starterAt + St.STARTER_OFFER_HOURS * 3600 - os.time() }
+	local left = starterLeft(d)
+	if left then
+		local prod = St.PRODUCTS.StarterBundle
+		starter = {
+			endsIn = left,
+			popup = StarterOffer.popup(
+				d.flags,
+				St.STARTER_OFFER_HOURS,
+				os.time(),
+				player ~= nil and starterPopped[player] == true
+			),
+			robux = prod.robux,
+			stars = prod.stars,
+			items = prod.items,
+		}
 	end
 	return "store",
 		{
@@ -352,7 +395,17 @@ local function onAction(player: Player, msg: any)
 		if product.crate and restricted[player] then
 			return deny(player, kind, "region")
 		end
+		if key == "StarterBundle" and not starterLeft(d) then
+			return deny(player, kind, "bad") -- once per account, and only while the offer runs
+		end
 		MarketplaceService:PromptProductPurchase(player, product.id)
+	elseif kind == "StarterSeen" then
+		-- the full-screen offer card was shown (once ever; never twice a session)
+		if not starterLeft(d) then
+			return
+		end
+		d.flags.starterOffered = true
+		starterPopped[player] = true
 	elseif kind == "BuyPass" then
 		local key = if type(msg.pass) == "string" then msg.pass else ""
 		local pass = St.PASSES[key]
@@ -381,52 +434,58 @@ local function productKey(productId: number): string?
 	return nil
 end
 
-local function processReceipt(info: any): Enum.ProductPurchaseDecision
-	local player = Players:GetPlayerByUserId(info.PlayerId)
-	local p = player and Participants.fromPlayer(player)
-	local d = p and DataService.get(p)
-	if not player or not p or not d or not DataService.isSaving(p) then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	local purchaseId = tostring(info.PurchaseId)
-	if table.find(d.receipts, purchaseId) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted -- already granted (a retry)
-	end
-	local key = productKey(info.ProductId)
+-- One receipt for product `key`; `save` saves the profile (a Studio test can make it fail).
+local function receive(
+	buyer: Player?,
+	key: string?,
+	purchaseId: string,
+	save: ((Participant) -> boolean)?
+): Enum.ProductPurchaseDecision
+	local who = buyer and Participants.fromPlayer(buyer)
+	local data = who and DataService.get(who)
 	local prod = key and St.PRODUCTS[key]
-	if not key or not prod then
+	if not buyer or not who or not data or not key or not prod or not DataService.isSaving(who) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	-- grant
-	if prod.stars then
-		ProgressionService.grant(p, 0, prod.stars, "Robux:" .. key)
-	end
-	if prod.items then
-		for _, id in ipairs(prod.items) do
-			d.inventory[id] = true
+	local player: Player, p: Participant, d: { [string]: any }, k: string = buyer, who, data, key
+	local function grant()
+		if prod.stars then
+			ProgressionService.grant(p, 0, prod.stars, "Robux:" .. k)
+		end
+		if prod.items then
+			for _, id in ipairs(prod.items) do
+				d.inventory[id] = true
+			end
+		end
+		if k == "StarterBundle" then
+			d.flags.starterBought = true
+		end
+		if prod.crate then
+			d.crates[prod.crate] = (d.crates[prod.crate] or 0) + 1
+			openCrate(p, d, prod.crate, "Token")
+		end
+		if string.match(k, "^Item") then
+			local id = pendingItem[player]
+			pendingItem[player] = nil
+			if id and Cosmetics.sellable(id) then
+				d.inventory[id] = true
+				Net.fire(player, "Reward", { kind = "Bought", id = id })
+			end
 		end
 	end
-	if key == "StarterBundle" then
-		d.flags.starterBought = true
-	end
-	if prod.crate then
-		d.crates[prod.crate] = (d.crates[prod.crate] or 0) + 1
-		openCrate(p, d, prod.crate, "Token")
-	end
-	if string.match(key, "^Item") then
-		local id = pendingItem[player]
-		pendingItem[player] = nil
-		if id and Cosmetics.sellable(id) then
-			d.inventory[id] = true
-			Net.fire(player, "Reward", { kind = "Bought", id = id })
-		end
-	end
-	ProfileSchema.addReceipt(d, purchaseId, Config.Data.RECEIPT_HISTORY)
-	if not DataService.save(p, false) then
-		return Enum.ProductPurchaseDecision.NotProcessedYet -- the next retry finds it un-recorded only if the save failed
+	-- granted once per purchase id; reported granted only after a save holding the grant and its id succeeded
+	local saved = Receipts.process(d, purchaseId, Config.Data.RECEIPT_HISTORY, grant, function()
+		return if save then save(p) else DataService.save(p, false)
+	end)
+	if not saved then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	ProgressionService.push(p)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+local function processReceipt(info: any): Enum.ProductPurchaseDecision
+	return receive(Players:GetPlayerByUserId(info.PlayerId), productKey(info.ProductId), tostring(info.PurchaseId))
 end
 
 -- ── Lifecycle ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -494,16 +553,17 @@ function StoreService.start()
 			return
 		end
 		settle(p, d)
-		-- the Starter Bundle offer starts after the 3rd round (F-STORE-11)
-		if d.stats.rounds >= St.STARTER_OFFER_AFTER_ROUNDS and d.flags.starterAt == 0 and not d.flags.starterBought then
-			d.flags.starterAt = os.time()
-			d.flags.starterOffered = true
+		-- the Starter Bundle offer's 48 h clock starts at the 3rd round's results (F-STORE-11); the card pops up when
+		-- the results close (StoreController)
+		if StarterOffer.start(d.flags, d.stats.rounds, St.STARTER_OFFER_AFTER_ROUNDS, os.time()) then
+			ProgressionService.push(p)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		restricted[player] = nil
 		vipCache[player] = nil
 		pendingItem[player] = nil
+		starterPopped[player] = nil
 	end)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, bought)
 		local p = Participants.fromPlayer(player)
@@ -532,6 +592,34 @@ function StoreService.start()
 		end
 		ProgressionService.push(p)
 		return "ok"
+	end)
+	if not RunService:IsStudio() then
+		return
+	end
+	AdminService.register("receipt", function(args)
+		-- receipt <id> <productKey> <purchaseId> [failsave]: run a Robux receipt through the real grant path (Studio
+		-- tests; product ids may still be 0). "failsave" makes the profile save fail, as a DataStore outage would.
+		local p = Participants.get(args[1] or "")
+		if not p or not p.player or type(args[2]) ~= "string" or args[3] == nil then
+			return "usage: receipt <playerId> <productKey> <purchaseId> [failsave]"
+		end
+		local fail = if args[4] == "failsave"
+			then function(_: Participant): boolean
+				return false
+			end
+			else nil
+		return receive(p.player, args[2], tostring(args[3]), fail).Name
+	end)
+	AdminService.register("storepolicy", function(args)
+		-- storepolicy <id> on|off: force the paid-random-items restriction (F-STORE-09) for a Studio test
+		local p = Participants.get(args[1] or "")
+		local player = p and p.player
+		if not p or not player or (args[2] ~= "on" and args[2] ~= "off") then
+			return "usage: storepolicy <playerId> on|off"
+		end
+		restricted[player] = args[2] == "on"
+		ProgressionService.push(p)
+		return "restricted = " .. tostring(restricted[player])
 	end)
 end
 

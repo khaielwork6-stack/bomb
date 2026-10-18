@@ -7,7 +7,10 @@
 -- materials; the Blender hero model (Asset Bible §3.2) replaces the parts in P3.
 -- The fuse spark wears the Carrier's equipped Eq_FuseSpark (Asset Bible §8.1, Client/VfxCosmetic); the ring keeps
 -- its stage colours.
--- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability, F-STORE-01 (sparks).
+-- READ THE FACE (GDD §6.4): a masked bomb (`BombMasked`, no `BombExplodeAt` yet) shows no time while LIT: full braid,
+-- full ring, the LIT pulse; once the server sends its time at HOT the braid and ring run over the last STAGE_HOT.
+-- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability, F-MOD-02,
+-- F-STORE-01 (sparks).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -55,7 +58,8 @@ type Visual = {
 	light: PointLight,
 	ring: BillboardGui,
 	ringDots: { Frame },
-	explodeAt: number,
+	explodeAt: number?, -- nil while a READ THE FACE bomb is LIT (its time is hidden)
+	masked: boolean,
 	wobble: Vector3, -- spring state (rad): x pitch, z roll
 	wobbleVel: Vector3,
 	lastVel: Vector3,
@@ -438,7 +442,8 @@ local function attach(host: Instance): Visual?
 		light = light,
 		ring = ring,
 		ringDots = dots,
-		explodeAt = host:GetAttribute("BombExplodeAt") or now(),
+		explodeAt = host:GetAttribute("BombExplodeAt"),
+		masked = host:GetAttribute("BombMasked") == true,
 		wobble = Vector3.zero,
 		wobbleVel = Vector3.zero,
 		lastVel = Vector3.zero,
@@ -484,13 +489,23 @@ local function hosts(): { Instance }
 			table.insert(out, m)
 		end
 	end
+	-- The Depot's Fuse Range dummies hold practice bombs (DepotController sets their attributes locally)
+	local lobby = workspace:FindFirstChild("Lobby")
+	local range = lobby and lobby:FindFirstChild("FuseRange")
+	local dummies = range and range:FindFirstChild("Dummies")
+	if dummies then
+		for _, m in ipairs(dummies:GetChildren()) do
+			table.insert(out, m)
+		end
+	end
 	return out
 end
 
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function update(v: Visual, dt: number, t: number)
-	local remaining = math.max(0, v.explodeAt - t)
-	local frac = math.clamp(remaining / B.FUSE, 0, 1)
+	local at = v.explodeAt
+	local remaining = if at then math.max(0, at - t) elseif v.masked then math.huge else 0
+	local frac = math.clamp(remaining / (if v.masked then B.STAGE_HOT else B.FUSE), 0, 1)
 	local stage = if remaining <= B.STAGE_CRITICAL then "CRITICAL" elseif remaining <= B.STAGE_HOT then "HOT" else "LIT"
 	local stageColor = Theme.stageColor(stage)
 	-- The fuse: segments above the burn point are gone, the burning one shortens, the ones just below char.
@@ -598,12 +613,20 @@ local function update(v: Visual, dt: number, t: number)
 	end
 end
 
+-- The slap (F-BOMB-10): a tagged host's back bomb appears on the slap's contact frame, not when the event lands.
+local deferred: { [Instance]: number } = {}
+function BombController.deferAttach(host: Instance, untilClock: number)
+	deferred[host] = untilClock
+end
+
 local function step(dt: number)
 	local t = now()
 	local seen = {}
 	for _, host in ipairs(hosts()) do
 		local id = host:GetAttribute("BombId")
-		if id ~= nil then
+		if id ~= nil and (deferred[host] or 0) > os.clock() and not visuals[host] then
+			seen[host] = true -- held back until the hand lands
+		elseif id ~= nil then
 			seen[host] = true
 			local v = visuals[host]
 			local char = characterOf(host)
@@ -615,7 +638,13 @@ local function step(dt: number)
 				v = attach(host)
 			end
 			if v then
-				v.explodeAt = host:GetAttribute("BombExplodeAt") or v.explodeAt
+				local at = host:GetAttribute("BombExplodeAt")
+				v.masked = host:GetAttribute("BombMasked") == true
+				if type(at) == "number" then
+					v.explodeAt = at
+				elseif v.masked then
+					v.explodeAt = nil
+				end
 				update(v, dt, t)
 			end
 		end
@@ -687,6 +716,21 @@ local function passArc(fromId: string, toId: string)
 			ghost:Destroy()
 		end
 	end)
+end
+
+-- A still bomb (no fuse burn, sparks or ring) welded to `torso` the same way: MomentController's replay puppets.
+function BombController.dummy(torso: BasePart, skinId: string?): Model
+	local template = artTemplate()
+	local model, mount
+	if template then
+		model, mount = buildFromArt(torso, template, skinId)
+	else
+		model, mount = build(torso)
+	end
+	mount.Anchored = false
+	new("Weld", { Part0 = torso, Part1 = mount, C0 = MOUNT, Parent = mount })
+	model.Parent = torso.Parent
+	return model
 end
 
 function BombController.start()

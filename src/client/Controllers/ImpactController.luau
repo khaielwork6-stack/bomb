@@ -38,7 +38,7 @@ local function near(pos: Vector3?, range: number): boolean
 end
 
 -- ── Hit-stop: every playing animation on the rig holds for a beat, then resumes at its own speed ───────────────
-local function hitStop(id: string)
+local function hitStop(id: string, seconds: number?)
 	local _, model = ClientState.byId(id)
 	local hum = model and model:FindFirstChildOfClass("Humanoid")
 	local animator = hum and hum:FindFirstChildOfClass("Animator")
@@ -51,7 +51,7 @@ local function hitStop(id: string)
 		held[track] = track.Speed
 		track:AdjustSpeed(0)
 	end
-	task.delay(F.HITSTOP, function()
+	task.delay(seconds or F.HITSTOP, function()
 		for track, speed in pairs(held) do
 			if track.IsPlaying and track.Speed == 0 then
 				track:AdjustSpeed(speed)
@@ -131,6 +131,16 @@ local function slowmo()
 	end)
 end
 
+-- The slap's freeze on the contact pose (SlapController, F-BOMB-10).
+function ImpactController.hitStop(id: string, seconds: number?)
+	hitStop(id, seconds)
+end
+
+-- Reduce motion is on (no camera trauma).
+function ImpactController.calm(): boolean
+	return calm()
+end
+
 function ImpactController.slowmoActive(): boolean
 	return os.clock() < slowUntil
 end
@@ -141,7 +151,8 @@ local function onBomb(p: any)
 		return
 	end
 	local me = ClientState.myId()
-	if p.kind == "Stick" or p.kind == "Pass" then
+	-- (a tag's freeze, kick and camera are the slap's: SlapController times them to the contact frame)
+	if p.kind == "Pass" then
 		if type(p.who) == "string" then
 			hitStop(p.who)
 		end

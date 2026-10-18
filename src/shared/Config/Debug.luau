@@ -18,4 +18,7 @@ return {
 	-- Economy soak (GDD §25.3): bots "earn" on paper through the real payout maths (callouts + rounds) so a bot-only
 	-- soak prints Stars/hour (`econ start` / `econ` admin commands). Studio only.
 	ECON_SIM = false,
+	-- Studio only: keep profiles in memory even when Studio has DataStore access, so a play-test can buy, equip and
+	-- open crates without touching the real dev profile (every play session then starts from a fresh profile).
+	MEMORY_DATA = false,
 }

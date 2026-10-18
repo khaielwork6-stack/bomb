@@ -1,12 +1,13 @@
 --!strict
 -- Specs for the store maths (GDD §25.3 CrateRoll): odds over 100k rolls within ±0.5 %, the Inferno pity, duplicates,
--- the policy branch.
+-- the policy branch; the Starter Bundle offer clock (§17.5 Logic/StarterOffer).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CrateRoll = require(ServerScriptService.Server.Logic.CrateRoll)
+local StarterOffer = require(ServerScriptService.Server.Logic.StarterOffer)
 
 local St = Config.Store
 
@@ -73,5 +74,46 @@ return function(t)
 		local c = CrateRoll.fixed(POOL, St.CRATES.Spark, 1)
 		t.expect(a.item).toBe(b.item)
 		t.expect(a.item ~= c.item).truthy()
+	end)
+
+	local function flags()
+		return { starterAt = 0, starterBought = false, starterOffered = false }
+	end
+	local AFTER, HOURS, NOW = St.STARTER_OFFER_AFTER_ROUNDS, St.STARTER_OFFER_HOURS, 1000000
+
+	t.it("Starter offer: starts at the 3rd round's results, once", function()
+		local f = flags()
+		t.expect(StarterOffer.start(f, AFTER - 1, AFTER, NOW)).falsy()
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW)).toBe(nil)
+		t.expect(StarterOffer.start(f, AFTER, AFTER, NOW)).truthy()
+		t.expect(StarterOffer.start(f, AFTER + 1, AFTER, NOW + 60)).falsy() -- the clock never restarts
+		t.expect(f.starterAt).toBe(NOW)
+	end)
+
+	t.it("Starter offer: a 48 h countdown, then gone", function()
+		local f = flags()
+		StarterOffer.start(f, AFTER, AFTER, NOW)
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW)).toBe(HOURS * 3600)
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW + HOURS * 3600 - 1)).toBe(1)
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW + HOURS * 3600)).toBe(nil)
+	end)
+
+	t.it("Starter offer: bought ends it (and it never starts again)", function()
+		local f = flags()
+		StarterOffer.start(f, AFTER, AFTER, NOW)
+		f.starterBought = true
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW + 10)).toBe(nil)
+		t.expect(StarterOffer.popup(f, HOURS, NOW + 10, false)).falsy()
+	end)
+
+	t.it("Starter offer: the card pops up once, never twice a session", function()
+		local f = flags()
+		t.expect(StarterOffer.popup(f, HOURS, NOW, false)).falsy() -- not started
+		StarterOffer.start(f, AFTER, AFTER, NOW)
+		t.expect(StarterOffer.popup(f, HOURS, NOW, false)).truthy()
+		t.expect(StarterOffer.popup(f, HOURS, NOW, true)).falsy() -- already popped this session
+		f.starterOffered = true -- seen
+		t.expect(StarterOffer.popup(f, HOURS, NOW + 3600, false)).falsy() -- a later session: the shop card only
+		t.expect(StarterOffer.endsIn(f, HOURS, NOW + 3600) ~= nil).truthy()
 	end)
 end

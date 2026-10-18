@@ -27,6 +27,13 @@ return {
 	TAG_DASH_RANGE = 7, -- dash to close the last stretch
 	SHARE_PENALTY = 14, -- studs added to a target another Bomber already chases (spreads them out)
 	CARRIER_FEAR = 6, -- Bombers keep this far from a Carrier (no revenge passes)
+	-- Playing like people (D-BOT-01, from the fun audit: bot Bombers stood idle 26 % of the time)
+	LINE_DEPTH = 2.5, -- with nobody on the field, a Bomber guards the start line this far in, facing a waiting Runner
+	CUTOFF_MIN = 8, -- a Bomber behind its target (relative to the Runner's goal) cuts it off instead of tailing it…
+	CUTOFF_LEAD = 10, -- …aiming up to this far ahead of the Runner on its way to the strip
+	JUKE_RANGE = 10, -- inside this a Bomber sways side to side to bait a dodge
+	JUKE = 0.35, -- how hard (share of its heading), scaled by the tier's technique rate
+	JUKE_HZ = 1.1,
 	COVER_CLEARANCE = 1.6, -- studs bots keep off a map's cover (crates, hand-trucks), beyond its radius
 	COVER_LOOKAHEAD = 10, -- how far ahead a bot starts bending its line round cover
 	-- Names: bots keep generated names (an avatar's look may be borrowed, never its name).

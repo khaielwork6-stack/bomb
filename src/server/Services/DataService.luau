@@ -2,8 +2,9 @@
 -- Player profiles (GDD §24.3): one session-locked DataStore entry per player, loaded on join, saved every
 -- AUTOSAVE seconds, released on leave and on shutdown (BindToClose). The lock and schema rules are pure modules
 -- (Logic/SessionLock, Logic/ProfileSchema) with specs.
--- Backend: the real DataStore, or, when Studio has no API access, an in-memory store with the same UpdateAsync
--- semantics (profiles then last only for the play session; SETUP_NOTES explains how to enable real saves).
+-- Backend: the real DataStore, or, when Studio has no API access or Config.Debug.MEMORY_DATA is on (Studio only), an
+-- in-memory store with the same UpdateAsync semantics (profiles then last only for the play session; SETUP_NOTES
+-- explains how to enable real saves).
 -- Other services read and change `DataService.get(p)` directly and register a collector to copy live state into
 -- the profile right before each save.
 
@@ -79,6 +80,10 @@ local function memoryBackend(): Backend
 end
 
 local function pickBackend(): Backend
+	if RunService:IsStudio() and Config.Debug.MEMORY_DATA then
+		warn("[Data] Config.Debug.MEMORY_DATA: profiles are kept in memory for this play session only.")
+		return memoryBackend()
+	end
 	if RunService:IsStudio() then
 		local ok = pcall(function()
 			DataStoreService:GetDataStore(D.STORE):GetAsync("__probe")

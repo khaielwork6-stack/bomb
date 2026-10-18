@@ -4,7 +4,9 @@
 -- through LIT → HOT → CRITICAL), rarity frames, Stars prices with the daily DEAL; crates with their odds always shown
 -- (F-STORE-06), the Inferno pity counter (F-STORE-08), and "Not available in your region" where paid random items
 -- are restricted (F-STORE-09). Buying asks once; equipping is a tap. Only items whose art exists are ever listed.
--- Implements: F-STORE-03..09 (presentation), F-UI-04 (Shop, Locker).
+-- The Starter Bundle (F-STORE-11): a full-screen offer card once the 3rd round's results close (once ever, never
+-- twice a session; the server decides via `store.starter.popup`), then a "NEW PLAYER" shop tab with its countdown.
+-- Implements: F-STORE-03..09, F-STORE-11 (presentation), F-UI-04 (Shop, Locker).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,6 +15,9 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Cosmetics)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Types = require(ReplicatedStorage.Shared.Types)
+local ClientState = require(script.Parent.Parent.ClientState)
+local Modal = require(script.Parent.Parent.UI.Modal)
 local Progress = require(script.Parent.Parent.Progress)
 local BombFace = require(script.Parent.Parent.BombFace)
 local SkinApply = require(script.Parent.Parent.SkinApply)
@@ -20,9 +25,12 @@ local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
+local OfferController = require(script.Parent.OfferController)
 
 local St = Config.Store
+local S = Config.Strings
 local P = Theme.Palette
+local Ph = Types.Phase
 local new = Theme.new
 
 local StoreController = {}
@@ -532,12 +540,105 @@ local function crateCard(parent: Instance, s: { [string]: any }, kind: string, o
 	end
 end
 
+-- The Starter Bundle's contents, countdown and Robux button, inside `parent` (the shop tab's card or the popup).
+local function starterBody(parent: Instance, s: { [string]: any }, width: number)
+	local offer = s.store and s.store.starter
+	if not offer then
+		return
+	end
+	local stage = new("Frame", {
+		Name = "Stage",
+		Position = UDim2.fromOffset(12, 12),
+		Size = UDim2.fromOffset(120, 120),
+		BackgroundColor3 = P.Ink,
+		BackgroundTransparency = 0.35,
+		ZIndex = 3,
+		Parent = parent,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = stage })
+	local lines = { S.Ui.StarterStars:format(tostring(offer.stars)) }
+	for _, id in ipairs(offer.items or {}) do
+		local item = St.ById[id]
+		if item and item.category == "BombSkin" then
+			bombPreview(stage, id)
+			table.insert(lines, S.Ui.StarterSkin:format(item.name))
+		elseif item and item.category == "Title" then
+			table.insert(lines, S.Ui.StarterTitleLine:format(item.name))
+		end
+	end
+	local list = new("Frame", {
+		Position = UDim2.fromOffset(146, 12),
+		Size = UDim2.fromOffset(width - 158, 96),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+		Parent = parent,
+	})
+	new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	for i, text in ipairs(lines) do
+		Widgets.label(list, {
+			Size = UDim2.new(1, 0, 0, 24),
+			TextSize = 18,
+			align = Enum.TextXAlignment.Left,
+			Text = "+ " .. text,
+			LayoutOrder = i,
+			ZIndex = 5,
+		})
+	end
+	Widgets.label(parent, {
+		Position = UDim2.fromOffset(146, 110),
+		Size = UDim2.fromOffset(width - 158, 20),
+		TextSize = 13,
+		color = P.Spark,
+		align = Enum.TextXAlignment.Left,
+		Text = S.Ui.StarterValue,
+		ZIndex = 5,
+	})
+	local ends = Widgets.label(parent, {
+		Position = UDim2.fromOffset(12, 140),
+		Size = UDim2.new(1, -24, 0, 22),
+		TextSize = 16,
+		color = P.Fuse,
+		Text = "",
+		ZIndex = 5,
+	})
+	task.spawn(function()
+		while ends.Parent do
+			ends.Text = S.Ui.StarterEnds:format(Widgets.clock(offer.endsIn - Progress.age()))
+			task.wait(1)
+		end
+	end)
+	Widgets.button(parent, S.Ui.StarterBuy:format(offer.robux), "gold", UDim2.fromOffset(180, 44), function()
+		Net.send("StoreAction", { kind = "BuyProduct", product = "StarterBundle" })
+	end, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 168),
+		TextSize = 20,
+		ZIndex = 6,
+	})
+end
+
+local function starterCard(parent: Instance, s: { [string]: any })
+	local card = Theme.panel(parent, {
+		Name = "StarterBundle",
+		Size = UDim2.fromOffset(420, 226),
+		color = Color3.fromRGB(52, 38, 30),
+		border = P.Gold,
+		border2 = P.Brass,
+		glow = P.Gold,
+		glowT = 0.6,
+	})
+	starterBody(card, s, 420)
+end
+
 -- ── Screens ─────────────────────────────────────────────────────────────────────────────────────────────────────
 local render: (refresh: boolean?) -> ()
 
 local function tabsFor(s: { [string]: any }, mode: string): { string }
 	local out = {}
 	if mode == "Shop" then
+		if s.store and s.store.starter then
+			table.insert(out, "Starter")
+		end
 		if #(s.store and s.store.featured or {}) > 0 then
 			table.insert(out, "Featured")
 		end
@@ -572,6 +673,7 @@ local TAB_PRESET = {
 	Title = "brass",
 	Emote = "pink",
 	Crates = "green",
+	Starter = "rainbow",
 }
 
 local TAB_NAME = { Featured = "Featured", Crates = "Crates", BombSkin = "Skins", FuseSpark = "Sparks" }
@@ -598,6 +700,7 @@ render = function(refresh: boolean?)
 	if slot then
 		for i, t in ipairs(tabs) do
 			local label = TAB_NAME[t]
+				or (if t == "Starter" then S.Ui.StarterTab else nil)
 				or (St.CATEGORY_NAME[t] and (string.sub(St.CATEGORY_NAME[t], 1, 1) .. string.lower(
 					string.sub(St.CATEGORY_NAME[t], 2)
 				)))
@@ -638,8 +741,9 @@ render = function(refresh: boolean?)
 	})
 	local big = tab == "Crates" or tab == "Featured"
 	new("UIGridLayout", {
-		CellSize = if tab == "Crates"
-			then UDim2.fromOffset(406, 300)
+		CellSize = if tab == "Starter"
+			then UDim2.fromOffset(420, 226)
+			elseif tab == "Crates" then UDim2.fromOffset(406, 300)
 			elseif big then UDim2.fromOffset(406, 214)
 			else UDim2.fromOffset(158, 214),
 		CellPadding = UDim2.fromOffset(14, 14),
@@ -652,7 +756,9 @@ render = function(refresh: boolean?)
 		PaddingRight = UDim.new(0, 6),
 		Parent = grid,
 	})
-	if tab == "Crates" then
+	if tab == "Starter" then
+		starterCard(grid, s)
+	elseif tab == "Crates" then
 		crateCard(grid, s, "Spark", 1)
 		crateCard(grid, s, "Inferno", 2)
 		if (s.store and s.store.crates and s.store.crates.GiftBox or 0) > 0 then
@@ -755,6 +861,35 @@ function StoreController.open(which: string, startTab: string?)
 	render()
 end
 
+-- The full-screen Starter Bundle card (F-STORE-11), at the first calm lobby moment after a round's results close.
+local offerPopped = false -- this session
+local function popStarter()
+	local s = Progress.get()
+	local offer = s and s.store and s.store.starter
+	if offerPopped or not offer or not offer.popup then
+		return
+	end
+	offerPopped = true
+	task.spawn(function()
+		while ClientState.phase() == Ph.Intermission do
+			if not Modal.busy() then
+				local now = Progress.get()
+				if not now or not now.store.starter then
+					return
+				end
+				-- the reference video's STARTER PACK card (OfferController)
+				if not OfferController.open(now.store.starter.endsIn - Progress.age()) then
+					return
+				end
+				Net.send("StoreAction", { kind = "StarterSeen" })
+				return
+			end
+			task.wait(0.5)
+		end
+		offerPopped = false -- the lobby ended before a calm moment: try after the next results
+	end)
+end
+
 function StoreController.start()
 	Progress.start()
 	task.spawn(function()
@@ -775,7 +910,20 @@ function StoreController.start()
 			StoreController.open("Shop", "Crates")
 		end
 	end)
-	Progress.Changed:Connect(function()
+	local gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
+	local last = ClientState.phase()
+	gs:GetAttributeChangedSignal("Phase"):Connect(function()
+		local ph = ClientState.phase()
+		if last == Ph.Results and ph == Ph.Intermission then
+			popStarter()
+		end
+		last = ph
+	end)
+	Progress.Changed:Connect(function(s)
+		-- the offer card closes itself once the bundle is bought (or the offer ran out)
+		if DailyController.openName() == "StarterOffer" and not (s and s.store and s.store.starter) then
+			DailyController.close()
+		end
 		-- live refresh while open (a purchase, an equip, a crate); forget the screen once something else replaced it
 		if screen ~= "" and DailyController.openName() ~= screen then
 			screen = ""

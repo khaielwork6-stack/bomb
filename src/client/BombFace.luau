@@ -107,9 +107,14 @@ local function placed(fp: FacePart, p: Pose, gaze: Vector3?): (CFrame, Vector3)
 	return fp.pivot * r * fp.pivot:Inverse() * fp.rest, size
 end
 
-local function collect(model: Instance, reference: CFrame): { FacePart }
+local function scaled(cf: CFrame, scale: number): CFrame
+	return if scale == 1 then cf else CFrame.new(cf.Position * scale) * cf.Rotation
+end
+
+local function collect(model: Instance, reference: CFrame, scale: number?): { FacePart }
 	local out = {}
 	local inv = reference:Inverse()
+	local k = scale or 1
 	for _, d in ipairs(model:GetDescendants()) do
 		if isFace(d) then
 			local part = d :: BasePart
@@ -122,8 +127,8 @@ local function collect(model: Instance, reference: CFrame): { FacePart }
 					role = part:GetAttribute("FaceRole") :: string,
 					sgn = if part:GetAttribute("FaceSide") == "R" then -1 else 1,
 					mouth = if type(mouth) == "string" then mouth else nil,
-					pivot = inv * pivot,
-					rest = inv * rest,
+					pivot = inv * scaled(pivot, k),
+					rest = inv * scaled(rest, k),
 					weld = nil,
 					size = part.Size,
 				})
@@ -155,8 +160,8 @@ end
 
 -- Weld a live rig to `mount`. Call while the model is still in bomb space (before it's pivoted onto a Carrier); the
 -- face parts must not have been welded otherwise.
-function BombFace.attach(model: Instance, mount: BasePart): Rig?
-	local parts = collect(model, mount.CFrame)
+function BombFace.attach(model: Instance, mount: BasePart, scale: number?): Rig?
+	local parts = collect(model, mount.CFrame, scale) -- `scale`: the model was already scaled (the MEGA BOMB)
 	if #parts == 0 then
 		return nil
 	end

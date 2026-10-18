@@ -3,7 +3,7 @@
 You are building **FUSE VALLEY**: Huss Valley-style crossing tag where a tag sticks a ticking bomb on your back. Bump to pass it; the fuse never resets.
 
 ## Source of truth (read in this order every session)
-1. `docs/PROGRESS.md`: what's done, and the next unchecked task.
+1. `docs/ROADMAP.md`: what's next, in order, and who owns it. Then `docs/PROGRESS.md`: what's done, in detail.
 2. `docs/design/MASTER_GDD.md`: the rules, numbers, architecture and phases. **The GDD is law.**
 3. `docs/design/ASSET_BIBLE.md`: every asset. **§1, "The Quality Bar", applies to everything players see or hear.**
 4. `docs/DECISIONS.md`: logged decisions and open questions.

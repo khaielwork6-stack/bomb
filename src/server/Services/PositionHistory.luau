@@ -1,6 +1,8 @@
 --!strict
--- 20 Hz ring buffer of every participant's position/facing, for lag-compensated hit checks (F-BONK-04)
--- and the Final Moment Replay (F-ESC-06).
+-- Ring buffer (Config.Movement.HISTORY_HZ, HISTORY_SECONDS) of every participant's position, facing, state, role and
+-- whether they carry a bomb: lag-tolerant contact checks (GDD §24.1) and the moment system's highlight buffer
+-- (MomentService, GDD §10.5).
+-- Implements: F-FEEL-06 (the highlight buffer).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,7 +10,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Participants = require(script.Parent.Participants)
 
-type Sample = { t: number, pos: Vector3, look: Vector3, state: string, role: string }
+export type Sample = { t: number, pos: Vector3, look: Vector3, state: string, role: string, bomb: boolean }
 
 local C = Config.Movement
 local CAP = math.ceil(C.HISTORY_HZ * C.HISTORY_SECONDS) + 2
@@ -33,6 +35,7 @@ local function record(now: number)
 				look = root.CFrame.LookVector,
 				state = p.state,
 				role = p.role,
+				bomb = p.attrs:GetAttribute("BombId") ~= nil,
 			}
 			b.count = math.min(b.count + 1, CAP)
 		end

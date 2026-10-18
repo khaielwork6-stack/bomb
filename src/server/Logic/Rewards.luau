@@ -56,7 +56,7 @@ function Rewards.roundKeys(outcome: string, won: boolean, isMvp: boolean, firstW
 	if won then
 		if outcome == "LastStand" then
 			table.insert(keys, "LastStandWin")
-		elseif outcome == "Survivors" then
+		elseif outcome == "Survivors" or outcome == "MegaSurvivors" then
 			table.insert(keys, "SurvivorWin")
 		else
 			table.insert(keys, "BomberWin")

@@ -12,7 +12,8 @@ type Sound = {
 	pitch: { number }?,
 	looped: boolean?,
 	src: string,
-	alt: { string }?,
+	alt: { string }?, -- other takes of the same sound, picked at random (a frequent moment never repeats exactly)
+	fallback: string?, -- an in-house (FV) upload's licensed stand-in, played if the upload fails to load (moderation)
 	region: { number }?, -- play only this slice of the file (seconds)
 }
 
@@ -36,20 +37,20 @@ Assets.SFX = {
 	-- Movement (Chase Game's tuned set; replaced by designed stacks in the P3 audio pass, Asset Bible §9)
 	-- In-house (art/audio/make_sfx.py) since 2026-10-17; `alt` = the licensed sound Sfx falls back to if the in-house
 	-- upload fails to load (moderation).
-	Dash = s(122478519337941, 0.5, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://9126229255" } }),
-	HardStop = s(97594064286635, 0.55, "FV", { pitch = { 0.95, 1.05 }, alt = { "rbxassetid://9118740493" } }),
-	Slide = s(75023722365729, 0.45, "FV", { pitch = { 0.92, 1.06 }, alt = { "rbxassetid://114100466629000" } }),
+	Dash = s(122478519337941, 0.5, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://9126229255" }),
+	HardStop = s(97594064286635, 0.55, "FV", { pitch = { 0.95, 1.05 }, fallback = "rbxassetid://9118740493" }),
+	Slide = s(75023722365729, 0.45, "FV", { pitch = { 0.92, 1.06 }, fallback = "rbxassetid://114100466629000" }),
 	Land = s(
 		132981043048107,
 		0.55,
 		"FV",
-		{ pitch = { 0.92, 1.06 }, alt = { "rbxasset://sounds/action_jump_land.mp3" } }
+		{ pitch = { 0.92, 1.06 }, fallback = "rbxasset://sounds/action_jump_land.mp3" }
 	),
 	-- Footsteps: four soft single-hit steps, one picked at random per footfall (FootstepController sets the pace).
-	Footstep1 = s(83118919801898, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://123224557798023" } }),
-	Footstep2 = s(132859876751182, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://131412978408311" } }),
-	Footstep3 = s(117564083525822, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://114768473003662" } }),
-	Footstep4 = s(131466290951841, 0.3, "FV", { pitch = { 0.92, 1.08 }, alt = { "rbxassetid://91882016473062" } }),
+	Footstep1 = s(83118919801898, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://123224557798023" }),
+	Footstep2 = s(132859876751182, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://131412978408311" }),
+	Footstep3 = s(117564083525822, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://114768473003662" }),
+	Footstep4 = s(131466290951841, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://91882016473062" }),
 
 	-- The bomb (Asset Bible §9.2; licensed APM / Pro Sound Effects / Roblox, most already shipped by Chase Game).
 	-- Each moment is a STACK of layers (AudioController), never one stock sound.
@@ -62,11 +63,19 @@ Assets.SFX = {
 	BombTickHotA = s(132119182630967, 0.62, "FV"), -- bomb_tick_hot.wav
 	BombTickHotB = s(114523246396813, 0.62, "FV"), -- bomb_tock_hot.wav (ids matched by spectrum: the uploads were renamed)
 	BombClamp = s(9125782643, 0.6, "PSE", { pitch = { 1.05, 1.2 } }), -- a heavy metal lid set down: the clamp biting
-	PassWhoosh = s(127131729161867, 0.5, "FV", { pitch = { 0.9, 1.1 }, alt = { "rbxassetid://9126229255" } }), -- the flight between backs
+	PassWhoosh = s(127131729161867, 0.5, "FV", { pitch = { 0.9, 1.1 }, fallback = "rbxassetid://9126229255" }), -- the flight between backs
+	-- The slap (GDD F-BOMB-10): PSE "Hand Slap, Sharp Smacking" takes (the deep thud tail trimmed), layered over the
+	-- clamp; the arm's swing is the pass whoosh, high and quick.
+	Slap = s(9114772395, 0.8, "PSE", {
+		pitch = { 0.97, 1.08 },
+		region = { 0, 0.4 },
+		alt = { "rbxassetid://9114772607", "rbxassetid://9114773010", "rbxassetid://9114773206" },
+	}),
+	SlapSwing = s(9126229255, 0.32, "PSE", { pitch = { 1.75, 1.95 } }),
 	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
 	BoomBody = s(9113470802, 0.75, "PSE"), -- a giant thud: the body of the boom
 	BoomDebris = s(9113218938, 0.45, "PSE", { region = { 0, 2.2 } }), -- rock crumble: debris + tail (first 2.2 s of a 16 s file)
-	Defuse = s(81997207354999, 0.45, "FV", { pitch = { 0.95, 1.08 }, alt = { "rbxassetid://9126229255" } }), -- the snuff whoosh
+	Defuse = s(81997207354999, 0.45, "FV", { pitch = { 0.95, 1.08 }, fallback = "rbxassetid://9126229255" }), -- the snuff whoosh
 	Safe = s(18448089848, 0.55, "C"), -- the defuse chime
 	Clutch = s(9047103106, 0.8, "APM"), -- the CLUTCH DEFUSE sting
 	Klaxon = s(9119662934, 0.5, "PSE"), -- the Field Fuse at 5 s
@@ -88,9 +97,9 @@ Assets.SFX = {
 	UiTab = s(74212251876794, 0.35, "FV", { pitch = { 0.96, 1.04 } }),
 	CoinTick = s(136647661605856, 0.22, "FV", { pitch = { 1.0, 1.06 } }),
 	Claim = s(72019982036724, 0.55, "FV"),
-	Stamp = s(88717870625190, 0.6, "FV", { pitch = { 0.95, 1.05 }, alt = { "rbxassetid://9125782643" } }),
-	LevelUp = s(106482575046928, 0.7, "FV", { alt = { "rbxassetid://1841980129" } }),
-	QuestDone = s(78051789530604, 0.55, "FV", { alt = { "rbxassetid://9047103106" } }),
+	Stamp = s(88717870625190, 0.6, "FV", { pitch = { 0.95, 1.05 }, fallback = "rbxassetid://9125782643" }),
+	LevelUp = s(106482575046928, 0.7, "FV", { fallback = "rbxassetid://1841980129" }),
+	QuestDone = s(78051789530604, 0.55, "FV", { fallback = "rbxassetid://9047103106" }),
 	LoseSting = s(1839303737, 0.75, "APM"),
 	-- The rest of the Asset Bible §9.2 registry, sound-designed in-house (art/audio/make_sfx.py).
 	BombIgnite = s(94650004025445, 0.6, "FV", { pitch = { 0.96, 1.04 } }), -- match strike + fuse catch: a fresh bomb
@@ -152,6 +161,10 @@ Assets.Anim = {
 	EmoteVictory = "rbxassetid://93590265471803",
 	EmoteKaboom = "rbxassetid://71279048772759",
 	EmoteSitSip = "rbxassetid://130206929426189",
+	-- The slap (GDD F-BOMB-10), tools/anim/Slap + Stumble. "" until uploaded: Studio plays the baked
+	-- ReplicatedStorage.FV_AnimDev copies (SlapController), live servers skip the clip.
+	Slap = "",
+	Stumble = "",
 }
 
 -- In-house VFX textures (Asset Bible §5), generated by art/vfx/make_vfx.py. White ones are tinted by the emitter;
@@ -164,6 +177,7 @@ Assets.Vfx = {
 	Ring = "rbxassetid://72815615246237",
 	Scorch = "rbxassetid://78443805189538",
 	Ember = "rbxassetid://135076496021372",
+	Smack = "rbxassetid://95072891972199", -- art/vfx/make_smack.py: the slap's comic burst (4×4 flipbook, OneShot)
 }
 
 -- Cosmetic VFX textures (Asset Bible §5.6, §8.1–8.3), generated by art/vfx/make_cosmetics.py (recipes in

@@ -1,8 +1,12 @@
 --!strict
 -- The round (GDD §5, §6, §8): INTERMISSION → INTRO → (READY → CROSSING → RESOLVE) × up to 8 → LAST STAND → RESULTS.
 -- Owns roles, teleports, locks, the Field Fuse and every ending condition; BombService owns the bombs.
--- Until the lobby ("The Depot", P6) exists, intermission waits on the start Safe Strip (docs/DECISIONS.md).
--- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing.
+-- Between rounds everyone is in the lobby, The Depot (GDD §19; Characters.lobbyCFrame falls back to the start strip
+-- when a place has no lobby).
+-- MomentService picks the round's best moment; it goes out with the results (F-FEEL-06).
+-- ModifierService decides at each round start whether this round bends a rule (GDD §6.4).
+-- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing, F-FEEL-06 (hooks),
+-- F-MOD-01 (hooks).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -17,6 +21,9 @@ local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
 local CalloutService = require(script.Parent.CalloutService)
+local MegaService = require(script.Parent.MegaService)
+local ModifierService = require(script.Parent.ModifierService)
+local MomentService = require(script.Parent.MomentService)
 local DataService = require(script.Parent.DataService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
@@ -217,8 +224,10 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 		Characters.setLocked(p, false)
 	end
 	BombService.live = true
+	MegaService.go() -- the first GO of a MEGA BOMB round lights its fuse (F-MEGA-05)
 	local result = "fuse"
 	local warned = false
+	local hurried = lastStand -- the Last Stand keeps its full fuse
 	while true do
 		task.wait(0.05)
 		local t = now()
@@ -245,12 +254,38 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 			end
 		end
 		publishCounts()
+		-- The hurry-up (D-PACE-01): most Runners are safe, or only idlers are left in the start strip → the fuse cuts
+		-- to its last seconds (the warning below then fires at once).
+		if not hurried and #alive > 0 then
+			local safe, onField = 0, 0
+			for _, p in ipairs(alive) do
+				if p.state == S.Safe then
+					safe += 1
+				elseif p.state == S.Active and not (p.root and Arena.inSafe(p.root.Position, from)) then
+					onField += 1
+				end
+			end
+			local idlersOnly = onField == 0 and t - goAt > RC.IDLE_WARN / timeScale()
+			if safe > 0 and (safe / #alive >= RC.HURRY_SHARE or idlersOnly) then
+				hurried = true
+				local cut = t + RC.HURRY_LEFT / timeScale()
+				if cut < endsAt then
+					endsAt = cut
+					GameState.set("FuseEndsAt", endsAt)
+					Net.fireAll("FieldFx", { kind = "Hurry", crossing = k, at = t })
+				end
+			end
+		end
 		if not warned and endsAt - t <= RC.FUSE_WARN / timeScale() then
 			warned = true
 			Net.fireAll("FieldFx", { kind = "Warn", crossing = k, at = t })
 		end
 		if #alive == 0 then
 			result = "wiped"
+			break
+		end
+		if MegaService.expired() then
+			result = "mega" -- F-MEGA-05: the MEGA BOMB goes off (playRound runs the finale)
 			break
 		end
 		if allSafe then
@@ -295,6 +330,7 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 	end
 	CalloutService.crossingEnded(result, crossed)
 	RoundService.CrossingEnded:Fire(k, result)
+	ModifierService.crossingEnded(k) -- F-MOD-04: the Mole's deadline
 	return result
 end
 
@@ -337,6 +373,7 @@ local function finish(outcome: string, winners: { Participant })
 		winners = ids,
 		mvp = if mvp then mvp.id else nil,
 		stats = stats,
+		moment = MomentService.best(), -- F-FEEL-06: the MOMENT OF THE ROUND replay (nil if none was top-tier)
 		at = now(),
 	})
 	RoundService.Ended:Fire(outcome, winners, mvp)
@@ -345,6 +382,8 @@ end
 
 -- ── The round ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function resetToLobby()
+	MegaService.finish()
+	ModifierService.reset()
 	BombService.live = false
 	BombService.clear()
 	GameState.headline("")
@@ -363,7 +402,7 @@ local function resetToLobby()
 			Participants.setRole(p, R.None)
 			Participants.setState(p, S.Lobby)
 			Characters.applyGroup(p)
-			Characters.pivot(p, strip(-1))
+			Characters.pivot(p, Characters.lobbyCFrame()) -- back to The Depot (GDD §19)
 		end
 	end
 	startSide = -1
@@ -381,13 +420,18 @@ local function lastStand(runner: Participant, from: number): boolean
 	hold(RC.LAST_STAND_INTRO)
 	local result = crossing(GameState.get("Crossing") + 1, from, RC.LAST_STAND_FUSE * lengthFactor(), true)
 	runner.attrs:SetAttribute("SpeedMult", nil)
-	return result == "clear" and runner.role == R.Runner
+	local won = result == "clear" and runner.role == R.Runner
+	MomentService.lastStandEnded(runner, won)
+	return won
 end
 
 local function playRound()
 	local list = eligible()
 	local count = BombRules.bomberCount(#list)
-	local bombers = pickBombers(list, count)
+	-- F-MEGA-01/02: a MEGA BOMB round has one giant and no regular Bombers at the start
+	local giant = MegaService.claim(list)
+	local bombers = if giant then { [giant] = true } else pickBombers(list, count)
+	MomentService.reset()
 	table.clear(lastBombers)
 	for _, p in ipairs(list) do
 		p.stats = Participants.newStats()
@@ -402,6 +446,10 @@ local function playRound()
 			Participants.setRole(p, R.Runner)
 		end
 	end
+	if giant then
+		MegaService.begin(giant)
+	end
+	ModifierService.begin(giant ~= nil, runnersAlive()) -- F-MOD-01: before INTRO, which announces it
 	local startRunners = #runnersAlive()
 	GameState.set("MaxCrossings", RC.MAX_CROSSINGS)
 	-- INTRO: everyone to their spots, frozen, the Bombers revealed.
@@ -439,15 +487,34 @@ local function playRound()
 		placeBombers(-startSide)
 		lockAll(true, R.Bomber)
 		publishCounts()
-		setPhase(Ph.Ready, RC.READY)
-		hold(RC.READY)
-		local result = crossing(k, startSide, BombRules.fieldFuse(k) * lengthFactor(), false)
-		setPhase(Ph.Resolve, RC.RESOLVE)
-		hold(RC.RESOLVE)
+		local ready = if k == 1 then RC.READY else RC.READY_LATER
+		setPhase(Ph.Ready, ready)
+		hold(ready)
+		local result = if MegaService.expired()
+			then "mega"
+			else crossing(k, startSide, BombRules.fieldFuse(k) * lengthFactor(), false)
+		if result == "mega" then
+			-- F-MEGA-05: Runners in a Safe Strip win; everyone else booms. No Runners left → the giant's side wins.
+			local winners = MegaService.detonate()
+			hold(RC.RESOLVE)
+			BombService.finishGetups()
+			if #winners > 0 then
+				MegaService.reward("Survivors", winners)
+				finish("Survivors", winners)
+			else
+				MegaService.reward("Bombers", withRole(R.Bomber))
+				finish("Bombers", withRole(R.Bomber))
+			end
+			return
+		end
+		local resolve = if result == "fuse" then RC.RESOLVE else RC.RESOLVE_QUICK
+		setPhase(Ph.Resolve, resolve)
+		hold(resolve)
 		BombService.finishGetups()
 		local alive = runnersAlive()
 		publishCounts()
 		if #alive == 0 or result == "wiped" then
+			MegaService.reward("Bombers", withRole(R.Bomber))
 			finish("Bombers", withRole(R.Bomber))
 			return
 		end

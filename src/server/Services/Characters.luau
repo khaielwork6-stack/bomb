@@ -149,7 +149,12 @@ function Characters.lobbyCFrame(): CFrame
 		local half = spawnPart.Size * 0.4
 		local off =
 			Vector3.new(r:NextNumber(-half.X, half.X), spawnPart.Size.Y / 2 + 3.5, r:NextNumber(-half.Z, half.Z))
-		return CFrame.new(spawnPart.Position + off) * CFrame.Angles(0, r:NextNumber(0, math.pi * 2), 0)
+		local pos = spawnPart.Position + off
+		local face = spawnPart:GetAttribute("Face") -- The Depot: land facing the clock tower (GDD §19.1)
+		if typeof(face) == "Vector3" then
+			return CFrame.lookAt(pos, pos + face)
+		end
+		return CFrame.new(pos) * CFrame.Angles(0, r:NextNumber(0, math.pi * 2), 0)
 	end
 	-- No lobby until P6 (The Depot): wait on the start dock, never in the air over the field.
 	if Arena.current then

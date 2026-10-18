@@ -3,7 +3,8 @@
 -- in its team colour and the nearest one a bobbing "BUMP!" arrow; a chevron at the screen edge points to the
 -- nearest Safe Strip with an honest estimate (distance ÷ your current speed) in green when you can make it on the
 -- current fuse, or "TOO FAR" in red. The fresh pass you just received flashes the giver's name for a second.
--- Implements: F-FEEL-02.
+-- READ THE FACE (GDD §6.4): while the bomb's time is hidden the chevron shows only the run time, in neutral paper.
+-- Implements: F-FEEL-02, F-MOD-02.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -164,13 +165,15 @@ end
 
 local function step()
 	local explodeAt = player:GetAttribute("BombExplodeAt")
+	local masked = player:GetAttribute("BombMasked") == true and type(explodeAt) ~= "number"
 	local char = player.Character
 	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if type(explodeAt) ~= "number" or not root or not ClientState.runLive() or player:GetAttribute("BombLocked") then
+	local carrying = type(explodeAt) == "number" or (masked and player:GetAttribute("BombId") ~= nil)
+	if not carrying or not root or not ClientState.runLive() or player:GetAttribute("BombLocked") then
 		clearAll()
 		return
 	end
-	local remaining = explodeAt - workspace:GetServerTimeNow()
+	local remaining = if type(explodeAt) == "number" then explodeAt - workspace:GetServerTimeNow() else math.huge
 	local pos = root.Position
 	-- Pass targets: active, not carrying, not in a Safe Strip (State Safe = made it this crossing).
 	local nearest: Model? = nil
@@ -222,7 +225,7 @@ local function step()
 	local goal = (frame * CFrame.new(l.X, 0, -side * (halfLen + 3))).Position
 	local ok = eta <= remaining
 	chevronLabel.Text = if ok then string.format("SAFE  %.1fs", eta) else "TOO FAR"
-	chevronLabel.TextColor3 = if ok then P.Safe else P.Detonate
+	chevronLabel.TextColor3 = if masked then P.Paper elseif ok then P.Safe else P.Detonate
 	-- Place it on the screen edge in the strip's direction (or over the strip when it's on screen).
 	local vp = cam.ViewportSize
 	local sp, onScreen = cam:WorldToViewportPoint(goal)

@@ -58,6 +58,28 @@ function BombBrain.targetScore(dist: number, othersChasing: number): number
 	return dist + othersChasing * BC.SHARE_PENALTY
 end
 
+-- D-BOT-01: a Bomber behind a Runner (relative to the Runner's goal) doesn't tail it; it runs for a point ahead of it
+-- on its way to the strip, up to `maxLead` studs, so the Runner has to turn or juke. Otherwise nil (plain pursuit).
+function BombBrain.cutoff(
+	targetPos: Vector3,
+	goal: Vector3,
+	bomberPos: Vector3,
+	minDist: number,
+	maxLead: number
+): Vector3?
+	local flat = Vector3.new(1, 0, 1)
+	local toGoal = (goal - targetPos) * flat
+	local toTarget = (targetPos - bomberPos) * flat
+	if toGoal.Magnitude < 1e-3 or toTarget.Magnitude < minDist then
+		return nil
+	end
+	local g = toGoal.Unit
+	if toTarget:Dot(g) <= 0 then
+		return nil -- already goal-side of the Runner: chase it
+	end
+	return targetPos + g * math.min(maxLead, toTarget.Magnitude * 0.5, toGoal.Magnitude)
+end
+
 -- Where to aim at a moving target: its position led by `lead` seconds of its velocity (flattened).
 function BombBrain.intercept(targetPos: Vector3, targetVel: Vector3, lead: number): Vector3
 	return targetPos + targetVel * Vector3.new(1, 0, 1) * lead

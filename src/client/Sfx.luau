@@ -29,13 +29,13 @@ function Sfx.setVolume(v: number)
 	getGroup().Volume = v
 end
 
--- In-house uploads that failed to load (moderation): play their licensed `alt` instead (checked once, at start).
+-- In-house uploads that failed to load (moderation): play their licensed `fallback` instead (checked once, at start).
 local failed: { [string]: boolean } = {}
 task.spawn(function()
 	local list: { Instance } = {}
 	local keyOf: { [Instance]: string } = {}
 	for key, def in pairs(Assets.SFX :: any) do
-		if def.alt and def.src == "FV" then
+		if def.fallback and def.src == "FV" then
 			local probe = Instance.new("Sound")
 			probe.SoundId = def.id
 			probe.Volume = 0
@@ -71,7 +71,16 @@ local function make(key: string): Sound?
 		return nil
 	end
 	local s = Instance.new("Sound")
-	s.SoundId = if failed[key] and def.alt then def.alt[1] else def.id
+	s.SoundId = def.id
+	if failed[key] and def.fallback then
+		s.SoundId = def.fallback
+	elseif def.alt and #def.alt > 0 then
+		-- another take of the same sound, so a frequent moment never repeats exactly
+		local pick = math.random(0, #def.alt)
+		if pick > 0 then
+			s.SoundId = def.alt[pick]
+		end
+	end
 	s.Volume = def.volume
 	s.SoundGroup = getGroup()
 	if def.pitch then
