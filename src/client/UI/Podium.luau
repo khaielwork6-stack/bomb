@@ -32,7 +32,7 @@ local STEP = { -- rank → x, height, colour
 	[3] = { x = 4.6, h = 1.4, color = Color3.fromRGB(222, 132, 70) },
 }
 local W, D = 4.2, 4
-local CAM = CFrame.lookAt(Vector3.new(0, 6.6, 25), Vector3.new(0, 4.3, 0)) -- frames a 5-stud avatar on the top step
+local CAM = CFrame.lookAt(Vector3.new(0, 5.8, 21), Vector3.new(0, 4.6, 0)) -- frames a 5-stud avatar on the top step
 
 local function project(world: Vector3): Vector2
 	local p = CAM:PointToObjectSpace(world)
@@ -96,7 +96,7 @@ function Podium.build(parent: GuiObject, entries: { Entry }, soot: boolean?): Fr
 	local root = new("Frame", {
 		Name = "Podium",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -30),
+		Position = UDim2.new(0.5, 0, 0, -38), -- the names clear the results ribbon
 		Size = UDim2.fromOffset(SIZE.X, SIZE.Y),
 		BackgroundTransparency = 1,
 		ZIndex = 2,
@@ -268,7 +268,7 @@ function Podium.build(parent: GuiObject, entries: { Entry }, soot: boolean?): Fr
 				if root.Parent == nil then
 					return
 				end
-				local head = project(rest.Position + Vector3.new(0, bsize.Y * scale - feet + 0.6, 0))
+				local head = project(rest.Position + Vector3.new(0, bsize.Y * scale - feet - 0.2, 0))
 				local crown = Widgets.icon(overlay, "Crown", 54, {
 					AnchorPoint = Vector2.new(0.5, 1),
 					Position = UDim2.fromOffset(head.X, head.Y),

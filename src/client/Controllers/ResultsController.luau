@@ -126,8 +126,8 @@ end
 local function topThree(payload: any): { Podium.Entry }
 	local winners = if type(payload.winners) == "table" then table.clone(payload.winners) else {}
 	local stats = if type(payload.stats) == "table" then payload.stats else {}
-	if payload.outcome == "Bombers" then
-		winners = if type(payload.mvp) == "string" then { payload.mvp } else {}
+	if payload.outcome == "Bombers" and type(payload.mvp) == "string" then
+		winners = { payload.mvp }
 	end
 	local function score(id: string): number
 		if id == payload.mvp then
@@ -455,13 +455,15 @@ local function show(payload: any)
 	local v = Screen.size()
 	new("UIScale", {
 		Name = "Fit",
-		Scale = math.min(1, (v.Y - 60) / (holder.Size.Y.Offset + Podium.HEIGHT), (v.X - 30) / W),
+		-- room for the podium above and the HUD's round chip at the top
+		Scale = math.min(1, (v.Y - 150) / (holder.Size.Y.Offset + Podium.HEIGHT), (v.X - 30) / W),
 		Parent = holder,
 	})
-	holder.Position = UDim2.new(0.5, 0, 0.5, Podium.HEIGHT / 2 * (holder:FindFirstChild("Fit") :: UIScale).Scale)
 	local top = topThree(payload)
 	if #top > 0 then
-		Podium.build(holder, top, payload.outcome == "Bombers")
+		holder.Position =
+			UDim2.new(0.5, 0, 0.5, (Podium.HEIGHT / 2 + 20) * (holder:FindFirstChild("Fit") :: UIScale).Scale)
+		Podium.build(holder, top, payload.outcome == "Bombers" and type(payload.mvp) == "string")
 	end
 	Widgets.springIn(holder)
 	Skin.ribbon(holder, o.title, o.color, {
