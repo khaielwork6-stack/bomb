@@ -165,7 +165,7 @@ A full round takes **2–3 minutes** [TUNE]. There is no map vote at launch (one
 **Who plays what (F-FLOW-09):**
 - **Bombers** spawn in the middle of the field at each `READY` and are held there until `GO`.
 - **Runners** who reached the other side stay safe until the crossing ends.
-- **Players joining mid-round** spawn as **Bombers** at the next `READY` [OURS]. Nobody waits a whole round, which is pillar P3.
+- **Players joining mid-round** land in The Depot (§19.1) and drop in as **Bombers** at the next `READY` [OURS] (D-LOBBY-01). "YOU'RE UP NEXT" shows while they wait. Nobody waits a whole round, which is pillar P3.
 
 ### 5.3 Ending conditions (F-FLOW-10)
 Checked continuously during `CROSSING`, in this order:
@@ -781,7 +781,7 @@ A compact, premium lobby island built in the new art direction (Asset Bible §4.
 | **Shop kiosk** | Opens the Shop. The featured items rotate on 3D plinths outside. |
 | **Quest board** | Opens Quests. Shows today's 3 quests as physical cards pinned to the board. |
 | **Leaderboard wall** | 3 boards + 3 weekly champion statues. |
-| **Fuse Range** (practice) | Training dummies to tag and pass to. There's a "practice bomb" dispenser and a defuse pad. New players learn here safely, and AFK players have something to do. |
+| **Fuse Range** (practice) | Training dummies to tag and pass to. There's a "practice bomb" dispenser and a defuse pad. New players learn here safely, and AFK players have something to do. **The dummies wear your friends** (up to 3, online ones first, with their display names). Only you see them (D-LOBBY-01). |
 | **VIP lounge** | A gold-trimmed balcony with a better view and a VIP-only firework button. |
 
 ### 19.2 Intermission (F-LOBBY-02)

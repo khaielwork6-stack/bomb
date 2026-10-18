@@ -416,6 +416,12 @@ local function step()
 		local id = gs:GetAttribute("LastStandId") or ""
 		local _, model = ClientState.byId(id)
 		show("LAST STAND", if model then model.Name else "", P.Gold)
+	elseif
+		ClientState.role() == Types.Role.None
+		and (phase == Ph.Ready or phase == Ph.Crossing or phase == Ph.Resolve or phase == Ph.LastStand)
+	then
+		-- D-LOBBY-01: joined mid-round, waiting in The Depot for the next READY
+		show(Config.Strings.Lobby.Joining, Config.Strings.Lobby.JoiningSub, P.Bomber)
 	elseif carrying and phase ~= Ph.Results then -- (RESULTS belongs to the results card, ResultsController)
 		show("BUMP SOMEONE!", "or run to a safe side", P.Detonate)
 	else

@@ -4,7 +4,10 @@
 -- plinths (their real avatars, rendered in stone, the #1 in gold), refreshed every BOARD_REFRESH; and the VIP
 -- lounge's firework button (VIP pass owners only, one firework per FIREWORK_COOLDOWN for the whole server). The
 -- Fuse Range, kiosks, clock tower and plinths are client-side (DepotController). Idle when the place has no lobby.
--- Implements: F-LOBBY-01 (leaderboard wall, statues, VIP lounge), F-SOC-02 (the in-world boards).
+-- Friend dummies (D-LOBBY-01): each player's Fuse Range dummies wear that player's friends. Avatars can only be built
+-- on the server, so it builds them into a ScreenGui in that player's PlayerGui (which replicates to them alone);
+-- their DepotController moves them into the world over the padded dummies. Nobody else sees them.
+-- Implements: F-LOBBY-01 (leaderboard wall, statues, VIP lounge, Fuse Range dummies), F-SOC-02 (the in-world boards).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -115,10 +118,86 @@ local function refresh(lobby: Model)
 	end
 end
 
+-- The player's friends, online ones first, as R6 avatar models in their own PlayerGui (D-LOBBY-01).
+local function friendDummies(player: Player)
+	local ok, pages = pcall(Players.GetFriendsAsync, Players, player.UserId)
+	if not ok or not pages then
+		return
+	end
+	local online, offline = {}, {}
+	local seen = 0
+	while seen < LC.FRIEND_POOL do
+		for _, f in ipairs(pages:GetCurrentPage()) do
+			seen += 1
+			table.insert(if f.IsOnline then online else offline, f)
+		end
+		if pages.IsFinished or seen >= LC.FRIEND_POOL then
+			break
+		end
+		local more = pcall(function()
+			pages:AdvanceToNextPageAsync()
+		end)
+		if not more then
+			break
+		end
+	end
+	local function shuffle(list: { any })
+		for i = #list, 2, -1 do
+			local j = math.random(1, i)
+			list[i], list[j] = list[j], list[i]
+		end
+	end
+	shuffle(online)
+	shuffle(offline)
+	local picks = {}
+	for _, list in ipairs({ online, offline }) do
+		for _, f in ipairs(list) do
+			if #picks < LC.FRIEND_DUMMIES then
+				table.insert(picks, f)
+			end
+		end
+	end
+	if #picks == 0 or not player.Parent then
+		return
+	end
+	local holder = Instance.new("ScreenGui")
+	holder.Name = "FV_FriendDummies"
+	holder.ResetOnSpawn = false
+	holder.Enabled = false
+	for slot, f in ipairs(picks) do
+		local made, model = pcall(function()
+			local desc = Players:GetHumanoidDescriptionFromUserId(f.Id)
+			return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R6)
+		end)
+		if made and model then
+			model.Name = "Friend" .. slot
+			model:SetAttribute("Slot", slot)
+			model:SetAttribute("DisplayName", f.DisplayName or f.Username)
+			for _, d in ipairs(model:GetDescendants()) do
+				if d:IsA("Script") or d:IsA("LocalScript") then
+					d:Destroy()
+				end
+			end
+			model.Parent = holder
+		end
+	end
+	if #holder:GetChildren() > 0 and player.Parent then
+		holder.Parent = player:WaitForChild("PlayerGui")
+	else
+		holder:Destroy()
+	end
+end
+
 function DepotService.start()
 	local lobby = workspace:FindFirstChild("Lobby")
 	if not lobby or not lobby:IsA("Model") then
 		return
+	end
+	Players.PlayerAdded:Connect(function(player)
+		task.spawn(friendDummies, player)
+	end)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(friendDummies, player)
 	end
 	task.spawn(function()
 		while lobby.Parent do

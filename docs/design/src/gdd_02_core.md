@@ -24,7 +24,7 @@ A full round takes **2–3 minutes** [TUNE]. There is no map vote at launch (one
 **Who plays what (F-FLOW-09):**
 - **Bombers** spawn in the middle of the field at each `READY` and are held there until `GO`.
 - **Runners** who reached the other side stay safe until the crossing ends.
-- **Players joining mid-round** spawn as **Bombers** at the next `READY` [OURS]. Nobody waits a whole round, which is pillar P3.
+- **Players joining mid-round** land in The Depot (§19.1) and drop in as **Bombers** at the next `READY` [OURS] (D-LOBBY-01). "YOU'RE UP NEXT" shows while they wait. Nobody waits a whole round, which is pillar P3.
 
 ### 5.3 Ending conditions (F-FLOW-10)
 Checked continuously during `CROSSING`, in this order:

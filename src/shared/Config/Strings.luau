@@ -89,6 +89,8 @@ return {
 		Defused = "DEFUSED!",
 		VipOnly = "VIP pass owners only",
 		NoChampions = "no champions yet this week",
+		Joining = "YOU'RE UP NEXT",
+		JoiningSub = "you drop in as a Bomber at the next crossing",
 		Boards = { Wins = "WEEKLY WINS", Clutches = "WEEKLY CLUTCHES", Booms = "WEEKLY BOOMS" },
 	},
 	Round = {

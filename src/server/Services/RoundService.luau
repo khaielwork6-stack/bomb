@@ -552,14 +552,17 @@ local function loop()
 end
 
 function RoundService.init()
-	-- Joiners and respawns land on the waiting strip; in a round, the current start strip (they become Bombers at
-	-- the next READY).
+	-- Joiners land in The Depot (GDD §19.1 "where you land"; D-LOBBY-01) and drop in as Bombers at the next READY
+	-- (F-FLOW-09); a respawn mid-round goes back to the player's side of the field.
 	PlayerService.spawnResolver = function(p: Participant)
 		local t = os.clock()
 		while not Arena.current and os.clock() - t < 30 do -- boot can take a while (avatar loading runs first)
 			task.wait(0.1)
 		end
 		if not Arena.current then
+			return Characters.lobbyCFrame()
+		end
+		if p.role == R.None then
 			return Characters.lobbyCFrame()
 		end
 		if p.role == R.Bomber then

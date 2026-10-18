@@ -9,6 +9,9 @@ return {
 	PRACTICE_FUSE = 4.0, -- a practice bomb's fuse (the real one: Config.Bomb.FUSE)
 	PRACTICE_REACH = 4.5, -- bump a dummy this close to pass to it
 	PRACTICE_REGRAB = 0.5, -- a dummy that just handed it to you can't take it straight back
+	FRIEND_DUMMIES = 3, -- the Fuse Range dummies wear this many of your friends (online ones first), only on your screen
+	FRIEND_POOL = 60, -- friends looked at when picking them
+	FRIEND_TAG_RANGE = 60, -- their name tags show within this distance
 	DUMMY_HOLD = { 0.6, 1.2 }, -- seconds a dummy holds the bomb before handing it back…
 	DUMMY_RETURN = 14, -- …if you're this close (otherwise it holds on and booms)
 	DEFUSE_RADIUS = 3.2, -- the defuse pad's reach (flat)
