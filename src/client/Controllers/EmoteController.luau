@@ -2,7 +2,9 @@
 -- Emotes and the taunt (docs/VIDEO2_NOTES.md §8; the reference video's EMOTES [G] and TAUNT [T] buttons on the right
 -- edge): G (or the EMOTES tile) opens a wheel of the eight emotes round the screen centre — the ones you own lit with
 -- their name and number key (1–8), the rest locked — and picking one plays it on your character; T (or the TAUNT tile)
--- plays the quick "come at me" taunt (tools/anim/Taunt). Your character's animations replicate, so everyone sees them.
+-- opens the TAUNT wheel of emojis: picking one plays the quick "come at me" taunt (tools/anim/Taunt) and pops that
+-- emoji over your head with its funny sound, for everyone (the server relays it: Net Taunt → TauntFx; Config.Taunt).
+-- Your character's animations replicate, so everyone sees them.
 -- Moving cancels an emote. Never during a live run (you can't emote while you're dodging a bomb): in the lobby, in
 -- the Safe Strips and when you're out of the run (and never over a cinematic such as the pick camera).
 -- Implements: docs/VIDEO2_NOTES.md §8 (emote wheel + taunt), Asset Bible §8.5.
@@ -14,6 +16,7 @@ local RunService = game:GetService("RunService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Net = require(ReplicatedStorage.Shared.Net)
 local Cosmetics = require(ReplicatedStorage.Shared.Cosmetics)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
@@ -41,8 +44,8 @@ local gui: ScreenGui
 local side: Frame
 local wheel: Frame? = nil
 -- the wheel's two pages: FREE (Roblox's own emotes, everyone has them) and SHOP (the store's emotes, owned or locked)
-type Page = "Free" | "Shop"
-type Entry = { name: string, anim: string, mine: boolean }
+type Page = "Free" | "Shop" | "Taunt"
+type Entry = { name: string, anim: string, mine: boolean, icon: string?, taunt: string? }
 local FREE_ORDER = { "Wave", "Point", "Cheer", "Laugh", "Dance", "Dance2", "Dance3" }
 local page: Page? = nil -- remembered for the session; first open picks FREE unless you own a shop emote
 local track: AnimationTrack? = nil
@@ -68,9 +71,22 @@ local function owns(id: string): boolean
 	return false
 end
 
+local TC = Config.Taunt
+local tauntAt = -math.huge -- my last taunt (the server enforces the same cooldown)
+
 local function entries(pg: Page): { Entry }
 	local out = {}
-	if pg == "Free" then
+	if pg == "Taunt" then
+		for _, key in ipairs(TC.ORDER) do
+			table.insert(out, {
+				name = S.Ui.TauntNames[key] or key,
+				anim = Assets.Anim.Taunt,
+				mine = true,
+				icon = "Emoji" .. key,
+				taunt = key,
+			})
+		end
+	elseif pg == "Free" then
 		for _, key in ipairs(FREE_ORDER) do
 			local anim = Assets.Anim.FreeEmotes[key]
 			if anim then
@@ -141,8 +157,23 @@ end
 
 local openWheel: () -> ()
 
+local function taunt(key: string)
+	local now = os.clock()
+	if now - tauntAt < TC.COOLDOWN then
+		Sfx.play("UiDeny")
+		return
+	end
+	tauntAt = now
+	if allowed() then -- the taunt animation only where emotes are allowed; the emoji works anywhere
+		play(Assets.Anim.Taunt)
+	end
+	Net.send("Taunt", key)
+end
+
+local tauntWheel = false -- the open wheel is the TAUNT one (T), not the emote one (G)
+
 local function buildWheel()
-	local pg: Page = page or "Free"
+	local pg: Page = if tauntWheel then "Taunt" else page or "Free"
 	Sfx.play("UiOpen")
 	local w = new("Frame", {
 		Name = "EmoteWheel",
@@ -173,12 +204,12 @@ local function buildWheel()
 		TextSize = 30,
 		font = Theme.Font.Display,
 		stroke = 3,
-		Text = S.Ui.Emotes,
+		Text = if pg == "Taunt" then S.Ui.TauntTitle else S.Ui.Emotes,
 		ZIndex = 12,
 	})
-	-- the page toggle: shows the page you'd switch to
+	-- the page toggle (emotes only): shows the page you'd switch to
 	local other: Page = if pg == "Free" then "Shop" else "Free"
-	Widgets.button(
+	local toggle = Widgets.button(
 		w,
 		if other == "Free" then S.Ui.EmotesFree else S.Ui.EmotesShop,
 		if other == "Free" then "green" else "gold",
@@ -199,16 +230,20 @@ local function buildWheel()
 			ZIndex = 13,
 		}
 	)
+	toggle.Visible = pg ~= "Taunt"
 	local list = entries(pg)
 	for i, e in ipairs(list) do
 		local a = math.rad(-90 + (i - 1) * 360 / #list)
 		local slot = Widgets.button(
 			w,
 			"",
-			if e.mine then (if pg == "Free" then "green" else "cyan") else "dark",
+			if e.mine then (if pg == "Taunt" then "orange" elseif pg == "Free" then "green" else "cyan") else "dark",
 			UDim2.fromOffset(SLOT_SIZE, SLOT_SIZE),
 			function()
-				if e.mine then
+				if e.taunt then
+					taunt(e.taunt)
+					closeWheel()
+				elseif e.mine then
 					play(e.anim)
 					closeWheel()
 				else
@@ -222,11 +257,16 @@ local function buildWheel()
 			}
 		)
 		slot.Name = "Slot" .. i
-		Widgets.icon(slot, if e.mine then "Wave" else "Lock", if e.mine then 46 else 36, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.38),
-			ZIndex = 14,
-		})
+		Widgets.icon(
+			slot,
+			e.icon or (if e.mine then "Wave" else "Lock"),
+			if e.icon then 58 elseif e.mine then 46 else 36,
+			{
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.38),
+				ZIndex = 14,
+			}
+		)
 		local nameL = Widgets.label(slot, {
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -6),
@@ -255,9 +295,13 @@ end
 
 openWheel = function()
 	if wheel then
+		local was = tauntWheel
 		closeWheel()
-		return
+		if not was then
+			return
+		end
 	end
+	tauntWheel = false
 	if not allowed() then
 		Sfx.play("UiDeny")
 		return
@@ -268,19 +312,90 @@ openWheel = function()
 	buildWheel()
 end
 
+local function openTaunts()
+	if wheel then
+		local was = tauntWheel
+		closeWheel()
+		if was then
+			return
+		end
+	end
+	if CameraController.cinematic then
+		Sfx.play("UiDeny")
+		return
+	end
+	tauntWheel = true
+	buildWheel()
+end
+
+-- Someone taunted (TauntFx, relayed by the server): their emoji springs up over their head, bobs, and fades; its
+-- funny sound plays at their head, so everyone near hears it.
+local TweenService = game:GetService("TweenService")
+local function showTaunt(m: any)
+	if type(m) ~= "table" or type(m.who) ~= "string" or type(m.key) ~= "string" then
+		return
+	end
+	local _, model = ClientState.byId(m.who)
+	local head = model and model:FindFirstChild("Head") :: BasePart?
+	if not head then
+		return
+	end
+	local old = head:FindFirstChild("FV_Taunt")
+	if old then
+		old:Destroy()
+	end
+	local bb = new("BillboardGui", {
+		Name = "FV_Taunt",
+		Adornee = head,
+		Size = UDim2.fromScale(TC.SIZE, TC.SIZE),
+		StudsOffsetWorldSpace = Vector3.new(0, TC.HEIGHT, 0),
+		MaxDistance = TC.MAX_DISTANCE,
+		LightInfluence = 0,
+		AlwaysOnTop = false,
+		Parent = head,
+	}) :: BillboardGui
+	local img = new("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.2, 0.2),
+		BackgroundTransparency = 1,
+		Image = (Assets.Icon :: any)["Emoji" .. m.key] or "",
+		Rotation = -14,
+		Parent = bb,
+	}) :: ImageLabel
+	TweenService:Create(img, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.fromScale(1, 1),
+		Rotation = 0,
+	}):Play()
+	Sfx.at("Taunt" .. m.key, head.Position, TC.SOUND_VOLUME)
+	task.spawn(function()
+		local t0 = os.clock()
+		while bb.Parent and os.clock() - t0 < TC.SHOW_TIME do
+			local t = os.clock() - t0
+			bb.StudsOffsetWorldSpace = Vector3.new(0, TC.HEIGHT + 0.25 * math.sin(t * 6), 0)
+			task.wait()
+		end
+		if bb.Parent then
+			TweenService:Create(img, TweenInfo.new(0.25), { ImageTransparency = 1, Size = UDim2.fromScale(1.3, 1.3) })
+				:Play()
+			task.wait(0.27)
+			bb:Destroy()
+		end
+	end)
+end
+
 local function onKey(name: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
 	if state ~= Enum.UserInputState.Begin then
 		return Enum.ContextActionResult.Pass
 	end
-	if name == "FV_EmoteWheel" then
-		openWheel()
-	elseif name == "FV_Taunt" then
-		closeWheel()
-		play(Assets.Anim.Taunt)
-	elseif name == "FV_EmoteSlot" and wheel then
+	-- (G and T are the tiles' own shortcuts: Dock.tile handles them, so a second binding here would toggle twice)
+	if name == "FV_EmoteSlot" and wheel then
 		local n = input.KeyCode.Value - Enum.KeyCode.One.Value + 1
-		local e = entries(page or "Free")[n]
-		if e and e.mine then
+		local e = entries(if tauntWheel then "Taunt" else page or "Free")[n]
+		if e and e.taunt then
+			taunt(e.taunt)
+			closeWheel()
+		elseif e and e.mine then
 			play(e.anim)
 			closeWheel()
 		elseif e then
@@ -328,13 +443,16 @@ function EmoteController.start()
 		openWheel,
 		{ color = "pink", key = Enum.KeyCode.G, label = S.Ui.Emotes, order = 1 }
 	)
-	Dock.tile(side, "Taunt", "Flame", function()
-		play(Assets.Anim.Taunt)
-	end, { color = "orange", key = Enum.KeyCode.T, label = S.Ui.Taunt, order = 2 })
+	Dock.tile(
+		side,
+		"Taunt",
+		"Flame",
+		openTaunts,
+		{ color = "orange", key = Enum.KeyCode.T, label = S.Ui.Taunt, order = 2 }
+	)
 	place()
 	Screen.Changed:Connect(place)
-	ContextActionService:BindAction("FV_EmoteWheel", onKey, false, Enum.KeyCode.G)
-	ContextActionService:BindAction("FV_Taunt", onKey, false, Enum.KeyCode.T)
+	Net.listen("TauntFx", showTaunt)
 	ContextActionService:BindAction(
 		"FV_EmoteSlot",
 		onKey,

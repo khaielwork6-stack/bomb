@@ -71,6 +71,19 @@ function PlayerService.start()
 		mobileButtonSize = "string",
 		colourBlindOutlines = "boolean",
 	}
+	-- Emoji taunts: validate the key, enforce the cooldown, relay to everyone (Config.Taunt).
+	Net.on("Taunt", function(player, key)
+		local p = Participants.fromPlayer(player)
+		if not p or type(key) ~= "string" or not table.find(Config.Taunt.ORDER, key) then
+			return
+		end
+		local now = os.clock()
+		if now - (p.data.tauntAt or -math.huge) < Config.Taunt.COOLDOWN then
+			return
+		end
+		p.data.tauntAt = now
+		Net.fireAll("TauntFx", { who = p.id, key = key })
+	end)
 	Net.on("SaveSettings", function(player, data)
 		local p = Participants.fromPlayer(player)
 		if not p or type(data) ~= "table" then

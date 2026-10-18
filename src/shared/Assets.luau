@@ -120,6 +120,16 @@ Assets.SFX = {
 	CrateRattle = s(96106308068627, 0.45, "FV", { looped = true, pitch = { 0.97, 1.03 } }),
 	CratePop = s(114428817474077, 0.6, "FV", { pitch = { 0.95, 1.05 } }),
 	CrateLegendary = s(87602496884973, 0.75, "FV"),
+	-- Emoji taunts (art/audio/make_taunts.py, art/out/Audio/Taunt): one funny sound per emoji (Config.Taunt)
+	TauntLaugh = s(109865111885089, 0.8, "FV"),
+	TauntCool = s(81466277295426, 0.8, "FV"),
+	TauntAngry = s(125100758853148, 0.8, "FV"),
+	TauntCry = s(71787502872704, 0.8, "FV"),
+	TauntLove = s(126845671449662, 0.8, "FV"),
+	TauntShock = s(79354411626426, 0.8, "FV"),
+	TauntSilly = s(98176614675969, 0.8, "FV"),
+	TauntSkull = s(83364544413961, 0.8, "FV"),
+	TauntFire = s(133477966480256, 0.8, "FV"),
 }
 
 -- Music (licensed APM, from Chase Game's vetted list). AudioController crossfades by phase.
@@ -295,6 +305,16 @@ Assets.Icon = {
 	GemHeap = "rbxassetid://138626535327336",
 	GemBag = "rbxassetid://92419500414344",
 	GemChest = "rbxassetid://113263053316327",
+	-- the taunt emojis (art/icons/set_emoji.py; Config.Taunt)
+	EmojiLaugh = "",
+	EmojiCool = "",
+	EmojiAngry = "",
+	EmojiCry = "",
+	EmojiLove = "",
+	EmojiShock = "",
+	EmojiSilly = "",
+	EmojiSkull = "",
+	EmojiFire = "",
 	Stop = "rbxassetid://129830810379344",
 	Ticket = "rbxassetid://81430764809824",
 	Trail = "rbxassetid://72488857407891",

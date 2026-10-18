@@ -21,6 +21,7 @@ local Config = {
 	Strings = require(script.Strings),
 	Store = require(script.Store),
 	Wheel = require(script.Wheel),
+	Taunt = require(script.Taunt),
 	Mobile = require(script.Mobile),
 	Lighting = require(script.Lighting),
 	Hype = require(script.Hype),

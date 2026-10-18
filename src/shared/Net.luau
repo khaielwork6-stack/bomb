@@ -19,6 +19,7 @@ Net.ClientToServer = {
 	DailyAction = 4, -- { kind = ClaimLogin | ClaimGift | Reroll | ClaimDailyCrate | RulesSeen | Tip | Funnel, … } (P4)
 	StoreAction = 4, -- { kind = Buy | Equip | Unequip | OpenCrate | BuyRobux | BuyProduct | BuyPass, … } (P5)
 	Strike = 2, -- the Mole's STRIKE intent (GDD §6.4, F-MOD-04)
+	Taunt = 1, -- an emoji taunt (key from Config.Taunt.ORDER); the server relays it as TauntFx
 	SetAfk = 2, -- the lobby AFK toggle (boolean): sit out the next rounds (PARTNER_REQUESTS #4)
 }
 
@@ -30,6 +31,7 @@ Net.ServerToClient = {
 	"Callout", -- { key, n?, xp?, stars?, at } to one player (CalloutService + RewardService, GDD §11.1)
 	"Progress", -- the player's progression snapshot: level, xp, stars, streak, quests, calendar, gift (P4)
 	"ModFx", -- { kind = Mole | Armed, … } to one player: the secret Mole's own beats (GDD §6.4)
+	"TauntFx", -- { who, key }: show that emoji over `who` and play its sound (everyone)
 	"Reward", -- { kind = LevelUp | Round | Quest | Login | Gift | DailyCrate | Group, … } to one player (P4)
 }
 
