@@ -1,0 +1,33 @@
+{
+  "key": "Prop.DockBumper",
+  "tris": {
+    "Rubber": 1128,
+    "Plate": 1496
+  },
+  "tris_total": 2624,
+  "pivot_blender": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "size_studs": [
+    1.6,
+    2.2,
+    1.0
+  ],
+  "parts": {
+    "Rubber": {
+      "COLOR": "Prop_DockBumper_Rubber_COLOR.png",
+      "ROUGHNESS": "Prop_DockBumper_Rubber_ROUGHNESS.png",
+      "NORMAL": "Prop_DockBumper_Rubber_NORMAL.png",
+      "METAL": "Prop_DockBumper_Rubber_METAL.png"
+    },
+    "Plate": {
+      "COLOR": "Prop_DockBumper_Plate_COLOR.png",
+      "ROUGHNESS": "Prop_DockBumper_Plate_ROUGHNESS.png",
+      "NORMAL": "Prop_DockBumper_Plate_NORMAL.png",
+      "METAL": "Prop_DockBumper_Plate_METAL.png"
+    }
+  },
+  "glow": []
+}

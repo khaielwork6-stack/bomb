@@ -730,6 +730,75 @@ def mat_paint_wood(name, paint, paint_hi, bare, dark, chip=0.42, grain=0.12, rou
     return m
 
 
+def mat_paint_metal(name, paint, hi, edge, bare, rough=0.3, chip=0.4, chip_scale=6.0, spots=0.71):
+    """Glossy painted steel (mat_gloss's top-lit gradient and edge light) with chips on the edges and a sparse
+    scatter of small knocks on the faces, both showing `bare`."""
+    m, nt, b = new_mat(name)
+    col = mix_rgb(nt, up_gradient(nt, -0.6, 1.0, 0.45), paint, hi)
+    col = mix_rgb(nt, edge_mask(nt, 0.05, 2.5), col, edge)
+    noise = noise_tex(nt, chip_scale, 6.0)
+    em = edge_mask(nt, 0.04, 3.0)
+    ch = nd(nt, "ShaderNodeMath", operation="MULTIPLY")
+    nt.links.new(em, ch.inputs[0])
+    nt.links.new(noise.outputs["Fac"], ch.inputs[1])
+    cht = nd(nt, "ShaderNodeMath", operation="GREATER_THAN")
+    cht.inputs[1].default_value = chip
+    nt.links.new(ch.outputs[0], cht.inputs[0])
+    knock = noise_tex(nt, 5.5, 6.0)
+    kt = nd(nt, "ShaderNodeMath", operation="GREATER_THAN")
+    kt.inputs[1].default_value = spots
+    nt.links.new(knock.outputs["Fac"], kt.inputs[0])
+    both = nd(nt, "ShaderNodeMath", operation="MAXIMUM")
+    nt.links.new(cht.outputs[0], both.inputs[0])
+    nt.links.new(kt.outputs[0], both.inputs[1])
+    cht = both
+    col = mix_rgb(nt, cht.outputs[0], col, bare)
+    col = ao_mult(nt, col, 0.65)
+    nt.links.new(col, b.inputs["Base Color"])
+    nt.links.new(map_range(nt, cht.outputs[0], 0, 1, rough, 0.5), b.inputs["Roughness"])
+    nt.links.new(map_range(nt, cht.outputs[0], 0, 1, 0.0, 0.3), b.inputs["Metallic"])
+    bn = nd(nt, "ShaderNodeBump")
+    bn.inputs["Strength"].default_value = 0.25
+    bn.inputs["Distance"].default_value = 0.01
+    nt.links.new(cht.outputs[0], bn.inputs["Height"])
+    nt.links.new(bn.outputs["Normal"], b.inputs["Normal"])
+    return m
+
+
+def mat_hazard(name, width=0.42):
+    """Painted yellow-and-black diagonal hazard stripes (object space x + z, `width` studs each), glossy, with a light
+    edge highlight."""
+    m, nt, b = new_mat(name)
+    tc = nd(nt, "ShaderNodeTexCoord")
+    sep = nd(nt, "ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], sep.inputs["Vector"])
+    add = nd(nt, "ShaderNodeMath", operation="ADD")
+    nt.links.new(sep.outputs["X"], add.inputs[0])
+    nt.links.new(sep.outputs["Z"], add.inputs[1])
+    per = nd(nt, "ShaderNodeMath", operation="DIVIDE")
+    per.inputs[1].default_value = width * 2
+    nt.links.new(add.outputs[0], per.inputs[0])
+    fr = nd(nt, "ShaderNodeMath", operation="FRACT")
+    nt.links.new(per.outputs[0], fr.inputs[0])
+    pp = nd(nt, "ShaderNodeMath", operation="PINGPONG")
+    pp.inputs[1].default_value = 0.5
+    nt.links.new(fr.outputs[0], pp.inputs[0])
+    stripe = nd(nt, "ShaderNodeMapRange", interpolation_type="SMOOTHSTEP")
+    stripe.inputs["From Min"].default_value = 0.24
+    stripe.inputs["From Max"].default_value = 0.26
+    nt.links.new(pp.outputs[0], stripe.inputs["Value"])
+    yel = mix_rgb(nt, up_gradient(nt, -0.6, 1.0, 0.45), srgb("#FFC21E"), srgb("#FFE47A"))
+    blk = mix_rgb(nt, up_gradient(nt, -0.6, 1.0, 0.45), srgb("#24242E"), srgb("#4A4A5A"))
+    col = mix_rgb(nt, stripe.outputs["Result"], blk, yel)
+    col = mix_rgb(nt, edge_mask(nt, 0.04, 2.0), col, srgb("#FFF2B0"), blend="SCREEN")
+    col = ao_mult(nt, col, 0.6)
+    nt.links.new(col, b.inputs["Base Color"])
+    n2 = noise_tex(nt, 9.0)
+    nt.links.new(map_range(nt, n2.outputs["Fac"], 0, 1, 0.26, 0.36), b.inputs["Roughness"])
+    b.inputs["Metallic"].default_value = 0.0
+    return m
+
+
 # ── Evaluate into plain meshes, join per group ───────────────────────────────────────────────────────────────────
 
 

@@ -1,0 +1,43 @@
+{
+  "key": "Prop.Shutter",
+  "tris": {
+    "Panel": 880,
+    "BottomBar": 880,
+    "Housing": 2752
+  },
+  "tris_total": 4512,
+  "pivot_blender": [
+    0.0,
+    -0.0001,
+    0.0
+  ],
+  "size_studs": [
+    14.4,
+    12.2087,
+    1.6698
+  ],
+  "parts": {
+    "Panel": {
+      "COLOR": "Prop_Shutter_Panel_COLOR.png",
+      "ROUGHNESS": "Prop_Shutter_Panel_ROUGHNESS.png",
+      "NORMAL": "Prop_Shutter_Panel_NORMAL.png",
+      "METAL": "Prop_Shutter_Panel_METAL.png"
+    },
+    "BottomBar": {
+      "COLOR": "Prop_Shutter_BottomBar_COLOR.png",
+      "ROUGHNESS": "Prop_Shutter_BottomBar_ROUGHNESS.png",
+      "NORMAL": "Prop_Shutter_BottomBar_NORMAL.png",
+      "METAL": "Prop_Shutter_BottomBar_METAL.png"
+    },
+    "Housing": {
+      "COLOR": "Prop_Shutter_Housing_COLOR.png",
+      "ROUGHNESS": "Prop_Shutter_Housing_ROUGHNESS.png",
+      "NORMAL": "Prop_Shutter_Housing_NORMAL.png",
+      "METAL": "Prop_Shutter_Housing_METAL.png"
+    }
+  },
+  "panel_top_z": 10.7,
+  "bar_height": 0.62,
+  "hood_bottom_z": 10.6,
+  "glow": []
+}

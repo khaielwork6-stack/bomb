@@ -1,0 +1,33 @@
+{
+  "key": "Prop.Sandbags",
+  "tris": {
+    "Bags": 3072,
+    "BagsTop": 4608
+  },
+  "tris_total": 7680,
+  "pivot_blender": [
+    -0.0161,
+    0.165,
+    0.0
+  ],
+  "size_studs": [
+    12.9928,
+    2.5598,
+    1.8148
+  ],
+  "parts": {
+    "Bags": {
+      "COLOR": "Prop_Sandbags_Bags_COLOR.png",
+      "ROUGHNESS": "Prop_Sandbags_Bags_ROUGHNESS.png",
+      "NORMAL": "Prop_Sandbags_Bags_NORMAL.png",
+      "METAL": "Prop_Sandbags_Bags_METAL.png"
+    },
+    "BagsTop": {
+      "COLOR": "Prop_Sandbags_BagsTop_COLOR.png",
+      "ROUGHNESS": "Prop_Sandbags_BagsTop_ROUGHNESS.png",
+      "NORMAL": "Prop_Sandbags_BagsTop_NORMAL.png",
+      "METAL": "Prop_Sandbags_BagsTop_METAL.png"
+    }
+  },
+  "glow": []
+}

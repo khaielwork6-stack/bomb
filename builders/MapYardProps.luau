@@ -11,9 +11,17 @@
 --   • every GasBottle → FV_Art.Props.GasBottle, its body tinted with the old body's colour (SurfaceAppearance.Color;
 --     if the engine can't tint a SurfaceAppearance, the body drops its maps and takes the colour as plain plastic);
 --   • the dock canopies' Floodlight boxes → FV_Art.Props.Floodlight heads aimed where the old lens pointed; the old
---     Lens part stays as an invisible emitter so its SpotLight keeps working unchanged.
--- Each swapped model keeps the original's name and parent (the folder structure doesn't change) and is tagged with
--- the attribute FV_Prop. A prop type whose FV_Art model is missing is left exactly as MapYard built it.
+--     Lens part stays as an invisible emitter so its SpotLight keeps working unchanged;
+--   • each sandbag pile (MapYard's loose "Sandbag" blobs, grouped by touching) → one FV_Art.Props.Sandbags wall,
+--     scaled to the pile's height, bottom on the pile's bottom, its front to the yard; decoration, as the blobs were;
+--   • each dock door (its "RollBox", with the "Slat"s, "Handle" or rolled-up "Shutter" bar under it) →
+--     FV_Art.Props.Shutter, scaled from the floor to the roll box's top. A closed door keeps the old slats' collision
+--     (the "Hit" box is fitted to them); the open (middle) door loses its slat panel, its bottom bar lifts up under
+--     the hood, and nothing on it collides. The orange door frames stay;
+--   • every "Bumper" (and its "BumperStripe") → FV_Art.Props.DockBumper, the same box, still solid.
+-- Each swapped model keeps the original's name and parent (the folder structure doesn't change; a door's model is
+-- named "Shutter") and is tagged with the attribute FV_Prop. A prop type whose FV_Art model is missing is left
+-- exactly as MapYard built it.
 -- Re-runnable: already-swapped models are skipped; run MapYard (+ MapYardToy) first for a clean base.
 
 local Props: { [string]: string } = {
@@ -24,27 +32,54 @@ local Props: { [string]: string } = {
 	GasBottle = "GasBottle",
 	Floodlight = "Floodlight",
 }
+-- MapYard's dock dressing is loose BaseParts (no Model per prop)
+local Loose: { [string]: string } = {
+	Sandbag = "Sandbags",
+	RollBox = "Shutter",
+	Bumper = "DockBumper",
+}
 
--- The bottom centre of every BasePart in `m`, measured in the frame `rot` (a rotation-only CFrame).
-local function bottomCentre(m: Instance, rot: CFrame): CFrame
+-- The bounds of `parts`, measured in the frame `rot` (a rotation-only CFrame): lo, hi.
+local function boundsIn(parts: { BasePart }, rot: CFrame): (Vector3, Vector3)
 	local lo = Vector3.new(math.huge, math.huge, math.huge)
 	local hi = -lo
-	for _, d in ipairs(m:GetDescendants()) do
-		if d:IsA("BasePart") then
-			local h = d.Size / 2
-			for _, sx in ipairs({ -1, 1 }) do
-				for _, sy in ipairs({ -1, 1 }) do
-					for _, sz in ipairs({ -1, 1 }) do
-						local p = rot:PointToObjectSpace(d.CFrame:PointToWorldSpace(h * Vector3.new(sx, sy, sz)))
-						lo = lo:Min(p)
-						hi = hi:Max(p)
-					end
+	for _, d in ipairs(parts) do
+		local h = d.Size / 2
+		for _, sx in ipairs({ -1, 1 }) do
+			for _, sy in ipairs({ -1, 1 }) do
+				for _, sz in ipairs({ -1, 1 }) do
+					local p = rot:PointToObjectSpace(d.CFrame:PointToWorldSpace(h * Vector3.new(sx, sy, sz)))
+					lo = lo:Min(p)
+					hi = hi:Max(p)
 				end
 			end
 		end
 	end
+	return lo, hi
+end
+
+-- The bottom centre of every BasePart in `m`, measured in the frame `rot` (a rotation-only CFrame).
+local function bottomCentre(m: Instance, rot: CFrame): CFrame
+	local parts = {}
+	for _, d in ipairs(m:GetDescendants()) do
+		if d:IsA("BasePart") then
+			table.insert(parts, d)
+		end
+	end
+	local lo, hi = boundsIn(parts, rot)
 	local c = (lo + hi) / 2
 	return rot * CFrame.new(c.X, lo.Y, c.Z)
+end
+
+-- A yaw-only rotation facing (LookVector) along the horizontal axis of `cf` that `size` is thinnest on, turned toward
+-- `toward` from `at`: the dock dressing's fronts face the yard.
+local function facing(cf: CFrame, size: Vector3, at: Vector3, toward: Vector3): CFrame
+	local axis = if size.X <= size.Z then cf.RightVector else cf.LookVector
+	axis = Vector3.new(axis.X, 0, axis.Z).Unit
+	if axis:Dot(toward - at) < 0 then
+		axis = -axis
+	end
+	return CFrame.lookAt(Vector3.zero, axis)
 end
 
 return function(_ctx: any): string
@@ -94,6 +129,11 @@ return function(_ctx: any): string
 	-- Gather first (the swaps change the tree).
 	local found: { [string]: { Instance } } = {}
 	for _, d in ipairs(map:GetDescendants()) do
+		if Loose[d.Name] and d:IsA("BasePart") then
+			found[d.Name] = found[d.Name] or {}
+			table.insert(found[d.Name], d)
+			continue
+		end
 		local kind = Props[d.Name]
 		if not kind or d:GetAttribute("FV_Prop") then
 			continue
@@ -240,6 +280,179 @@ return function(_ctx: any): string
 		end
 	end
 
+	-- the dock dressing faces the yard: its fronts turn toward the field's centre
+	local zones = map:FindFirstChild("Zones", true)
+	local fieldZone = zones and zones:FindFirstChild("Field")
+	local centre = if fieldZone and fieldZone:IsA("BasePart") then fieldZone.Position else map:GetPivot().Position
+
+	-- the Hit box (the collision) refitted to `parts`' bounds in the frame `rot`, the model's pivot kept
+	local function fitHit(m: Model, parts: { BasePart }, rot: CFrame)
+		local hit = hitOf(m)
+		if not hit then
+			return
+		end
+		local pv = m:GetPivot()
+		local lo, hi = boundsIn(parts, rot)
+		hit.Size = hi - lo
+		hit.CFrame = rot * CFrame.new((lo + hi) / 2)
+		hit.PivotOffset = hit.CFrame:ToObjectSpace(pv)
+	end
+
+	local function noCollide(m: Model)
+		local hit = hitOf(m)
+		if hit then
+			hit.CanCollide, hit.CanQuery, hit.CanTouch = false, false, false
+		end
+	end
+
+	-- ── Sandbag walls at the dock ends: one Sandbags model per pile of touching blobs ───────────────────────────
+	local bags = (found.Sandbag or {}) :: { any }
+	local sp = proto("Sandbags")
+	local sh = if sp then hitOf(sp) else nil
+	if sh and #bags > 0 then
+		-- group the blobs into piles (union-find over blobs closer than a bag's length)
+		local root: { number } = {}
+		for i = 1, #bags do
+			root[i] = i
+		end
+		local function find(i: number): number
+			while root[i] ~= i do
+				root[i] = root[root[i]]
+				i = root[i]
+			end
+			return i
+		end
+		for i = 1, #bags do
+			for j = i + 1, #bags do
+				local a, b = bags[i] :: BasePart, bags[j] :: BasePart
+				if
+					a.Parent == b.Parent
+					and (a.Position - b.Position).Magnitude < math.max(a.Size.X, a.Size.Z) * 1.2
+				then
+					root[find(i)] = find(j)
+				end
+			end
+		end
+		local piles: { [number]: { BasePart } } = {}
+		for i = 1, #bags do
+			local r = find(i)
+			piles[r] = piles[r] or {}
+			table.insert(piles[r], bags[i])
+		end
+		for _, pile in pairs(piles) do
+			local lo, hi = boundsIn(pile, CFrame.identity)
+			local mid = (lo + hi) / 2
+			local rot = facing(CFrame.identity, hi - lo, mid, centre)
+			local plo, phi = boundsIn(pile, rot)
+			local c = (plo + phi) / 2
+			local m = swap(pile[1], "Sandbags", rot * CFrame.new(c.X, plo.Y, c.Z), (phi.Y - plo.Y) / sh.Size.Y)
+			if m then
+				for i = 2, #pile do
+					pile[i]:Destroy()
+				end
+				noCollide(m) -- decoration, as the blobs were (the dock's side walls do the blocking)
+				tally("Sandbags")
+			end
+		end
+	end
+
+	-- ── Dock doors: each roll box with its slats / handle / rolled-up bar → one Shutter ─────────────────────────
+	local shp = proto("Shutter")
+	local shh = if shp then hitOf(shp) else nil
+	for _, old in ipairs(found.RollBox or {}) do
+		if not shh then
+			break
+		end
+		local box = old :: BasePart
+		local parent = box.Parent :: Instance
+		local longZ = box.Size.Z >= box.Size.X
+		local half = (if longZ then box.Size.Z else box.Size.X) / 2
+		-- the door's own parts sit under the box, within its length, close to its depth
+		local slats, extra, frames = {}, {}, {}
+		for _, c in ipairs(parent:GetChildren()) do
+			if not c:IsA("BasePart") or c == box then
+				continue
+			end
+			local lp = box.CFrame:PointToObjectSpace(c.Position)
+			local along, across = if longZ then lp.Z else lp.X, if longZ then lp.X else lp.Z
+			if c.Name == "DoorFrameL" or c.Name == "DoorFrameR" then
+				if math.abs(along) < half + 2 and math.abs(across) < 2.5 then
+					table.insert(frames, c)
+				end
+			elseif math.abs(along) < half + 0.5 and math.abs(across) < 2.5 and lp.Y < 0 then
+				if c.Name == "Slat" then
+					table.insert(slats, c)
+				elseif c.Name == "Handle" or c.Name == "Shutter" then
+					table.insert(extra, c)
+				end
+			end
+		end
+		local floor = math.huge
+		for _, p in ipairs(if #slats > 0 then slats else frames) do
+			local lo = boundsIn({ p }, CFrame.identity)
+			floor = math.min(floor, lo.Y)
+		end
+		if floor == math.huge then
+			continue
+		end
+		local top = box.Position.Y + box.Size.Y / 2
+		local rot = facing(box.CFrame, box.Size, box.Position, centre)
+		local m =
+			swap(box, "Shutter", rot + Vector3.new(box.Position.X, floor, box.Position.Z), (top - floor) / shh.Size.Y)
+		if not m then
+			continue
+		end
+		m.Name = "Shutter"
+		if #slats > 0 then
+			fitHit(m, slats, rot) -- closed: it blocks exactly where the slats did
+		else
+			-- the open door: no slat panel, the bottom bar rolled up under the hood, nothing in the way
+			local panel = m:FindFirstChild("Panel")
+			if panel then
+				panel:Destroy()
+			end
+			local bar = part(m, "BottomBar")
+			if bar then
+				local hood = top - box.Size.Y
+				bar.CFrame += Vector3.new(0, hood - (bar.Position.Y + bar.Size.Y / 2), 0)
+			end
+			noCollide(m)
+		end
+		for _, p in ipairs(slats) do
+			p:Destroy()
+		end
+		for _, p in ipairs(extra) do
+			p:Destroy()
+		end
+		tally("Shutter")
+	end
+
+	-- ── Dock bumpers either side of the doors ────────────────────────────────────────────────────────────────────
+	local bp = proto("DockBumper")
+	local bh = if bp then hitOf(bp) else nil
+	for _, old in ipairs(found.Bumper or {}) do
+		if not bh then
+			break
+		end
+		local b = old :: BasePart
+		local parent = b.Parent :: Instance
+		local stripe: Instance? = nil
+		for _, c in ipairs(parent:GetChildren()) do
+			if c.Name == "BumperStripe" and c:IsA("BasePart") and (c.Position - b.Position).Magnitude < b.Size.Y then
+				stripe = c
+				break
+			end
+		end
+		local rot = facing(b.CFrame, b.Size, b.Position, centre)
+		local foot = b.Position - Vector3.new(0, b.Size.Y / 2, 0) -- an upright block
+		if swap(b, "DockBumper", rot + foot, b.Size.Y / bh.Size.Y) then
+			if stripe then
+				stripe:Destroy()
+			end
+			tally("DockBumper")
+		end
+	end
+
 	-- the field cover stands ON the yard floor (MapYard's TOP sits 1.3 below the restyled slabs' tops): drop each
 	-- cover prop onto whatever is under its centre, ignoring the zone volumes and the cover itself
 	local cover = map:FindFirstChild("Cover", true)
@@ -259,7 +472,16 @@ return function(_ctx: any): string
 	end
 
 	local parts = {}
-	for _, kind in ipairs({ "FireworkCrate", "HandTruck", "Pallet", "GasBottle", "Floodlight" }) do
+	for _, kind in ipairs({
+		"FireworkCrate",
+		"HandTruck",
+		"Pallet",
+		"GasBottle",
+		"Floodlight",
+		"Sandbags",
+		"Shutter",
+		"DockBumper",
+	}) do
 		table.insert(parts, ("%s %d%s"):format(kind, count[kind] or 0, if proto(kind) then "" else " (missing)"))
 	end
 	return "Yard props: " .. table.concat(parts, ", ")
