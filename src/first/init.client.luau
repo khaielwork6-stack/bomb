@@ -198,6 +198,7 @@ new("UIStroke", { Color = INK, Thickness = 3, Parent = tip })
 -- assets + strings once Shared is in
 local Shared = ReplicatedStorage:WaitForChild("Shared", 20)
 local tips = { "Bump anyone to pass the bomb!" }
+local LC: { [string]: number }? = nil -- Config.Loading (the lobby flyover)
 if Shared then
 	local ok, Assets = pcall(require, Shared:WaitForChild("Assets", 10))
 	if ok and Assets then
@@ -213,7 +214,129 @@ if Shared then
 	if ok2 and Config and Config.Strings and Config.Strings.LoadingTips then
 		tips = Config.Strings.LoadingTips
 	end
+	if ok2 and Config and Config.Loading then
+		LC = Config.Loading
+	end
 end
+
+-- The lobby flyover: once the Depot has streamed in, the 2D sky fades away and a slow drone orbit circles the clock
+-- tower behind the logo (soft depth of field, a dark shade under the button) until PLAY hands the camera back.
+local dof: DepthOfFieldEffect? = nil
+local stopFlyover: (() -> ())? = nil -- hands the camera and the game's screens back (once)
+local function fadeSky(time: number)
+	local info = TweenInfo.new(time, Enum.EasingStyle.Sine)
+	for _, d in ipairs(sky:GetDescendants()) do
+		if d:IsA("ImageLabel") then
+			TweenService:Create(d, info, { ImageTransparency = 1, BackgroundTransparency = 1 }):Play()
+		elseif d:IsA("Frame") then
+			TweenService:Create(d, info, { BackgroundTransparency = 1 }):Play()
+		end
+	end
+	TweenService:Create(sky, info, { BackgroundTransparency = 1 }):Play()
+end
+task.spawn(function()
+	local c = LC
+	if not c then
+		return
+	end
+	local lobby = workspace:WaitForChild("Lobby", c.LOBBY_WAIT)
+	local tower = lobby and lobby:WaitForChild("ClockTower", c.LOBBY_WAIT)
+	if not tower or not tower:IsA("Model") or not gui.Parent then
+		return
+	end
+	local box, size = tower:GetBoundingBox()
+	local aim = Vector3.new(box.Position.X, box.Position.Y - size.Y / 2 + c.LOOK_UP, box.Position.Z)
+	local cam = workspace.CurrentCamera
+	local fov = cam.FieldOfView
+	dof = new("DepthOfFieldEffect", {
+		FarIntensity = c.DOF_FAR,
+		NearIntensity = 0,
+		FocusDistance = Vector2.new(c.RADIUS, c.HEIGHT - c.LOOK_UP).Magnitude,
+		InFocusRadius = c.DOF_FOCUS_RADIUS,
+		Parent = cam,
+	})
+	-- the shade: dark at the bottom so the button and tips read on any shot
+	local shade = new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = gui,
+	})
+	new("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.85),
+			NumberSequenceKeypoint.new(0.45, 1),
+			NumberSequenceKeypoint.new(0.7, 1),
+			NumberSequenceKeypoint.new(1, c.SHADE),
+		}),
+		Rotation = 90,
+		Parent = shade,
+	})
+	TweenService:Create(shade, TweenInfo.new(c.SKY_FADE), { BackgroundTransparency = 0 }):Play()
+	local t1 = os.clock()
+	local function shot(): CFrame
+		local t = os.clock() - t1
+		local a = c.ORBIT_START + t * c.ORBIT_SPEED
+		local r = c.RADIUS + c.RADIUS_SWAY * math.sin(t * c.RADIUS_SWAY_SPEED)
+		local h = c.HEIGHT + c.HEIGHT_SWAY * math.sin(t * c.HEIGHT_SWAY_SPEED)
+		local pos = aim + Vector3.new(math.sin(a) * r, h - c.LOOK_UP, -math.cos(a) * r)
+		return CFrame.lookAt(pos, aim)
+	end
+	-- The game's own screens are up underneath now that the sky is see-through: hide them every frame until PLAY,
+	-- then give back the ones we hid. FV_Mobile and FV_Pick set their own Enabled from game state, so they're only
+	-- hidden (they put themselves back); a HUD screen the Bomber pick is holding off gets its restore flag instead.
+	local pg = player:WaitForChild("PlayerGui")
+	local hid: { [ScreenGui]: boolean } = {}
+	local SELF_MANAGED = { FV_Mobile = true, FV_Pick = true }
+	local function hideOthers()
+		for _, g in ipairs(pg:GetChildren()) do
+			if g ~= gui and g:IsA("ScreenGui") and g.Enabled then
+				g.Enabled = false
+				if not SELF_MANAGED[g.Name] then
+					hid[g] = true
+				end
+			end
+		end
+	end
+	-- after the default camera and every controller (Last + 20), so nothing pulls it back while we fly
+	RunService:BindToRenderStep("FV_LoadingCam", Enum.RenderPriority.Last.Value + 20, function()
+		cam.CameraType = Enum.CameraType.Scriptable
+		cam.FieldOfView = c.FOV
+		cam.CFrame = shot()
+		hideOthers()
+	end)
+	fadeSky(c.SKY_FADE)
+	-- hand the camera back under the PLAY wipe (or whenever the screen goes)
+	local stopped = false
+	local function stop()
+		if stopped then
+			return
+		end
+		stopped = true
+		RunService:UnbindFromRenderStep("FV_LoadingCam")
+		for g in pairs(hid) do
+			if g.Parent then
+				if g:GetAttribute("FV_PickWasOn") ~= nil then
+					g:SetAttribute("FV_PickWasOn", true)
+				else
+					g.Enabled = true
+				end
+			end
+		end
+		if dof then
+			dof:Destroy()
+		end
+		cam.FieldOfView = fov
+		cam.CameraType = Enum.CameraType.Custom
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			cam.CameraSubject = hum
+		end
+	end
+	stopFlyover = stop
+	gui.Destroying:Connect(stop)
+end)
 
 -- animate while loading
 local t0 = os.clock()
@@ -348,6 +471,9 @@ local function enter()
 	}):Play()
 	task.wait(0.32)
 	conn:Disconnect()
+	if stopFlyover then
+		stopFlyover()
+	end
 	for _, c in ipairs(gui:GetChildren()) do
 		if c ~= wipe then
 			c:Destroy()

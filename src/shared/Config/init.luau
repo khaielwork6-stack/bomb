@@ -13,6 +13,7 @@ local Config = {
 	Mega = require(script.Mega),
 	Modifiers = require(script.Modifiers),
 	Lobby = require(script.Lobby),
+	Loading = require(script.Loading),
 	Bots = require(script.Bots),
 	Callouts = require(script.Callouts),
 	Economy = require(script.Economy),
