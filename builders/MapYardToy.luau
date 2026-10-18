@@ -135,7 +135,11 @@ return function(ctx)
 		elseif d:IsA("TextLabel") and string.upper(d.Text) == "SAFE" then
 			d.TextColor3 = Color3.new(1, 1, 1)
 			d.TextTransparency = 0
-		elseif d:IsA("TextLabel") and string.find(d:GetFullName(), "Factory") and string.find(d:GetFullName(), "Sign") then
+		elseif
+			d:IsA("TextLabel")
+			and string.find(d:GetFullName(), "Factory")
+			and string.find(d:GetFullName(), "Sign")
+		then
 			-- the factory sign: big gold round letters with a thick dark-red outline on the red board
 			d.TextColor3 = rgb(255, 226, 70)
 			d.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json")
@@ -171,7 +175,11 @@ return function(ctx)
 				d.Color = rgb(246, 250, 255)
 			end
 			local _ = floorYGuess
-			if math.abs(d.Color.R * 255 - 62) < 6 and math.abs(d.Color.G * 255 - 72) < 6 and math.abs(d.Color.B * 255 - 104) < 6 then
+			if
+				math.abs(d.Color.R * 255 - 62) < 6
+				and math.abs(d.Color.G * 255 - 72) < 6
+				and math.abs(d.Color.B * 255 - 104) < 6
+			then
 				d.Color = rgb(72, 88, 150) -- roofs: a richer slate blue
 			end
 		end
@@ -228,7 +236,10 @@ return function(ctx)
 			p.Size = size
 		end
 		if o.stud ~= false and not o.shape and size.X >= 1.5 and size.Z >= 1.5 then
-			stud(p, { Enum.NormalId.Top, Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right })
+			stud(
+				p,
+				{ Enum.NormalId.Top, Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right }
+			)
 		end
 		p.Parent = parent
 		return p
@@ -259,7 +270,13 @@ return function(ctx)
 		local m = Instance.new("Model")
 		m.Name = "VoxelTree"
 		local trunkH = 5 * s
-		part(m, "Trunk", Vector3.new(1.8, trunkH, 1.8) * Vector3.new(s, 1, s), CFrame.new(at + Vector3.new(0, trunkH / 2, 0)), rgb(150, 92, 48))
+		part(
+			m,
+			"Trunk",
+			Vector3.new(1.8, trunkH, 1.8) * Vector3.new(s, 1, s),
+			CFrame.new(at + Vector3.new(0, trunkH / 2, 0)),
+			rgb(150, 92, 48)
+		)
 		local y = at.Y + trunkH
 		for i, w in ipairs({ 9, 7, 4.5 }) do
 			local h = 3.2 * s
@@ -300,13 +317,23 @@ return function(ctx)
 				m,
 				"Frond" .. k,
 				Vector3.new(1.2 * s, 0.35 * s, 7 * s),
-				CFrame.new(p) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(math.rad(-22), 0, 0) * CFrame.new(0, 0, -3.2 * s),
+				CFrame.new(p)
+					* CFrame.Angles(0, yaw, 0)
+					* CFrame.Angles(math.rad(-22), 0, 0)
+					* CFrame.new(0, 0, -3.2 * s),
 				GREENS[(k % #GREENS) + 1],
 				{ stud = false }
 			)
 			leaf.CanCollide = false
 		end
-		part(m, "Coconut", Vector3.new(1.2, 1.2, 1.2) * s, CFrame.new(p - Vector3.new(0, 0.6 * s, 0)), rgb(120, 76, 40), { shape = Enum.PartType.Ball })
+		part(
+			m,
+			"Coconut",
+			Vector3.new(1.2, 1.2, 1.2) * s,
+			CFrame.new(p - Vector3.new(0, 0.6 * s, 0)),
+			rgb(120, 76, 40),
+			{ shape = Enum.PartType.Ball }
+		)
 		m.Parent = toy
 	end
 	local placed = 0
@@ -381,7 +408,14 @@ return function(ctx)
 	end
 
 	-- ── 5. Rainbow bleachers along the near side ─────────────────────────────────────────────────────────────────
-	local RAINBOW = { rgb(232, 64, 56), rgb(255, 150, 40), rgb(255, 214, 46), rgb(70, 196, 70), rgb(52, 124, 236), rgb(150, 76, 230) }
+	local RAINBOW = {
+		rgb(232, 64, 56),
+		rgb(255, 150, 40),
+		rgb(255, 214, 46),
+		rgb(70, 196, 70),
+		rgb(52, 124, 236),
+		rgb(150, 76, 230),
+	}
 	local benchZ = fc.Z + HW + 22.5 -- on the quay, between the parking bays and the bollards
 	for blockI, x0 in ipairs({ -64, -20, 24 }) do
 		for row = 0, 2 do
