@@ -1,0 +1,36 @@
+{
+  "key": "Prop.GasBottle",
+  "tris": {
+    "Body": 640,
+    "Trim": 2960
+  },
+  "tris_total": 3600,
+  "pivot_blender": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "size_studs": [
+    1.18,
+    4.2685,
+    1.18
+  ],
+  "parts": {
+    "Body": {
+      "COLOR": "Prop_GasBottle_Body_COLOR.png",
+      "ROUGHNESS": "Prop_GasBottle_Body_ROUGHNESS.png",
+      "NORMAL": "Prop_GasBottle_Body_NORMAL.png",
+      "METAL": "Prop_GasBottle_Body_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_GasBottle_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_GasBottle_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_GasBottle_Trim_NORMAL.png",
+      "METAL": "Prop_GasBottle_Trim_METAL.png"
+    }
+  },
+  "tintable": [
+    "Body"
+  ],
+  "glow": []
+}

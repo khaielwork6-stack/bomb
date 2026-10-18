@@ -1,0 +1,33 @@
+{
+  "key": "Prop.RocketBundle",
+  "tris": {
+    "Rockets": 3428,
+    "Trim": 3568
+  },
+  "tris_total": 6996,
+  "pivot_blender": [
+    0.0,
+    0.0136,
+    0.0
+  ],
+  "size_studs": [
+    1.9857,
+    4.8877,
+    2.0129
+  ],
+  "parts": {
+    "Rockets": {
+      "COLOR": "Prop_RocketBundle_Rockets_COLOR.png",
+      "ROUGHNESS": "Prop_RocketBundle_Rockets_ROUGHNESS.png",
+      "NORMAL": "Prop_RocketBundle_Rockets_NORMAL.png",
+      "METAL": "Prop_RocketBundle_Rockets_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_RocketBundle_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_RocketBundle_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_RocketBundle_Trim_NORMAL.png",
+      "METAL": "Prop_RocketBundle_Trim_METAL.png"
+    }
+  },
+  "glow": []
+}

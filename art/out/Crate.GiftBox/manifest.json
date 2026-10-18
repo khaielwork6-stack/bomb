@@ -1,0 +1,81 @@
+{
+  "key": "Crate.GiftBox",
+  "tris": {
+    "BodyWood": 1004,
+    "BodyBrass": 9588,
+    "LidWood": 1004,
+    "LidBrass": 15748,
+    "InnerGlow": 12,
+    "Spark": 276,
+    "LatchSpark": 276
+  },
+  "tris_total": 27908,
+  "hinge": [
+    0.0,
+    1.7999999523162842,
+    -1.7799999713897705
+  ],
+  "hinge_blender": [
+    0.0,
+    1.78,
+    1.8
+  ],
+  "hinge_axis": "X (lid swings about the model's X axis; open = front up/back)",
+  "hinge_roblox_from_pivot": [
+    -0.0,
+    1.864,
+    1.78
+  ],
+  "pivot_blender": [
+    0.0,
+    0.0,
+    -0.064
+  ],
+  "size_studs": [
+    3.68,
+    3.844,
+    3.692
+  ],
+  "lid_parts": [
+    "LidWood",
+    "LidBrass",
+    "Spark"
+  ],
+  "parts": {
+    "BodyWood": {
+      "COLOR": "Crate_GiftBox_BodyWood_COLOR.png",
+      "ROUGHNESS": "Crate_GiftBox_BodyWood_ROUGHNESS.png",
+      "NORMAL": "Crate_GiftBox_BodyWood_NORMAL.png",
+      "METAL": "Crate_GiftBox_BodyWood_METAL.png"
+    },
+    "BodyBrass": {
+      "COLOR": "Crate_GiftBox_BodyBrass_COLOR.png",
+      "ROUGHNESS": "Crate_GiftBox_BodyBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_GiftBox_BodyBrass_NORMAL.png",
+      "METAL": "Crate_GiftBox_BodyBrass_METAL.png"
+    },
+    "LidWood": {
+      "COLOR": "Crate_GiftBox_LidWood_COLOR.png",
+      "ROUGHNESS": "Crate_GiftBox_LidWood_ROUGHNESS.png",
+      "NORMAL": "Crate_GiftBox_LidWood_NORMAL.png",
+      "METAL": "Crate_GiftBox_LidWood_METAL.png"
+    },
+    "LidBrass": {
+      "COLOR": "Crate_GiftBox_LidBrass_COLOR.png",
+      "ROUGHNESS": "Crate_GiftBox_LidBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_GiftBox_LidBrass_NORMAL.png",
+      "METAL": "Crate_GiftBox_LidBrass_METAL.png"
+    }
+  },
+  "glow": [
+    "InnerGlow",
+    "Spark",
+    "LatchSpark"
+  ],
+  "glow_colors": {
+    "InnerGlow": "#FFD27A",
+    "Spark": "#FFE066",
+    "LatchSpark": "#FFE066"
+  },
+  "notes": "Hinge is the lid's back BOTTOM edge (skirt edge), so the skirt swings clear of the box."
+}

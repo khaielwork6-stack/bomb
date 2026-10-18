@@ -1,0 +1,86 @@
+{
+  "key": "Prop.Podium",
+  "tris": {
+    "Steps": 3192,
+    "Trim": 11480,
+    "Carpet": 564,
+    "Numerals": 15320
+  },
+  "tris_total": 30556,
+  "pivot_blender": [
+    0.0,
+    -0.1129,
+    0.0
+  ],
+  "size_studs": [
+    13.32,
+    3.11,
+    4.3657
+  ],
+  "spots": {
+    "1": {
+      "blender": [
+        0.0,
+        0.0,
+        3.11
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        3.11,
+        0.1129
+      ]
+    },
+    "2": {
+      "blender": [
+        -4.4,
+        0.0,
+        2.31
+      ],
+      "roblox_from_pivot": [
+        4.4,
+        2.31,
+        0.1129
+      ]
+    },
+    "3": {
+      "blender": [
+        4.4,
+        0.0,
+        1.71
+      ],
+      "roblox_from_pivot": [
+        -4.4,
+        1.71,
+        0.1129
+      ]
+    }
+  },
+  "spots_note": "Top centre of each carpet: '1' centre (tallest), '2' left, '3' right as seen from the front (-Y in Blender, -Z in Roblox).",
+  "parts": {
+    "Steps": {
+      "COLOR": "Prop_Podium_Steps_COLOR.png",
+      "ROUGHNESS": "Prop_Podium_Steps_ROUGHNESS.png",
+      "NORMAL": "Prop_Podium_Steps_NORMAL.png",
+      "METAL": "Prop_Podium_Steps_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_Podium_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_Podium_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_Podium_Trim_NORMAL.png",
+      "METAL": "Prop_Podium_Trim_METAL.png"
+    },
+    "Carpet": {
+      "COLOR": "Prop_Podium_Carpet_COLOR.png",
+      "ROUGHNESS": "Prop_Podium_Carpet_ROUGHNESS.png",
+      "NORMAL": "Prop_Podium_Carpet_NORMAL.png",
+      "METAL": "Prop_Podium_Carpet_METAL.png"
+    },
+    "Numerals": {
+      "COLOR": "Prop_Podium_Numerals_COLOR.png",
+      "ROUGHNESS": "Prop_Podium_Numerals_ROUGHNESS.png",
+      "NORMAL": "Prop_Podium_Numerals_NORMAL.png",
+      "METAL": "Prop_Podium_Numerals_METAL.png"
+    }
+  },
+  "glow": []
+}

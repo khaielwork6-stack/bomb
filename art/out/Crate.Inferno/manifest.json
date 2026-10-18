@@ -1,0 +1,84 @@
+{
+  "key": "Crate.Inferno",
+  "tris": {
+    "BodyWood": 7828,
+    "BodyBrass": 12396,
+    "LidWood": 6612,
+    "LidBrass": 7400,
+    "Lava": 2140,
+    "Spark": 1528,
+    "LatchSpark": 940,
+    "InnerGlow": 12
+  },
+  "tris_total": 38856,
+  "hinge": [
+    0.0,
+    1.5,
+    -1.25
+  ],
+  "hinge_blender": [
+    0.0,
+    1.25,
+    1.5
+  ],
+  "hinge_axis": "X (lid swings about the model's X axis; open = front up/back)",
+  "hinge_roblox_from_pivot": [
+    -0.0,
+    1.5,
+    1.3416
+  ],
+  "pivot_blender": [
+    0.0,
+    -0.0916,
+    0.0
+  ],
+  "size_studs": [
+    4.6325,
+    3.2772,
+    3.0167
+  ],
+  "lid_parts": [
+    "LidWood",
+    "LidBrass",
+    "Spark"
+  ],
+  "parts": {
+    "BodyWood": {
+      "COLOR": "Crate_Inferno_BodyWood_COLOR.png",
+      "ROUGHNESS": "Crate_Inferno_BodyWood_ROUGHNESS.png",
+      "NORMAL": "Crate_Inferno_BodyWood_NORMAL.png",
+      "METAL": "Crate_Inferno_BodyWood_METAL.png"
+    },
+    "BodyBrass": {
+      "COLOR": "Crate_Inferno_BodyBrass_COLOR.png",
+      "ROUGHNESS": "Crate_Inferno_BodyBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_Inferno_BodyBrass_NORMAL.png",
+      "METAL": "Crate_Inferno_BodyBrass_METAL.png"
+    },
+    "LidWood": {
+      "COLOR": "Crate_Inferno_LidWood_COLOR.png",
+      "ROUGHNESS": "Crate_Inferno_LidWood_ROUGHNESS.png",
+      "NORMAL": "Crate_Inferno_LidWood_NORMAL.png",
+      "METAL": "Crate_Inferno_LidWood_METAL.png"
+    },
+    "LidBrass": {
+      "COLOR": "Crate_Inferno_LidBrass_COLOR.png",
+      "ROUGHNESS": "Crate_Inferno_LidBrass_ROUGHNESS.png",
+      "NORMAL": "Crate_Inferno_LidBrass_NORMAL.png",
+      "METAL": "Crate_Inferno_LidBrass_METAL.png"
+    }
+  },
+  "glow": [
+    "Lava",
+    "Spark",
+    "LatchSpark",
+    "InnerGlow"
+  ],
+  "glow_colors": {
+    "Lava": "#FF7A1A",
+    "Spark": "#FFB13B",
+    "LatchSpark": "#FFB13B",
+    "InnerGlow": "#FF8A2A"
+  },
+  "notes": "Spark = fuse spark + the lid's lava cracks (rotates with the lid). Lava = the body's cracks."
+}

@@ -1,0 +1,40 @@
+{
+  "key": "Prop.HandTruck",
+  "tris": {
+    "Frame": 1076,
+    "Wheels": 2084,
+    "Load": 2524
+  },
+  "tris_total": 5684,
+  "pivot_blender": [
+    0.0,
+    0.254,
+    -0.008
+  ],
+  "size_studs": [
+    2.292,
+    4.378,
+    2.068
+  ],
+  "parts": {
+    "Frame": {
+      "COLOR": "Prop_HandTruck_Frame_COLOR.png",
+      "ROUGHNESS": "Prop_HandTruck_Frame_ROUGHNESS.png",
+      "NORMAL": "Prop_HandTruck_Frame_NORMAL.png",
+      "METAL": "Prop_HandTruck_Frame_METAL.png"
+    },
+    "Wheels": {
+      "COLOR": "Prop_HandTruck_Wheels_COLOR.png",
+      "ROUGHNESS": "Prop_HandTruck_Wheels_ROUGHNESS.png",
+      "NORMAL": "Prop_HandTruck_Wheels_NORMAL.png",
+      "METAL": "Prop_HandTruck_Wheels_METAL.png"
+    },
+    "Load": {
+      "COLOR": "Prop_HandTruck_Load_COLOR.png",
+      "ROUGHNESS": "Prop_HandTruck_Load_ROUGHNESS.png",
+      "NORMAL": "Prop_HandTruck_Load_NORMAL.png",
+      "METAL": "Prop_HandTruck_Load_METAL.png"
+    }
+  },
+  "glow": []
+}

@@ -1,0 +1,196 @@
+{
+  "key": "Prop.SpinWheel",
+  "tris": {
+    "Rim": 15040,
+    "Hub": 3420,
+    "Seg1": 508,
+    "Seg2": 508,
+    "Seg3": 508,
+    "Seg4": 508,
+    "Seg5": 508,
+    "Seg6": 508,
+    "Seg7": 508,
+    "Seg8": 508,
+    "Pointer": 2376,
+    "Stand": 4684
+  },
+  "tris_total": 29584,
+  "pivot_blender": [
+    0.0,
+    0.425,
+    0.0
+  ],
+  "size_studs": [
+    8.16,
+    10.21,
+    3.1
+  ],
+  "disc": {
+    "parts": [
+      "Rim",
+      "Hub",
+      "Seg1",
+      "Seg2",
+      "Seg3",
+      "Seg4",
+      "Seg5",
+      "Seg6",
+      "Seg7",
+      "Seg8"
+    ],
+    "axle_blender": [
+      0.0,
+      0.0,
+      5.4
+    ],
+    "axle_roblox_from_pivot": [
+      -0.0,
+      5.4,
+      -0.425
+    ],
+    "axis_blender": [
+      0.0,
+      -1.0,
+      0.0
+    ],
+    "axis_roblox": [
+      -0.0,
+      0.0,
+      -1.0
+    ],
+    "segments": {
+      "Seg1": {
+        "color": "#FF3B3B",
+        "centre_deg_clockwise_from_top": 0
+      },
+      "Seg2": {
+        "color": "#FF8A1F",
+        "centre_deg_clockwise_from_top": 45
+      },
+      "Seg3": {
+        "color": "#FFD21F",
+        "centre_deg_clockwise_from_top": 90
+      },
+      "Seg4": {
+        "color": "#3CD656",
+        "centre_deg_clockwise_from_top": 135
+      },
+      "Seg5": {
+        "color": "#1FC8E0",
+        "centre_deg_clockwise_from_top": 180
+      },
+      "Seg6": {
+        "color": "#3B6BFF",
+        "centre_deg_clockwise_from_top": 225
+      },
+      "Seg7": {
+        "color": "#9B4DFF",
+        "centre_deg_clockwise_from_top": 270
+      },
+      "Seg8": {
+        "color": "#FF4FB8",
+        "centre_deg_clockwise_from_top": 315
+      }
+    },
+    "note": "Seg1 is centred under the pointer at rest; segments run clockwise as seen from the front, 45 deg each."
+  },
+  "pointer": {
+    "part": "Pointer",
+    "pin_blender": [
+      0.0,
+      -0.9,
+      9.71
+    ],
+    "pin_roblox_from_pivot": [
+      -0.0,
+      9.71,
+      -1.325
+    ],
+    "tip_blender": [
+      0,
+      -0.92,
+      8.5
+    ],
+    "tip_roblox_from_pivot": [
+      -0.0,
+      8.5,
+      -1.345
+    ],
+    "note": "Swings about the pin on the disc's axle axis (a flapper tick)."
+  },
+  "parts": {
+    "Rim": {
+      "COLOR": "Prop_SpinWheel_Rim_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Rim_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Rim_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Rim_METAL.png"
+    },
+    "Hub": {
+      "COLOR": "Prop_SpinWheel_Hub_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Hub_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Hub_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Hub_METAL.png"
+    },
+    "Pointer": {
+      "COLOR": "Prop_SpinWheel_Pointer_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Pointer_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Pointer_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Pointer_METAL.png"
+    },
+    "Stand": {
+      "COLOR": "Prop_SpinWheel_Stand_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Stand_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Stand_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Stand_METAL.png"
+    },
+    "Seg1": {
+      "COLOR": "Prop_SpinWheel_Seg1_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg1_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg1_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg1_METAL.png"
+    },
+    "Seg2": {
+      "COLOR": "Prop_SpinWheel_Seg2_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg2_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg2_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg2_METAL.png"
+    },
+    "Seg3": {
+      "COLOR": "Prop_SpinWheel_Seg3_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg3_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg3_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg3_METAL.png"
+    },
+    "Seg4": {
+      "COLOR": "Prop_SpinWheel_Seg4_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg4_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg4_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg4_METAL.png"
+    },
+    "Seg5": {
+      "COLOR": "Prop_SpinWheel_Seg5_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg5_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg5_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg5_METAL.png"
+    },
+    "Seg6": {
+      "COLOR": "Prop_SpinWheel_Seg6_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg6_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg6_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg6_METAL.png"
+    },
+    "Seg7": {
+      "COLOR": "Prop_SpinWheel_Seg7_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg7_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg7_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg7_METAL.png"
+    },
+    "Seg8": {
+      "COLOR": "Prop_SpinWheel_Seg8_COLOR.png",
+      "ROUGHNESS": "Prop_SpinWheel_Seg8_ROUGHNESS.png",
+      "NORMAL": "Prop_SpinWheel_Seg8_NORMAL.png",
+      "METAL": "Prop_SpinWheel_Seg8_METAL.png"
+    }
+  },
+  "glow": []
+}

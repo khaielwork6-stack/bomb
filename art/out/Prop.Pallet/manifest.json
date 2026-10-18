@@ -1,0 +1,26 @@
+{
+  "key": "Prop.Pallet",
+  "tris": {
+    "Pallet": 3960
+  },
+  "tris_total": 3960,
+  "pivot_blender": [
+    -0.0028,
+    0.0,
+    0.0
+  ],
+  "size_studs": [
+    4.0272,
+    0.6702,
+    4.0
+  ],
+  "parts": {
+    "Pallet": {
+      "COLOR": "Prop_Pallet_Pallet_COLOR.png",
+      "ROUGHNESS": "Prop_Pallet_Pallet_ROUGHNESS.png",
+      "NORMAL": "Prop_Pallet_Pallet_NORMAL.png",
+      "METAL": "Prop_Pallet_Pallet_METAL.png"
+    }
+  },
+  "glow": []
+}

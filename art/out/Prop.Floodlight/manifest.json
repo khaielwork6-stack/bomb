@@ -1,0 +1,49 @@
+{
+  "key": "Prop.Floodlight",
+  "tris": {
+    "Housing": 472,
+    "Trim": 2468,
+    "Lens": 236
+  },
+  "tris_total": 3176,
+  "pivot_blender": [
+    0.0,
+    -0.0731,
+    0.06
+  ],
+  "size_studs": [
+    1.76,
+    1.311,
+    1.0462
+  ],
+  "lens_centre_roblox_from_pivot": [
+    -0.0,
+    0.46,
+    -0.2769
+  ],
+  "lens_normal_roblox": [
+    -0.0,
+    0.0,
+    -1.0
+  ],
+  "parts": {
+    "Housing": {
+      "COLOR": "Prop_Floodlight_Housing_COLOR.png",
+      "ROUGHNESS": "Prop_Floodlight_Housing_ROUGHNESS.png",
+      "NORMAL": "Prop_Floodlight_Housing_NORMAL.png",
+      "METAL": "Prop_Floodlight_Housing_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_Floodlight_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_Floodlight_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_Floodlight_Trim_NORMAL.png",
+      "METAL": "Prop_Floodlight_Trim_METAL.png"
+    }
+  },
+  "glow": [
+    "Lens"
+  ],
+  "glow_colors": {
+    "Lens": "#FFF0D2"
+  }
+}

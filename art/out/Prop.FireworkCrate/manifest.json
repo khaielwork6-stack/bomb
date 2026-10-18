@@ -1,0 +1,55 @@
+{
+  "key": "Prop.FireworkCrate",
+  "tris": {
+    "Body": 1208,
+    "Trim": 2928,
+    "Label": 1768,
+    "Rockets": 2620
+  },
+  "tris_total": 8524,
+  "pivot_blender": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "size_studs": [
+    3.3285,
+    4.5636,
+    3.2
+  ],
+  "hit_size_studs": [
+    3.2,
+    2.6,
+    3.2
+  ],
+  "parts": {
+    "Body": {
+      "COLOR": "Prop_FireworkCrate_Body_COLOR.png",
+      "ROUGHNESS": "Prop_FireworkCrate_Body_ROUGHNESS.png",
+      "NORMAL": "Prop_FireworkCrate_Body_NORMAL.png",
+      "METAL": "Prop_FireworkCrate_Body_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_FireworkCrate_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_FireworkCrate_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_FireworkCrate_Trim_NORMAL.png",
+      "METAL": "Prop_FireworkCrate_Trim_METAL.png"
+    },
+    "Label": {
+      "COLOR": "Prop_FireworkCrate_Label_COLOR.png",
+      "ROUGHNESS": "Prop_FireworkCrate_Label_ROUGHNESS.png",
+      "NORMAL": "Prop_FireworkCrate_Label_NORMAL.png",
+      "METAL": "Prop_FireworkCrate_Label_METAL.png"
+    },
+    "Rockets": {
+      "COLOR": "Prop_FireworkCrate_Rockets_COLOR.png",
+      "ROUGHNESS": "Prop_FireworkCrate_Rockets_ROUGHNESS.png",
+      "NORMAL": "Prop_FireworkCrate_Rockets_NORMAL.png",
+      "METAL": "Prop_FireworkCrate_Rockets_METAL.png"
+    }
+  },
+  "removable": [
+    "Rockets"
+  ],
+  "glow": []
+}

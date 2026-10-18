@@ -1,0 +1,90 @@
+{
+  "key": "Prop.CrateStand",
+  "tris": {
+    "Pedestal": 2496,
+    "Trim": 13824,
+    "Sign": 4188,
+    "SignFace": 332,
+    "RimLight": 2304
+  },
+  "tris_total": 23144,
+  "pivot_blender": [
+    0.0997,
+    -0.1774,
+    0.0
+  ],
+  "size_studs": [
+    6.2995,
+    2.57,
+    6.4547
+  ],
+  "crate_spot_blender": [
+    0.0,
+    0.0,
+    1.2
+  ],
+  "crate_spot_roblox_from_pivot": [
+    0.0997,
+    1.2,
+    0.1774
+  ],
+  "sign_face": {
+    "part": "SignFace",
+    "centre_blender": [
+      2.5627,
+      -3.0619,
+      1.88
+    ],
+    "centre_roblox_from_pivot": [
+      -2.4629,
+      1.88,
+      -2.8845
+    ],
+    "normal_blender": [
+      0.4695,
+      -0.8829,
+      0.0
+    ],
+    "normal_roblox": [
+      -0.4695,
+      0.0,
+      -0.8829
+    ],
+    "size_studs": [
+      1.29,
+      0.64
+    ]
+  },
+  "parts": {
+    "Pedestal": {
+      "COLOR": "Prop_CrateStand_Pedestal_COLOR.png",
+      "ROUGHNESS": "Prop_CrateStand_Pedestal_ROUGHNESS.png",
+      "NORMAL": "Prop_CrateStand_Pedestal_NORMAL.png",
+      "METAL": "Prop_CrateStand_Pedestal_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_CrateStand_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_CrateStand_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_CrateStand_Trim_NORMAL.png",
+      "METAL": "Prop_CrateStand_Trim_METAL.png"
+    },
+    "Sign": {
+      "COLOR": "Prop_CrateStand_Sign_COLOR.png",
+      "ROUGHNESS": "Prop_CrateStand_Sign_ROUGHNESS.png",
+      "NORMAL": "Prop_CrateStand_Sign_NORMAL.png",
+      "METAL": "Prop_CrateStand_Sign_METAL.png"
+    },
+    "SignFace": {
+      "COLOR": "Prop_CrateStand_SignFace_COLOR.png",
+      "ROUGHNESS": "Prop_CrateStand_SignFace_ROUGHNESS.png",
+      "NORMAL": "Prop_CrateStand_SignFace_NORMAL.png",
+      "METAL": "Prop_CrateStand_SignFace_METAL.png"
+    }
+  },
+  "glow": [
+    "RimLight"
+  ],
+  "glow_colors": {
+    "RimLight": "#FFC85A"
+  }
+}

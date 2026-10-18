@@ -57,6 +57,53 @@ LEATHER = srgb("#6B4A32")
 
 R = 1.1  # body radius (studs)
 
+# ── Classic Iron look: "Toy Arcade" pass (DECISIONS 2026-10-17 "Bomb": same mesh, better materials) ──────────────
+# The first pass was a dusky golden-hour iron (metal 0.85, soot, grime) that read dark and muddy in the sunny Yard.
+# These are every number the Classic Iron materials use. Roblox renders high metalness dark, so every baked METAL map
+# stays <= METAL_CAP (as art/props/kit.py does); the shine comes from low roughness + a baked soft top light instead.
+METAL_CAP = 0.35
+# Iron: a deep blue-black glossy shell — cool top light, bright bevels on the weld beads, no soot.
+IRON_LO = srgb("#111626")  # the underside (baked soft shading)
+IRON_MID = srgb("#1A2033")  # the body colour
+IRON_HI = srgb("#34405E")  # facing the sky: a cool sheen
+IRON_EDGE = srgb("#8EA2CF")  # weld-bead and bevel highlights
+IRON_BEAD_POINTINESS = (0.53, 0.62)  # convexity that marks the thin weld beads (the bevel mask misses smooth tubes)
+IRON_NOISE = 0.05  # ± tonal variation (was ± 20 %: the grime)
+IRON_AO = 0.55  # contact shading under the belt / collar
+IRON_ROUGH = (0.16, 0.26)  # glossy (was 0.55-0.8)
+IRON_METAL = 0.25
+IRON_HAMMER_BUMP = 0.12  # hammered dimples: a whisper, for the hand-forged read (was 0.35)
+IRON_FINE_BUMP = 0.02
+# Brass: richer, brighter, polished gold.
+BRASS_LO = srgb("#C9701A")  # facing down
+BRASS_MID = srgb("#FFBC3A")  # the belt face and everything facing out or up
+BRASS_HI = srgb("#FFF0B4")  # polished edges
+BRASS_AO = 0.35
+BRASS_ROUGH = (0.14, 0.26)
+BRASS_METAL = METAL_CAP
+# Porcelain socket: crisp glazed white, cracks only a hint.
+PORC_BASE = srgb("#FBF8F1")
+PORC_SHADE = srgb("#D9DCE6")  # cool underside
+PORC_CRACK = 0.08  # crackle darkness (was 0.35)
+PORC_ROUGH = 0.06
+SOCKET_RIM = srgb("#3A3140")  # the socket mouth (was near-black soot)
+# Fuse cord: a saturated braided cord whose strands read.
+CORD_BASE = srgb("#FFAE3D")
+CORD_GROOVE = srgb("#9A4A16")  # between the strands
+CORD_CHAR_FROM = 0.92  # charring starts this far up the cord (UV U); was 0.86
+CORD_ROUGH = 0.55
+CORD_BUMP = 0.8
+# Clamp: glossy ink-plum paint with bright steel chips, rich leather pad.
+STEEL_PAINT = srgb("#3B2F52")
+STEEL_PAINT_HI = srgb("#5E4E82")
+STEEL_CHIP = srgb("#B9C0D2")
+STEEL_ROUGH = 0.28
+STEEL_CHIP_AT = 0.5  # edge x noise above this shows bare steel (was 0.32: chips everywhere on the thin straps)
+STEEL_METAL = (0.1, METAL_CAP)  # paint, bare chips
+LEATHER_BASE = srgb("#8C5A33")
+LEATHER_HI = srgb("#B07A48")
+LEATHER_ROUGH = 0.55
+
 # ── Scene ────────────────────────────────────────────────────────────────────────────────────────────────────────
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -121,57 +168,84 @@ def node(nt, kind, loc, **props):
     return n
 
 
+# Shading helpers for the Toy Arcade materials (the same recipe as art/props/kit.py: a soft top light, bright bevels
+# and contact AO baked into the colour, so the bomb reads under Roblox's flat midday light).
+def edge_mask(nt, radius, gain):
+    """1 on bevelled edges, 0 on flat faces (Bevel-node normal vs the true normal)."""
+    bev = node(nt, "ShaderNodeBevel", (-1200, -900), samples=8, Radius=radius)
+    geo = node(nt, "ShaderNodeNewGeometry", (-1200, -1100))
+    dot = node(nt, "ShaderNodeVectorMath", (-1000, -1000), operation="DOT_PRODUCT")
+    nt.links.new(bev.outputs["Normal"], dot.inputs[0])
+    nt.links.new(geo.outputs["Normal"], dot.inputs[1])
+    inv = node(nt, "ShaderNodeMath", (-850, -1000), operation="SUBTRACT")
+    inv.inputs[0].default_value = 1.0
+    nt.links.new(dot.outputs["Value"], inv.inputs[1])
+    mul = node(nt, "ShaderNodeMath", (-700, -1000), operation="MULTIPLY", use_clamp=True)
+    mul.inputs[1].default_value = gain
+    nt.links.new(inv.outputs[0], mul.inputs[0])
+    return mul.outputs[0]
+
+
+def up_light(nt, lo=-1.0, hi=1.0):
+    """0 facing down -> 1 facing up (world normal Z): the baked soft top light."""
+    geo = node(nt, "ShaderNodeNewGeometry", (-1200, 1100))
+    sep = node(nt, "ShaderNodeSeparateXYZ", (-1000, 1100))
+    nt.links.new(geo.outputs["Normal"], sep.inputs["Vector"])
+    r = node(nt, "ShaderNodeMapRange", (-850, 1100), **{"From Min": lo, "From Max": hi, "To Min": 0.0, "To Max": 1.0})
+    nt.links.new(sep.outputs["Z"], r.inputs["Value"])
+    return r.outputs["Result"]
+
+
+def lerp(nt, fac, a, b, blend="MIX"):
+    m = node(nt, "ShaderNodeMix", (0, 0), data_type="RGBA", blend_type=blend)
+    for sock, v in ((m.inputs["Factor"], fac), (m.inputs["A"], a), (m.inputs["B"], b)):
+        if isinstance(v, (int, float, tuple)):
+            sock.default_value = v
+        else:
+            nt.links.new(v, sock)
+    return m.outputs["Result"]
+
+
+def ao_shade(nt, col, strength, dist=0.12):
+    ao = node(nt, "ShaderNodeAmbientOcclusion", (-600, 1300), samples=16, Distance=dist)
+    return lerp(nt, strength, col, ao.outputs["AO"], "MULTIPLY")
+
+
 def mat_iron():
     m, nt, b = new_mat("CastIron")
     L = nt.links
     tc = node(nt, "ShaderNodeTexCoord", (-1400, 0))
-    # hammered dimples: voronoi distance → bump
+    # hammered dimples (voronoi distance -> a gentle bump) + a whisper of tonal noise; no soot, no grime
     vor = node(nt, "ShaderNodeTexVoronoi", (-1100, -300), Scale=9.0, Randomness=0.85)
     L.new(tc.outputs["Object"], vor.inputs["Vector"])
-    noise = node(nt, "ShaderNodeTexNoise", (-1100, 50), Scale=4.5, Detail=8.0, Roughness=0.62)
+    noise = node(nt, "ShaderNodeTexNoise", (-1100, 50), Scale=4.5, Detail=4.0, Roughness=0.5)
     L.new(tc.outputs["Object"], noise.inputs["Vector"])
     fine = node(nt, "ShaderNodeTexNoise", (-1100, 350), Scale=60.0, Detail=4.0)
     L.new(tc.outputs["Object"], fine.inputs["Vector"])
-    # soot gradient toward the top (object Z), polished wear on the belt line (|Z| small)
-    sep = node(nt, "ShaderNodeSeparateXYZ", (-1100, 650))
-    L.new(tc.outputs["Object"], sep.inputs["Vector"])
-    soot = node(nt, "ShaderNodeMapRange", (-850, 650), **{"From Min": 0.2, "From Max": 1.05, "To Min": 0.0, "To Max": 1.0})
-    L.new(sep.outputs["Z"], soot.inputs["Value"])
-    absz = node(nt, "ShaderNodeMath", (-850, 850), operation="ABSOLUTE")
-    L.new(sep.outputs["Z"], absz.inputs[0])
-    wear = node(nt, "ShaderNodeMapRange", (-650, 850), **{"From Min": 0.32, "From Max": 0.12, "To Min": 0.0, "To Max": 1.0})
-    L.new(absz.outputs[0], wear.inputs["Value"])
-    # base colour: iron ±6 % hue/value noise, darker soot on top, lighter polished wear
-    ramp = node(nt, "ShaderNodeValToRGB", (-850, 50))
-    ramp.color_ramp.elements[0].color = (IRON[0] * 0.78, IRON[1] * 0.78, IRON[2] * 0.82, 1)
-    ramp.color_ramp.elements[1].color = (IRON[0] * 1.18, IRON[1] * 1.14, IRON[2] * 1.12, 1)
-    L.new(noise.outputs["Fac"], ramp.inputs["Fac"])
-    sootmix = node(nt, "ShaderNodeMix", (-450, 200), data_type="RGBA", blend_type="MULTIPLY")
-    sootmix.inputs["B"].default_value = (0.35, 0.33, 0.32, 1)
-    L.new(soot.outputs["Result"], sootmix.inputs["Factor"])
-    L.new(ramp.outputs["Color"], sootmix.inputs["A"])
-    wearmix = node(nt, "ShaderNodeMix", (-200, 200), data_type="RGBA", blend_type="MIX")
-    wearmix.inputs["B"].default_value = (0.42, 0.41, 0.43, 1)
-    wf = node(nt, "ShaderNodeMath", (-450, 900), operation="MULTIPLY")
-    L.new(wear.outputs["Result"], wf.inputs[0])
-    L.new(fine.outputs["Fac"], wf.inputs[1])
-    L.new(wf.outputs[0], wearmix.inputs["Factor"])
-    L.new(sootmix.outputs["Result"], wearmix.inputs["A"])
-    L.new(wearmix.outputs["Result"], b.inputs["Base Color"])
-    # roughness 0.55–0.8 (rougher soot, smoother wear)
-    rough = node(nt, "ShaderNodeMapRange", (-450, -100), **{"To Min": 0.55, "To Max": 0.8})
+    # colour: underside -> body -> cool sky sheen on top, bright bevels, contact AO
+    col = lerp(nt, up_light(nt, -1.0, 0.1), IRON_LO, IRON_MID)
+    col = lerp(nt, up_light(nt, 0.0, 1.0), col, IRON_HI)
+    tone = node(nt, "ShaderNodeMapRange", (-850, 50), **{"To Min": 1.0 - IRON_NOISE, "To Max": 1.0 + IRON_NOISE})
+    L.new(noise.outputs["Fac"], tone.inputs["Value"])
+    toned = node(nt, "ShaderNodeVectorMath", (-300, 200), operation="SCALE")
+    L.new(col, toned.inputs[0])
+    L.new(tone.outputs["Result"], toned.inputs["Scale"])
+    geo = node(nt, "ShaderNodeNewGeometry", (-1200, 700))
+    bead = node(nt, "ShaderNodeMapRange", (-1000, 700), **{"From Min": IRON_BEAD_POINTINESS[0], "From Max": IRON_BEAD_POINTINESS[1]})
+    L.new(geo.outputs["Pointiness"], bead.inputs["Value"])
+    edge = node(nt, "ShaderNodeMath", (-700, 700), operation="MAXIMUM")
+    L.new(edge_mask(nt, 0.03, 3.0), edge.inputs[0])
+    L.new(bead.outputs["Result"], edge.inputs[1])
+    col = lerp(nt, edge.outputs[0], toned.outputs["Vector"], IRON_EDGE)
+    col = ao_shade(nt, col, IRON_AO)
+    L.new(col, b.inputs["Base Color"])
+    rough = node(nt, "ShaderNodeMapRange", (-450, -100), **{"To Min": IRON_ROUGH[0], "To Max": IRON_ROUGH[1]})
     L.new(noise.outputs["Fac"], rough.inputs["Value"])
-    r2 = node(nt, "ShaderNodeMath", (-200, -100), operation="SUBTRACT")
-    L.new(rough.outputs["Result"], r2.inputs[0])
-    r2m = node(nt, "ShaderNodeMath", (-450, -250), operation="MULTIPLY")
-    r2m.inputs[1].default_value = 0.3
-    L.new(wear.outputs["Result"], r2m.inputs[0])
-    L.new(r2m.outputs[0], r2.inputs[1])
-    L.new(r2.outputs[0], b.inputs["Roughness"])
-    b.inputs["Metallic"].default_value = 0.85
-    bump = node(nt, "ShaderNodeBump", (300, -400), Strength=0.35, Distance=0.02)
+    L.new(rough.outputs["Result"], b.inputs["Roughness"])
+    b.inputs["Metallic"].default_value = IRON_METAL
+    bump = node(nt, "ShaderNodeBump", (300, -400), Strength=IRON_HAMMER_BUMP, Distance=0.02)
     L.new(vor.outputs["Distance"], bump.inputs["Height"])
-    bump2 = node(nt, "ShaderNodeBump", (450, -400), Strength=0.08, Distance=0.01)
+    bump2 = node(nt, "ShaderNodeBump", (450, -400), Strength=IRON_FINE_BUMP, Distance=0.01)
     L.new(fine.outputs["Fac"], bump2.inputs["Height"])
     L.new(bump.outputs["Normal"], bump2.inputs["Normal"])
     L.new(bump2.outputs["Normal"], b.inputs["Normal"])
@@ -184,26 +258,16 @@ def mat_brass(name="Brass", polish=0.0):
     tc = node(nt, "ShaderNodeTexCoord", (-1200, 0))
     noise = node(nt, "ShaderNodeTexNoise", (-900, 0), Scale=14.0, Detail=6.0)
     L.new(tc.outputs["Object"], noise.inputs["Vector"])
-    geo = node(nt, "ShaderNodeNewGeometry", (-900, 300))
-    edge = node(nt, "ShaderNodeMapRange", (-650, 300), **{"From Min": 0.5, "From Max": 0.6, "To Min": 0.0, "To Max": 1.0})
-    L.new(geo.outputs["Pointiness"], edge.inputs["Value"])
-    ao = node(nt, "ShaderNodeAmbientOcclusion", (-900, 600), Distance=0.08)
-    col = node(nt, "ShaderNodeMix", (-400, 200), data_type="RGBA", blend_type="MIX")
-    col.inputs["A"].default_value = BRASS
-    col.inputs["B"].default_value = (1.0, 0.86, 0.55, 1)  # brightened edges
-    L.new(edge.outputs["Result"], col.inputs["Factor"])
-    patina = node(nt, "ShaderNodeMix", (-150, 200), data_type="RGBA", blend_type="MULTIPLY")
-    patina.inputs["B"].default_value = (0.42, 0.33, 0.18, 1)
-    inv = node(nt, "ShaderNodeMath", (-650, 600), operation="SUBTRACT")
-    inv.inputs[0].default_value = 1.0
-    L.new(ao.outputs["AO"], inv.inputs[1])
-    L.new(inv.outputs[0], patina.inputs["Factor"])
-    L.new(col.outputs["Result"], patina.inputs["A"])
-    L.new(patina.outputs["Result"], b.inputs["Base Color"])
-    rough = node(nt, "ShaderNodeMapRange", (-400, -150), **{"To Min": 0.25 - polish, "To Max": 0.45 - polish})
+    # polished toy brass: top-lit gradient, bright bevelled edges, a little contact AO in the recesses
+    col = lerp(nt, up_light(nt, -1.0, -0.05), BRASS_LO, BRASS_MID)
+    col = lerp(nt, edge_mask(nt, 0.03, 3.5), col, BRASS_HI)
+    col = ao_shade(nt, col, BRASS_AO, 0.06)
+    L.new(col, b.inputs["Base Color"])
+    lo, hi = max(0.05, BRASS_ROUGH[0] - polish), max(0.08, BRASS_ROUGH[1] - polish)
+    rough = node(nt, "ShaderNodeMapRange", (-400, -150), **{"To Min": lo, "To Max": hi})
     L.new(noise.outputs["Fac"], rough.inputs["Value"])
     L.new(rough.outputs["Result"], b.inputs["Roughness"])
-    b.inputs["Metallic"].default_value = 1.0
+    b.inputs["Metallic"].default_value = BRASS_METAL
     return m
 
 
@@ -213,20 +277,19 @@ def mat_porcelain():
     tc = node(nt, "ShaderNodeTexCoord", (-1000, 0))
     vor = node(nt, "ShaderNodeTexVoronoi", (-750, -200), Scale=22.0, feature="DISTANCE_TO_EDGE")
     L.new(tc.outputs["Object"], vor.inputs["Vector"])
-    crack = node(nt, "ShaderNodeMapRange", (-500, -200), **{"From Min": 0.0, "From Max": 0.03, "To Min": 1.0, "To Max": 0.0})
+    crack = node(nt, "ShaderNodeMapRange", (-500, -200), **{"From Min": 0.0, "From Max": 0.02, "To Min": 1.0, "To Max": 0.0})
     L.new(vor.outputs["Distance"], crack.inputs["Value"])
-    col = node(nt, "ShaderNodeMix", (-200, 100), data_type="RGBA", blend_type="MIX")
-    col.inputs["A"].default_value = PORCELAIN
-    col.inputs["B"].default_value = (0.62, 0.6, 0.58, 1)
+    col = lerp(nt, up_light(nt, -1.0, 0.4), PORC_SHADE, PORC_BASE)
     cm = node(nt, "ShaderNodeMath", (-350, 0), operation="MULTIPLY")
-    cm.inputs[1].default_value = 0.35
+    cm.inputs[1].default_value = PORC_CRACK
     L.new(crack.outputs["Result"], cm.inputs[0])
-    L.new(cm.outputs[0], col.inputs["Factor"])
-    L.new(col.outputs["Result"], b.inputs["Base Color"])
-    b.inputs["Roughness"].default_value = 0.1
+    col = lerp(nt, cm.outputs[0], col, PORC_SHADE)
+    col = ao_shade(nt, col, 0.4, 0.05)
+    L.new(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = PORC_ROUGH
     b.inputs["Coat Weight"].default_value = 0.6
     b.inputs["Coat Tint"].default_value = (0.92, 0.95, 1.0, 1)
-    bump = node(nt, "ShaderNodeBump", (300, -300), Strength=0.15, Distance=0.004)
+    bump = node(nt, "ShaderNodeBump", (300, -300), Strength=0.04, Distance=0.004)
     L.new(crack.outputs["Result"], bump.inputs["Height"])
     L.new(bump.outputs["Normal"], b.inputs["Normal"])
     return m
@@ -247,26 +310,20 @@ def mat_cord():
     braid = node(nt, "ShaderNodeMath", (-650, -350), operation="MAXIMUM")
     L.new(wave.outputs["Fac"], braid.inputs[0])
     L.new(wave2.outputs["Fac"], braid.inputs[1])
-    # char toward the burning tip (UV U → 1)
+    # strands bright, grooves deep: a contrast curve on the braid so the weave reads at game distance
+    strands = node(nt, "ShaderNodeMapRange", (-500, -350), **{"From Min": 0.35, "From Max": 0.85, "To Min": 0.0, "To Max": 1.0})
+    L.new(braid.outputs[0], strands.inputs["Value"])
+    # char toward the burning tip (UV U -> 1)
     sep = node(nt, "ShaderNodeSeparateXYZ", (-900, 200))
     L.new(tc.outputs["UV"], sep.inputs["Vector"])
-    charf = node(nt, "ShaderNodeMapRange", (-650, 200), **{"From Min": 0.86, "From Max": 1.0, "To Min": 0.0, "To Max": 1.0})
+    charf = node(nt, "ShaderNodeMapRange", (-650, 200), **{"From Min": CORD_CHAR_FROM, "From Max": 1.0, "To Min": 0.0, "To Max": 1.0})
     L.new(sep.outputs["X"], charf.inputs["Value"])
-    shade = node(nt, "ShaderNodeMix", (-400, 0), data_type="RGBA", blend_type="MULTIPLY")
-    shade.inputs["A"].default_value = CORD
-    shade.inputs["B"].default_value = (0.62, 0.52, 0.4, 1)
-    inv = node(nt, "ShaderNodeMath", (-500, -200), operation="SUBTRACT")
-    inv.inputs[0].default_value = 1.0
-    L.new(braid.outputs[0], inv.inputs[1])
-    L.new(inv.outputs[0], shade.inputs["Factor"])
-    col = node(nt, "ShaderNodeMix", (-150, 0), data_type="RGBA", blend_type="MIX")
-    col.inputs["B"].default_value = CHAR
-    L.new(charf.outputs["Result"], col.inputs["Factor"])
-    L.new(shade.outputs["Result"], col.inputs["A"])
-    L.new(col.outputs["Result"], b.inputs["Base Color"])
-    b.inputs["Roughness"].default_value = 0.85
+    col = lerp(nt, strands.outputs["Result"], CORD_GROOVE, CORD_BASE)
+    col = lerp(nt, charf.outputs["Result"], col, CHAR)
+    L.new(col, b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = CORD_ROUGH
     b.inputs["Sheen Weight"].default_value = 0.3
-    bump = node(nt, "ShaderNodeBump", (250, -350), Strength=0.6, Distance=0.01)
+    bump = node(nt, "ShaderNodeBump", (250, -350), Strength=CORD_BUMP, Distance=0.01)
     L.new(braid.outputs[0], bump.inputs["Height"])
     L.new(bump.outputs["Normal"], b.inputs["Normal"])
     return m
@@ -285,17 +342,16 @@ def mat_painted_steel():
     L.new(edge.outputs["Result"], chip.inputs[0])
     L.new(noise.outputs["Fac"], chip.inputs[1])
     chipt = node(nt, "ShaderNodeMath", (-450, 300), operation="GREATER_THAN")
-    chipt.inputs[1].default_value = 0.32
+    chipt.inputs[1].default_value = STEEL_CHIP_AT
     L.new(chip.outputs[0], chipt.inputs[0])
-    col = node(nt, "ShaderNodeMix", (-200, 100), data_type="RGBA", blend_type="MIX")
-    col.inputs["A"].default_value = INK2
-    col.inputs["B"].default_value = (0.5, 0.5, 0.52, 1)
-    L.new(chipt.outputs[0], col.inputs["Factor"])
-    L.new(col.outputs["Result"], b.inputs["Base Color"])
-    met = node(nt, "ShaderNodeMapRange", (-200, -150), **{"To Min": 0.25, "To Max": 1.0})
+    paint = lerp(nt, up_light(nt, -0.8, 1.0), STEEL_PAINT, STEEL_PAINT_HI)
+    col = lerp(nt, chipt.outputs[0], paint, STEEL_CHIP)
+    col = ao_shade(nt, col, 0.45, 0.08)
+    L.new(col, b.inputs["Base Color"])
+    met = node(nt, "ShaderNodeMapRange", (-200, -150), **{"To Min": STEEL_METAL[0], "To Max": STEEL_METAL[1]})
     L.new(chipt.outputs[0], met.inputs["Value"])
     L.new(met.outputs["Result"], b.inputs["Metallic"])
-    b.inputs["Roughness"].default_value = 0.45
+    b.inputs["Roughness"].default_value = STEEL_ROUGH
     return m
 
 
@@ -305,8 +361,9 @@ def mat_leather():
     tc = node(nt, "ShaderNodeTexCoord", (-900, 0))
     vor = node(nt, "ShaderNodeTexVoronoi", (-650, -200), Scale=80.0)
     L.new(tc.outputs["Object"], vor.inputs["Vector"])
-    b.inputs["Base Color"].default_value = LEATHER
-    b.inputs["Roughness"].default_value = 0.78
+    col = lerp(nt, up_light(nt, -0.8, 1.0), LEATHER_BASE, LEATHER_HI)
+    L.new(ao_shade(nt, col, 0.5, 0.08), b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = LEATHER_ROUGH
     bump = node(nt, "ShaderNodeBump", (250, -300), Strength=0.2, Distance=0.005)
     L.new(vor.outputs["Distance"], bump.inputs["Height"])
     L.new(bump.outputs["Normal"], b.inputs["Normal"])
@@ -464,7 +521,7 @@ socket = cylinder("Socket", 0.21, 0.2, 48, loc=(0, 0, R * 0.96 + 0.18))
 bevel(socket, 0.04, 4)
 give(socket, M_PORC)
 rim = torus("SocketSoot", 0.2, 0.02, 48, 8, loc=(0, 0, R * 0.96 + 0.28))
-give(rim, mat_emit("Soot", (0.02, 0.018, 0.016, 1), 0.0))
+give(rim, mat_emit("Soot", SOCKET_RIM, 0.0))
 
 # The braided fuse: a bezier on a gentle S-bend, tapering 0.11 → 0.08, 1.25 studs long.
 FUSE_BASE = R * 0.96 + 0.27
@@ -562,11 +619,11 @@ world = bpy.data.worlds.new("GoldenFuse")
 world.use_nodes = True
 bg = world.node_tree.nodes["Background"]
 sky = world.node_tree.nodes.new("ShaderNodeTexSky")
-sky.sky_type = "NISHITA"
+sky.sky_type = "NISHITA" if "NISHITA" in [i.identifier for i in sky.bl_rna.properties["sky_type"].enum_items] else "MULTIPLE_SCATTERING"
 sky.sun_elevation = math.radians(14)
 sky.sun_rotation = math.radians(-35)
 sky.air_density = 1.4
-sky.dust_density = 2.2
+setattr(sky, "dust_density" if hasattr(sky, "dust_density") else "aerosol_density", 2.2)  # renamed in Blender 5
 world.node_tree.links.new(sky.outputs["Color"], bg.inputs["Color"])
 bg.inputs["Strength"].default_value = 0.12
 scene.world = world
@@ -654,27 +711,41 @@ for backend in ("OPTIX", "CUDA"):
 scene.view_settings.view_transform = "AgX"
 scene.view_settings.look = "AgX - Medium High Contrast"
 scene.view_settings.exposure = 0.35
-scene.use_nodes = True
-ctree = scene.node_tree
-for n in list(ctree.nodes):
-    ctree.nodes.remove(n)
+if hasattr(scene, "node_tree"):  # Blender 4.x: the scene's own compositor tree
+    scene.use_nodes = True
+    ctree = scene.node_tree
+    for n in list(ctree.nodes):
+        ctree.nodes.remove(n)
+else:  # Blender 5.x: a compositor node group with a group output
+    ctree = bpy.data.node_groups.new("Comp", "CompositorNodeTree")
+    ctree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    scene.compositing_node_group = ctree
+
+
+def glare_node(kind):
+    g = ctree.nodes.new("CompositorNodeGlare")
+    if "Type" in g.inputs:
+        g.inputs["Type"].default_value = {"STREAKS": "Streaks", "FOG_GLOW": "Fog Glow"}[kind]
+    else:
+        g.glare_type = kind
+    return g
+
+
 rl = ctree.nodes.new("CompositorNodeRLayers")
-glare = ctree.nodes.new("CompositorNodeGlare")
-glare.glare_type = "STREAKS"
+glare = glare_node("STREAKS")
 glare.inputs["Threshold"].default_value = 2.2
 glare.inputs["Strength"].default_value = 0.6
 glare.inputs["Streaks"].default_value = 6
 glare.inputs["Streaks Angle"].default_value = math.radians(15)
 glare.inputs["Fade"].default_value = 0.86
-glow = ctree.nodes.new("CompositorNodeGlare")
-glow.glare_type = "FOG_GLOW"
+glow = glare_node("FOG_GLOW")
 glow.inputs["Threshold"].default_value = 1.6
 glow.inputs["Strength"].default_value = 0.35
 glow.inputs["Size"].default_value = 0.4
-comp = ctree.nodes.new("CompositorNodeComposite")
+comp = ctree.nodes.new("CompositorNodeComposite" if hasattr(bpy.types, "CompositorNodeComposite") else "NodeGroupOutput")
 ctree.links.new(rl.outputs["Image"], glare.inputs["Image"])
 ctree.links.new(glare.outputs["Image"], glow.inputs["Image"])
-ctree.links.new(glow.outputs["Image"], comp.inputs["Image"])
+ctree.links.new(glow.outputs["Image"], comp.inputs[0])
 scene.render.film_transparent = False
 
 cam_data = bpy.data.cameras.new("Cam")
