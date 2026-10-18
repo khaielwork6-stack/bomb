@@ -379,12 +379,24 @@ local function bomberDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 			end
 		end
 	end
+	local f = assert(Arena.current, "no arena")
+	local from = GameState.get("StartSide") or -1
+	local to = -from
 	if target then
 		brain.targetId = target.p.id
-		local aim = BombBrain.intercept(target.pos, target.vel, BC.LEAD_TIME)
+		-- D-BOT-01: cut a Runner off on its way to the strip rather than tail it; plain lead pursuit up close
+		local goal = Arena.toWorld(Arena.toLocal(target.pos), to * (f.halfLen + 4), 0)
+		local aim = BombBrain.cutoff(target.pos, goal, pos, BC.CUTOFF_MIN, BC.CUTOFF_LEAD)
+			or BombBrain.intercept(target.pos, target.vel, BC.LEAD_TIME)
 		local push = BombBrain.threatPush(pos, fears, BC.CARRIER_FEAR) * 1.5
 		brain.desired = flatUnit(flatUnit(aim - pos) + push)
 		local d = ((target.pos - pos) * FLAT).Magnitude
+		-- …and sway side to side up close to bait the Runner's dodge
+		if d < BC.JUKE_RANGE then
+			local side = Vector3.new(-brain.desired.Z, 0, brain.desired.X)
+			local sway = math.sin(t * BC.JUKE_HZ * math.pi * 2 + (#p.id % 7)) * BC.JUKE * brain.tier.dash
+			brain.desired = flatUnit(brain.desired + side * sway)
+		end
 		local ready = (p.attrs:GetAttribute("TagReadyAt") or 0) <= t
 		if
 			ready
@@ -397,13 +409,27 @@ local function bomberDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 		end
 	else
 		brain.targetId = nil
-		-- Nobody on the field: hold the middle, a little toward the side the Runners are heading.
-		local to = -(GameState.get("StartSide") or -1)
-		local f = assert(Arena.current, "no arena")
-		local x = Arena.toLocal(pos)
-		local goal = Arena.toWorld(x * 0.5, to * f.halfLen * 0.35, 0)
+		-- Nobody on the field. Runners still waiting in the start strip? Guard the line in front of one (spread out,
+		-- like players do); otherwise hold the middle, a little toward the side the Runners are heading.
+		local waiting: Seen? = nil
+		local best = math.huge
+		for _, s in ipairs(seen) do
+			if s.p.role == R.Runner and s.active and Arena.inSafe(s.pos, from) then
+				local score = BombBrain.targetScore(((s.pos - pos) * FLAT).Magnitude, chasing[s.p.id] or 0)
+				if score < best then
+					waiting, best = s, score
+				end
+			end
+		end
+		local goal
+		if waiting then
+			brain.targetId = waiting.p.id -- counts toward the spread, so Bombers fan out along the line
+			goal = Arena.toWorld(Arena.toLocal(waiting.pos), from * (f.halfLen - BC.LINE_DEPTH), 0)
+		else
+			goal = Arena.toWorld(Arena.toLocal(pos) * 0.5, to * f.halfLen * 0.35, 0)
+		end
 		local d = goal - pos
-		brain.desired = if (d * FLAT).Magnitude > 3 then flatUnit(d) else Vector3.zero
+		brain.desired = if (d * FLAT).Magnitude > 2 then flatUnit(d) else Vector3.zero
 	end
 end
 
