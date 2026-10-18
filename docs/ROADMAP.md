@@ -41,23 +41,23 @@ The order matters:
 2. **CODE wires** against those names.
 3. **PARTNER** does the art pass on top.
 
-- [ ] **PARTNER**: Whitebox the island, reachable end to end in under 6 s of running.
+- [x] **CODE** built the whitebox instead (`builders/MapDepot`, P6-03), so the partner can go straight to the art pass. ~~**PARTNER**: Whitebox the island, reachable end to end in under 6 s of running.
   - Name these parts: `SpawnPlaza`, `ClockTower`, `ShopKiosk`, `QuestBoard`, `LeaderboardWall` (3 boards + 3 statue
     plinths), `FuseRange`, `VipLounge`.
 - [x] **CODE**: The lobby flow. (P6-03, code done; a first-pass Depot is built by `builders/MapDepot`)
   - Spawn in the Depot, and spend intermission there.
   - Teleport to the Yard at INTRO, and back to the Depot at RESULTS.
   - Menus close gracefully at round start (§19.2).
-- [ ] **CODE**: The kiosks.
+- [x] **CODE**: The kiosks.
   - Walking up opens the Shop or Quests.
   - The featured items spin on plinths, and today's quests show as cards on the board.
-- [ ] **CODE**: The leaderboard wall: weekly Wins / Clutches / Booms from `LeaderboardService.top()`, with the champion
+- [x] **CODE**: The leaderboard wall: weekly Wins / Clutches / Booms from `LeaderboardService.top()`, with the champion
   statues wearing the top players' avatars.
-- [ ] **CODE**: The **clock tower**: a giant fuse burning down to the next MEGA BOMB (`MegaNextAt`).
-- [ ] **CODE**: The **Fuse Range**, the practice area.
+- [x] **CODE**: The **clock tower**: a giant fuse burning down to the next MEGA BOMB (`MegaNextAt`).
+- [x] **CODE**: The **Fuse Range**, the practice area ("Preview in game" still to do).
   - Dummies to tag and pass to, a practice-bomb dispenser and a defuse pad.
   - "Preview in game" for shop items (F-STORE-05).
-- [ ] **CODE**: The VIP lounge: a gate for VIP pass owners and the VIP firework button.
+- [x] **CODE**: The VIP lounge: a gate for VIP pass owners and the VIP firework button.
 - [ ] **PARTNER**: The art pass on the whole Depot (Asset Bible quality bar).
 - [ ] **YOU**: Publish.
 

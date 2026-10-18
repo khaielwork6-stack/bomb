@@ -178,8 +178,8 @@ function MegaController.start()
 	})
 	local face = Theme.panel(gui, {
 		Name = "MegaClock",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 112),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 172), -- top-centre, under the round chips (the top-right is the Stars / XP stack)
 		Size = UDim2.fromOffset(200, 40),
 		color = P.Ink2,
 		border = P.Mega,

@@ -26,6 +26,7 @@ local C = {
 	Gold = rgb(242, 177, 58),
 	Brass = rgb(201, 151, 63),
 	Safe = rgb(59, 228, 140),
+	Bomber = rgb(255, 74, 46),
 	Mega = rgb(176, 76, 255),
 	Timber = rgb(122, 86, 58),
 	TimberDark = rgb(86, 60, 42),
@@ -51,6 +52,7 @@ return function(_ctx, parent)
 	lobby.Name = "Lobby"
 	lobby:SetAttribute("DisplayName", "THE DEPOT")
 	lobby:SetAttribute("CG_Arranged", true) -- Characters.lobbyReady(): built in place, nothing to rearrange
+	lobby.ModelStreamingMode = Enum.ModelStreamingMode.Persistent -- always loaded on every client (StreamingEnabled)
 	lobby.Parent = parent
 	local rng = Random.new(1017)
 
@@ -240,8 +242,8 @@ return function(_ctx, parent)
 	part(
 		plaza,
 		"Kerb",
-		Vector3.new(0.5, 35, 35),
-		CFrame.new(0, TOP + 0.02, 104) * CFrame.Angles(0, 0, math.rad(90)),
+		Vector3.new(0.3, 35.4, 35.4), -- a ring just under the cobbles' rim
+		CFrame.new(0, TOP + 0.0, 104) * CFrame.Angles(0, 0, math.rad(90)),
 		C.BrickDark,
 		M.Slate,
 		{ shape = Enum.PartType.Cylinder }
@@ -592,5 +594,33 @@ return function(_ctx, parent)
 		rod(dress, "Barrel", at + Vector3.new(2.6, 0, 1), at + Vector3.new(2.6, 3, 1), 2, C.TimberDark, M.Wood)
 	end
 
-	return ("Depot built: %d parts"):format(#lobby:GetDescendants())
+	-- Sit the pier where the map actually is: everything above was built round a field centred at (0, 10, 0) (the Yard
+	-- builder's origin); the place's Yard may have been moved, so follow its Field zone (centre, and its floor, which
+	-- the runtime then drops by Config.Arena.DROP).
+	local maps = workspace:FindFirstChild("Maps")
+	local field: BasePart? = nil
+	if maps then
+		for _, m in ipairs(maps:GetChildren()) do
+			local f = m:FindFirstChild("Field", true)
+			if f and f:IsA("BasePart") then
+				field = f
+				break
+			end
+		end
+	end
+	if field then
+		local floor = field.Position.Y - field.Size.Y / 2
+		local offset = Vector3.new(field.Position.X, floor - 10, field.Position.Z)
+		lobby:PivotTo(lobby:GetPivot() + offset)
+		for _, d in ipairs(lobby:GetDescendants()) do -- the dummies' rest poses moved with them
+			if d:IsA("BasePart") and d:GetAttribute("Home") ~= nil then
+				d:SetAttribute("Home", d.CFrame)
+			end
+		end
+	end
+
+	return ("Depot built: %d parts (anchored to %s)"):format(
+		#lobby:GetDescendants(),
+		if field then field:GetFullName() else "the origin"
+	)
 end

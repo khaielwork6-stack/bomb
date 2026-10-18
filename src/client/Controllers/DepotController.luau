@@ -386,7 +386,7 @@ local function showBoard(part: BasePart, key: string)
 			BackgroundTransparency = 1,
 			TextColor3 = P.Paper,
 			Font = Enum.Font.GothamMedium,
-			TextScaled = true,
+			TextSize = 30, -- fixed: eight rows fit the board (scaled text blew one row up to the board's size)
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			Parent = gui,
@@ -423,6 +423,27 @@ function DepotController.start()
 		return
 	end
 	lobby = found
+	-- the stations (the lobby streams as one persistent model; wait for them anyway, they may still be arriving)
+	for _, n in ipairs({ "FuseRange", "ClockTower", "ShopKiosk", "QuestBoard", "LeaderboardWall", "VipLounge" }) do
+		lobby:WaitForChild(n, 10)
+	end
+	local range0 = lobby:FindFirstChild("FuseRange")
+	if range0 then
+		range0:WaitForChild("DefusePad", 10)
+		local dm0 = range0:WaitForChild("Dummies", 10)
+		if dm0 then
+			dm0:WaitForChild("Dummy3", 10)
+		end
+	end
+	local tower0 = lobby:FindFirstChild("ClockTower")
+	if tower0 then
+		tower0:WaitForChild("TowerBomb", 10)
+		tower0:WaitForChild("ClockFace", 10)
+		local sp0 = tower0:WaitForChild("SpiralFuse", 10)
+		if sp0 then
+			sp0:WaitForChild("Seg54", 10)
+		end
+	end
 	gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
 	local gui = new("ScreenGui", {
 		Name = "FV_Depot",

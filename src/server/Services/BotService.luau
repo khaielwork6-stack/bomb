@@ -46,10 +46,45 @@ type Brain = {
 	laneX: number,
 	startAt: number,
 	targetId: string?,
+	lobbyGoal: Vector3?, -- between rounds: the Depot station it's strolling to
+	lobbyNext: number?,
 }
 
 local brains: { [string]: Brain } = {}
 local rng = Random.new()
+
+-- The Depot's stations bots stroll between (GDD §19.1), gathered once.
+local depotSpots: { Vector3 }? = nil
+local function lobbySpots(): { Vector3 }
+	if depotSpots then
+		return depotSpots
+	end
+	local spots = {}
+	local lobby = workspace:FindFirstChild("Lobby")
+	if lobby then
+		for _, n in ipairs({
+			"ShopPromptPart",
+			"Cork",
+			"Dispenser",
+			"Dummy1",
+			"Dummy2",
+			"Cobbles",
+			"StatuePlinth2",
+			"Base",
+		}) do
+			local x = lobby:FindFirstChild(n, true)
+			local pos = if x and x:IsA("BasePart")
+				then x.Position
+				elseif x and x:IsA("Model") then x:GetPivot().Position
+				else nil
+			if pos then
+				table.insert(spots, pos + Vector3.new(0, 0, -3)) -- stand in front of it, not inside it
+			end
+		end
+	end
+	depotSpots = spots
+	return spots
+end
 local nextBotId = 0
 local frozen = false -- Studio: "botfreeze" stops every bot (manual tests)
 
@@ -125,8 +160,7 @@ local function spawnBot(): Participant?
 		model = Characters.buildBot(name, rng)
 	end
 	local m = model :: Model
-	local spot = if Arena.current then Arena.runnerLine(-1, 1, rng)[1] else CFrame.new(0, 20, 0)
-	m:PivotTo(spot)
+	m:PivotTo(Characters.lobbyCFrame()) -- The Depot (or the start strip in a place without a lobby)
 	m.Parent = botsFolder()
 	local p = Participants.addBot("B" .. nextBotId, name, m, rng:NextInteger(1, 35), rng:NextInteger(0, 60))
 	local root = p.root
@@ -476,6 +510,22 @@ end
 
 local function decide(p: Participant, brain: Brain)
 	local root = p.root
+	if not frozen and root and p.role == R.None then
+		-- Between rounds: stroll between The Depot's stations, so the lobby feels like a place people are in.
+		local t = now()
+		local goal = brain.lobbyGoal
+		if not goal or t >= (brain.lobbyNext or 0) then
+			local spots = lobbySpots()
+			goal = if #spots > 0
+				then spots[rng:NextInteger(1, #spots)] + Vector3.new(rng:NextNumber(-3, 3), 0, rng:NextNumber(-3, 3))
+				else nil
+			brain.lobbyGoal = goal
+			brain.lobbyNext = t + rng:NextNumber(3, 7)
+		end
+		local d = if goal then (goal - root.Position) * FLAT else Vector3.zero
+		brain.desired = if d.Magnitude > 2.5 then d.Unit * 0.55 else Vector3.zero -- an easy walk, not a sprint
+		return
+	end
 	if frozen or not root or not Arena.current or not liveRun() then
 		brain.desired = Vector3.zero
 		return
