@@ -2,7 +2,8 @@
 -- Bots (GDD §18): fill every round to Config.Bots.FILL_TARGET participants with bodies that move exactly like players
 -- (Shared/MovementCore, the same physics and techniques; Shared/Locomotion for animation) and play the bomb game with
 -- bomb-aware brains (Logic/BombBrain): Runners pick lanes and dodge, Carriers defuse or pass, Bombers hunt and spread.
--- Bots wear real avatars when AvatarPool has one ready (never a name: bots keep generated names).
+-- Bots wear real avatars when AvatarPool has one ready (never a name: bots keep generated names). D-LOBBY-02: they
+-- wear the humans' friends, split evenly between the humans here (rebalanced at every intermission, as looks arrive).
 -- Round modifiers (GDD §6.4): bots play by what a player could see. Under READ THE FACE a LIT bomb is assumed to be
 -- about to turn HOT; under LIGHTS OUT a bot Runner only sees a Bomber by its eye glints or a bomb's light; a bot Mole
 -- strikes a nearby Runner some time after GO.
@@ -152,11 +153,11 @@ local function uniqueName(): string
 	return "Player" .. tostring(rng:NextInteger(100, 999))
 end
 
-local function spawnBot(): Participant?
+local function spawnBot(prefer: number?): Participant?
 	nextBotId += 1
 	local name = uniqueName()
 	local model: Model? = nil
-	local okPool, rig = pcall(AvatarPool.takeRig)
+	local okPool, rig, _, avatarId, owner = pcall(AvatarPool.takeRig, prefer)
 	if okPool and rig then
 		model = rig
 		Characters.prepareAvatarRig(rig, name)
@@ -168,6 +169,8 @@ local function spawnBot(): Participant?
 	m:PivotTo(Characters.lobbyCFrame()) -- The Depot (or the start strip in a place without a lobby)
 	m.Parent = botsFolder()
 	local p = Participants.addBot("B" .. nextBotId, name, m, rng:NextInteger(1, 35), rng:NextInteger(0, 60))
+	p.data.avatarId = if okPool then avatarId else nil -- whose look it wears…
+	p.data.avatarOwner = if okPool then owner else nil -- …and whose friend that is (nil = a filler)
 	local root = p.root
 	if root then
 		pcall(function()
@@ -200,9 +203,65 @@ local function despawn(p: Participant)
 		brain.loco:destroy()
 	end
 	brains[p.id] = nil
+	AvatarPool.release(p.data.avatarId)
 	Participants.remove(p)
 	if p.model then
 		p.model:Destroy()
+	end
+end
+
+-- D-LOBBY-02: the bots wear the humans' friends, split evenly (2 players → half each). A bot wearing a filler look, a
+-- look of someone who left, or more than its owner's share is swapped for a look of the player furthest under their
+-- share, while the pool has one built. Runs at INTERMISSION (everyone's in The Depot, the post-round flash covers it).
+function BotService.balanceLooks()
+	local owners: { number } = {}
+	for _, h in ipairs(Participants.humans()) do
+		if h.player then
+			table.insert(owners, h.player.UserId)
+		end
+	end
+	local bots = Participants.bots()
+	if #owners == 0 or #bots == 0 then
+		return
+	end
+	local share: { [number]: number } = {}
+	for i, owner in ipairs(owners) do
+		share[owner] = math.floor(#bots / #owners) + (if i <= #bots % #owners then 1 else 0)
+	end
+	local count: { [number]: number } = {}
+	for _, b in ipairs(bots) do
+		local o = b.data.avatarOwner
+		if o and share[o] then
+			count[o] = (count[o] or 0) + 1
+		end
+	end
+	local function neediest(): number?
+		local best: number? = nil
+		local gap = 0
+		for _, owner in ipairs(owners) do
+			local g = share[owner] - (count[owner] or 0)
+			if g > gap and AvatarPool.readyFor(owner) > 0 then
+				best, gap = owner, g
+			end
+		end
+		return best
+	end
+	for _, b in ipairs(bots) do
+		local o = b.data.avatarOwner
+		local misfit = not o or not share[o] or (count[o] or 0) > share[o]
+		if misfit then
+			local want = neediest()
+			if not want then
+				break
+			end
+			if o and count[o] then
+				count[o] -= 1
+			end
+			despawn(b)
+			if spawnBot(want) then -- (it lands in The Depot)
+				count[want] = (count[want] or 0) + 1
+			end
+		end
 	end
 end
 
@@ -221,6 +280,7 @@ function BotService.fill()
 	for _ = 1, want - #Participants.bots() do
 		spawnBot()
 	end
+	BotService.balanceLooks()
 	local mix = if newbiePresent() then BC.NEWBIE_MIX else BC.TIER_MIX
 	for id, brain in pairs(brains) do
 		brain.tierName = pickTier(mix)
@@ -709,6 +769,22 @@ function BotService.start()
 		tunable.FILL_TARGET = math.clamp(math.floor(n), 0, Config.Game.MAX_PLAYERS)
 		BotService.fill()
 		return `fill target {BC.FILL_TARGET}`
+	end)
+	AdminService.register("looks", function()
+		-- whose friends the bots are wearing (D-LOBBY-02): "<owner userId> n", "filler n", "generated n"
+		local tally: { [string]: number } = {}
+		for _, b in ipairs(Participants.bots()) do
+			local key = if b.data.avatarOwner
+				then tostring(b.data.avatarOwner)
+				elseif b.data.avatarId then "filler"
+				else "generated"
+			tally[key] = (tally[key] or 0) + 1
+		end
+		local out = {}
+		for k, n in pairs(tally) do
+			table.insert(out, `{k} {n}`)
+		end
+		return table.concat(out, ", ") .. ` · ready rigs {AvatarPool.readyCount()}`
 	end)
 	AdminService.register("botfreeze", function(args)
 		frozen = args[1] ~= "off" and args[1] ~= false

@@ -81,6 +81,7 @@ Full item list, art briefs and rarity: Asset Bible §8.
 - **Bots fill each round to 16 participants** at `INTERMISSION`.
 - **When a human joins mid-round**, a bot is removed at the next round boundary, never mid-round.
 - **Bots use Chase Game's `AvatarPool`** (varied, realistic avatars) and natural names.
+- **Looks (D-LOBBY-02):** the bots wear the avatars of the humans' friends, split evenly between the humans in the server (with 2 players, half the bots wear each one's friends), rebalanced at every intermission. Random dressed avatars fill in only when friends run out. Bots keep generated names, so only the look is borrowed.
 
 ### 18.2 Brains (F-BOT-02..05) — new, bomb-aware
 Bots steer with Chase Game's `MovementCore` (the same physics as players) and run new decision logic in `BombBrain`:

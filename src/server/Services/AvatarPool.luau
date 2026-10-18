@@ -10,6 +10,9 @@
 -- match never waits on the avatar service. Rigs are tidied for gameplay: no scripts, at most MAX_ACCESSORIES
 -- accessories (hair first), nothing oversized (giant wings or props would hide the field or the bot's role).
 -- Bots keep their generated names, so nobody is impersonated: only the look is borrowed.
+-- D-LOBBY-02 (the user's call): friends are kept per player and every look remembers whose friend it is (`owner`),
+-- so BotService can split the bots evenly between the humans here (2 players → half wear each one's friends).
+-- Random fillers waiting in the pool make room as soon as friends can replace them.
 
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
@@ -28,14 +31,15 @@ local MAX_ACCESSORIES = 4
 local MAX_ACCESSORY_SIZE = 4.5 -- studs, any dimension of an accessory's handle
 local FETCH_GAP = 0.35 -- seconds between avatar-service calls (stay well inside the rate limits)
 
-type Entry = { userId: number, desc: HumanoidDescription, forCrowd: boolean }
+type Entry = { userId: number, desc: HumanoidDescription, forCrowd: boolean, owner: number? }
 
-local friends: { number } = {} -- shuffled candidate ids, friends of players in the server
+local friendsOf: { [number]: { number } } = {} -- player userId → their friends' ids, shuffled, not yet tried
 local recent: { number } = {}
 local tried: { [number]: boolean } = {} -- fetched (or failed) this session
 local inUse: { [number]: boolean } = {} -- worn by a live bot / crowd template right now
 local descs: { Entry } = {} -- fetched, not built yet
-local rigs: { { userId: number, model: Model, desc: HumanoidDescription } } = {}
+type Rig = { userId: number, model: Model, desc: HumanoidDescription, owner: number? }
+local rigs: { Rig } = {}
 local store: MemoryStoreSortedMap? = nil
 local rigFolder: Folder
 local crowdFolder: Folder
@@ -84,17 +88,61 @@ local function wearsSomething(desc: HumanoidDescription): boolean
 		or desc.HatAccessory ~= ""
 end
 
--- Next friend / recent-player id; skips anyone in the server or already tried.
-local function nextCandidate(): number?
-	for _, list in ipairs({ friends, recent }) do
-		while #list > 0 do
-			local id = table.remove(list, #list) :: number
-			if id > 0 and not tried[id] and not inUse[id] and not inServer(id) then
-				return id
-			end
+local function pop(list: { number }): number?
+	while #list > 0 do
+		local id = table.remove(list, #list) :: number
+		if id > 0 and not tried[id] and not inUse[id] and not inServer(id) then
+			return id
 		end
 	end
 	return nil
+end
+
+-- Looks of each player's friends that are built or being fetched (balances the next fetch).
+local function pending(owner: number): number
+	local n = 0
+	for _, r in ipairs(rigs) do
+		if r.owner == owner then
+			n += 1
+		end
+	end
+	for _, e in ipairs(descs) do
+		if e.owner == owner then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Next candidate: a friend of the player here with the fewest looks waiting (so every player's friends are ready
+-- in equal numbers), then recent players. Returns the id and whose friend it is.
+local function nextCandidate(): (number?, number?)
+	local best: number? = nil
+	local bestN = math.huge
+	for owner, list in pairs(friendsOf) do
+		if inServer(owner) and #list > 0 then
+			local n = pending(owner)
+			if n < bestN then
+				best, bestN = owner, n
+			end
+		end
+	end
+	if best then
+		local id = pop(friendsOf[best])
+		if id then
+			return id, best
+		end
+	end
+	return pop(recent), nil
+end
+
+local function hasFriendCandidates(): boolean
+	for owner, list in pairs(friendsOf) do
+		if inServer(owner) and #list > 0 then
+			return true
+		end
+	end
+	return false
 end
 
 local function readFriends(player: Player)
@@ -122,9 +170,7 @@ local function readFriends(player: Player)
 		end
 	end
 	shuffle(found)
-	for _, id in ipairs(found) do
-		table.insert(friends, id)
-	end
+	friendsOf[player.UserId] = found
 end
 
 local function readRecent()
@@ -270,6 +316,16 @@ local crowdBuilding = 0 -- crowd templates being built right now (two workers)
 -- avatars. One build or one fetch per call. Bots are served first; the crowd draws random dressed avatars first and the
 -- bots friends / recent players first, each falling back to the other source.
 local function work(): boolean
+	-- a random filler waiting in the pool makes room for a friend's look (D-LOBBY-02)
+	if #rigs >= READY_RIGS and hasFriendCandidates() then
+		for i, r in ipairs(rigs) do
+			if not r.owner then
+				r.model:Destroy()
+				table.remove(rigs, i)
+				break
+			end
+		end
+	end
 	local rigsShort = READY_RIGS - #rigs
 	local crowdShort = CROWD_TEMPLATES - #crowdFolder:GetChildren() - crowdBuilding
 	if rigsShort <= 0 and crowdShort <= 0 then
@@ -293,26 +349,18 @@ local function work(): boolean
 				else
 					model.Name = "Avatar_" .. entry.userId
 					model.Parent = rigFolder
-					table.insert(rigs, { userId = entry.userId, model = model, desc = entry.desc })
+					table.insert(rigs, { userId = entry.userId, model = model, desc = entry.desc, owner = entry.owner })
 					inUse[entry.userId] = nil -- reserved again when a bot takes it
 				end
 			end
 			return true
 		end
 	end
-	local id: number?, random = nil, false
-	if forCrowd then
-		-- 2026-10-07 (the user's call): the stands are your friends first (real avatars from the friend lists of
-		-- the players here, repeats allowed on the client), dressed random players only to fill up.
-		id, random = nextCandidate(), false
-		if not id then
-			id, random = randomCandidate(), true
-		end
-	else
-		id = nextCandidate()
-		if not id then
-			id, random = randomCandidate(), true
-		end
+	-- friends of the players here first (balanced between them), recent players, then dressed random players
+	local id, owner = nextCandidate()
+	local random = false
+	if not id then
+		id, random = randomCandidate(), true
 	end
 	if not id then
 		return false
@@ -329,25 +377,55 @@ local function work(): boolean
 				else not forCrowd or wearsSomething(desc :: HumanoidDescription)
 		)
 	if keep then
-		table.insert(descs, { userId = id, desc = desc :: HumanoidDescription, forCrowd = forCrowd })
+		table.insert(descs, { userId = id, desc = desc :: HumanoidDescription, forCrowd = forCrowd, owner = owner })
 	end
 	return true
 end
 
--- A built rig wearing a real avatar for a new bot (nil = none ready: use the generated look).
--- The returned description is the bot's avatar (Cardboard Cutout and replays copy it).
-function AvatarPool.takeRig(): (Model?, HumanoidDescription?, number?)
+-- A built rig wearing a real avatar for a new bot (nil = none ready: use the generated look). `prefer` = a player
+-- whose friends' look is wanted (D-LOBBY-02); otherwise any friend's look before a random one. Returns the model, its
+-- description (Cardboard Cutout and replays copy it), the avatar's user id and whose friend it is (nil = a filler).
+function AvatarPool.takeRig(prefer: number?): (Model?, HumanoidDescription?, number?, number?)
 	-- (2026-10-07, the user saw a bot wearing their own avatar.) A rig built before its owner joined (a friend's
 	-- friend list, the recent-players list) is never handed out once they're here.
-	while #rigs > 0 do
-		local r = table.remove(rigs, 1) :: any
-		if not inServer(r.userId) then
-			inUse[r.userId] = true
-			return r.model, r.desc, r.userId
+	for i = #rigs, 1, -1 do
+		if inServer(rigs[i].userId) then
+			rigs[i].model:Destroy()
+			table.remove(rigs, i)
 		end
-		r.model:Destroy()
 	end
-	return nil, nil, nil
+	local pick: number? = nil
+	for i, r in ipairs(rigs) do
+		if prefer then
+			if r.owner == prefer then
+				pick = i
+				break
+			end
+		elseif r.owner and inServer(r.owner) then
+			pick = i
+			break
+		end
+	end
+	if not pick and not prefer and #rigs > 0 then
+		pick = 1
+	end
+	if not pick then
+		return nil, nil, nil, nil
+	end
+	local r = table.remove(rigs, pick) :: Rig
+	inUse[r.userId] = true
+	return r.model, r.desc, r.userId, r.owner
+end
+
+-- How many built looks of this player's friends are waiting.
+function AvatarPool.readyFor(owner: number): number
+	local n = 0
+	for _, r in ipairs(rigs) do
+		if r.owner == owner and not inServer(r.userId) then
+			n += 1
+		end
+	end
+	return n
 end
 
 -- Someone joined: drop every look of theirs waiting in the pool (fetched, built, or in the stands).
