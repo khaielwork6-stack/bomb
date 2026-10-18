@@ -20,6 +20,7 @@ local Sfx = require(script.Parent.Parent.Sfx)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
+local Screen = require(script.Parent.Parent.UI.Screen)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local ProgressController = require(script.Parent.ProgressController)
 
@@ -114,6 +115,10 @@ local function play(up: Up)
 		ZIndex = 2,
 		Parent = gui,
 	})
+	-- the ribbon rides above the stage and the reward card below it: keep all of it on a short phone screen
+	Screen.fit(stage, function(v)
+		return math.min(1, (v.Y - 90) / 500, (v.X - 30) / 560)
+	end)
 	Sfx.play("LevelUp")
 	Sfx.play("ClutchChoir", 0.45)
 	if not Widgets.reduced() then
