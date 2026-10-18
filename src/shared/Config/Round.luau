@@ -5,7 +5,9 @@ return {
 	INTERMISSION = 12,
 	INTRO = 4,
 	READY = 2,
-	RESOLVE = 1.5,
+	READY_LATER = 1.5, -- from crossing 2 the countdown is "2, 1, GO" (§5.2; D-PACE-02)
+	RESOLVE = 1.5, -- after a field detonation (its sweep and booms need the time)
+	RESOLVE_QUICK = 0.8, -- after a crossing that ended clear or wiped: nothing to show, straight on (D-PACE-02)
 	RESULTS = 8,
 	MAX_CROSSINGS = 8, -- D6
 	-- The Field Fuse per crossing (F-FUSE-01): it shortens as the Bomber crowd grows. Crossings past the list reuse

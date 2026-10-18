@@ -36,6 +36,24 @@ local longestCold: { [string]: number } = {}
 local crossings: { Crossing } = {}
 local current: Crossing? = nil
 local rounds = 0
+-- The core moment: each bomb's life (tag → passes → boom / defuse), and how long a Carrier holds before passing.
+type BombLife = { born: number, lastHand: number }
+local lives: { [number]: BombLife } = {}
+local bombStats =
+	{ tags = 0, passes = 0, booms = 0, defuses = 0, clutches = 0, life = 0, ended = 0, hold = 0, dodges = 0 }
+local function ended(bomb: any, how: string)
+	local life = bomb and lives[bomb.id]
+	if life then
+		bombStats.life += os.clock() - life.born
+		bombStats.ended += 1
+		lives[bomb.id] = nil
+	end
+	if how == "boom" then
+		bombStats.booms += 1
+	else
+		bombStats.defuses += 1
+	end
+end
 
 local function live(phase: string): boolean
 	return phase == Ph.Crossing or phase == Ph.LastStand
@@ -177,6 +195,21 @@ local function report(): string
 		n += 1
 		worst = math.max(worst, v)
 	end
+	local b = bombStats
+	local done = b.booms + b.defuses
+	table.insert(
+		lines,
+		("bombs: %d tags, %.2f passes per bomb, %.0f%% boom / %.0f%% defused (%d clutch), a bomb lives %.1f s, a Carrier holds %.1f s before passing, %d dodges"):format(
+			b.tags,
+			if b.tags > 0 then b.passes / b.tags else 0,
+			if done > 0 then b.booms / done * 100 else 0,
+			if done > 0 then b.defuses / done * 100 else 0,
+			b.clutches,
+			if b.ended > 0 then b.life / b.ended else 0,
+			if b.passes > 0 then b.hold / b.passes else 0,
+			b.dodges
+		)
+	)
 	table.insert(
 		lines,
 		("longest live stretch without a HOT moment: avg %.0f s, worst %.0f s"):format(
@@ -208,8 +241,39 @@ function PaceProbe.start()
 	if not RunService:IsStudio() then
 		return
 	end
+	BombService.Tagged:Connect(function(_, _, bomb)
+		bombStats.tags += 1
+		lives[bomb.id] = { born = os.clock(), lastHand = os.clock() }
+	end)
+	BombService.Passed:Connect(function(_, _, bomb)
+		bombStats.passes += 1
+		local life = lives[bomb.id]
+		if life then
+			bombStats.hold += os.clock() - life.lastHand
+			life.lastHand = os.clock()
+		end
+	end)
+	BombService.RunnerBoomed:Connect(function(_, bomb)
+		ended(bomb, "boom")
+	end)
+	BombService.BomberBoomed:Connect(function(_, bomb)
+		ended(bomb, "boom")
+	end)
+	BombService.Defused:Connect(function(_, bomb, clutch)
+		ended(bomb, "defuse")
+		if clutch then
+			bombStats.clutches += 1
+		end
+	end)
+	BombService.Dodged:Connect(function()
+		bombStats.dodges += 1
+	end)
 	AdminService.register("pace", function(args)
 		if args[1] == "start" then
+			for k in pairs(bombStats) do
+				(bombStats :: any)[k] = 0
+			end
+			table.clear(lives)
 			tally = { Runner = {}, Bomber = {} }
 			phaseTime, sinceHot, longestCold, crossings, current, rounds = {}, {}, {}, {}, nil, 0
 			started = os.clock()
