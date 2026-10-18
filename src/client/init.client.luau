@@ -35,6 +35,7 @@ local ORDER: { string } = {
 	"BombController",
 	"FxController",
 	"ImpactController",
+	"SlapController",
 	"MegaController",
 	"HudController",
 	"CalloutController",

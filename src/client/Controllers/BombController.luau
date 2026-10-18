@@ -601,12 +601,20 @@ local function update(v: Visual, dt: number, t: number)
 	end
 end
 
+-- The slap (F-BOMB-10): a tagged host's back bomb appears on the slap's contact frame, not when the event lands.
+local deferred: { [Instance]: number } = {}
+function BombController.deferAttach(host: Instance, untilClock: number)
+	deferred[host] = untilClock
+end
+
 local function step(dt: number)
 	local t = now()
 	local seen = {}
 	for _, host in ipairs(hosts()) do
 		local id = host:GetAttribute("BombId")
-		if id ~= nil then
+		if id ~= nil and (deferred[host] or 0) > os.clock() and not visuals[host] then
+			seen[host] = true -- held back until the hand lands
+		elseif id ~= nil then
 			seen[host] = true
 			local v = visuals[host]
 			local char = characterOf(host)

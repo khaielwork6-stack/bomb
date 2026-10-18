@@ -5,6 +5,18 @@
 return {
 	-- Tag / pass (§10.3): both rigs freeze for HITSTOP; the bomb pops on landing; your own camera kicks.
 	HITSTOP = 0.06,
+	HITSTOP_TAG = 0.09, -- the slap's freeze on the contact pose (F-BOMB-10)
+	-- The slap (F-BOMB-10, SlapController): the Slap clip's contact frame, and how far before it the clip starts when
+	-- the Stick lands (the contact, and everything on it, comes SLAP_LEAD after the event)
+	SLAP_CONTACT = 0.11,
+	SLAP_LEAD = 0.06,
+	SMACK_LIFE = 0.32, -- the smack flipbook's 16 frames
+	SMACK_SIZE = 2.8,
+	-- the hand bomb: the hero bomb at this scale in the right fist (arm space: below the fist, a touch forward)
+	HAND_BOMB_SCALE = 0.42,
+	HAND_BOMB_GRIP = CFrame.new(0.12, -1.22, -0.4),
+	HAND_BOMB_TILT = 40, -- degrees the fuse leans out to the side, so its spark shows past the fist
+	HAND_REGROW = 0.22, -- the pop-in when the tag is ready again
 	HITSTOP_RANGE = 80, -- only rigs this close to the camera freeze (no point animating what nobody sees)
 	LAND_POP = 1.18, -- the bomb's scale at the top of its landing pop…
 	LAND_POP_TIME = 0.16, -- …and how long the pop takes to settle

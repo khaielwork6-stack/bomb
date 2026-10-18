@@ -5,7 +5,8 @@
 -- Clients draw every bomb from the Carrier's attributes (BombId, BombExplodeAt, BombLocked) plus the BombFx beats.
 -- Round modifiers (GDD §6.4): READ THE FACE bombs get a random fuse and keep their boom time off the Carrier
 -- (`BombMasked`) until they turn HOT; the Mole's armed STRIKE (p.data.strikeUntil, set by ModifierService) tags.
--- Implements: F-BOMB-01..09, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
+-- The slap (F-BOMB-10): a tag shoves the tagged Runner forward, away from the Bomber; a pass bumps both bodies apart.
+-- Implements: F-BOMB-01..10, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -272,6 +273,7 @@ local function tag(bomber: Participant, target: Participant, bBody: Body, tBody:
 	bomber.attrs:SetAttribute("TagReadyAt", bomber.data.tagReadyAt)
 	bomber.stats.tags += 1
 	attach(bomb, target)
+	Characters.push(target, tBody.pos - bBody.pos, B.TAG_SHOVE, B.TAG_SHOVE_TIME) -- F-BOMB-10: the stumble
 	Net.fireAll("BombFx", { kind = "Stick", bomb = bomb.id, from = bomber.id, who = target.id, at = t })
 	BombService.Tagged:Fire(bomber, target, bomb)
 end
@@ -292,6 +294,10 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 	byCarrier[to.id] = bomb
 	setCarrierAttrs(to, bomb)
 	from.stats.passes += 1
+	-- the bump (F-BOMB-03): both bodies knock apart
+	local apart = tBody.pos - fBody.pos
+	Characters.push(to, apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
 	local remaining = BombRules.remaining(bomb, t)
 	Net.fireAll("BombFx", {
 		kind = "Pass",

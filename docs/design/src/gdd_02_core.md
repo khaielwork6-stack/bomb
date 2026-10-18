@@ -131,13 +131,15 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 ### 7.3 Getting a bomb — the tag (F-BOMB-02)
 - A Bomber's **touch** on a Runner who isn't carrying (hitbox overlap; see `Config.Bomb.TAG_RANGE`) sticks a **fresh 4.0 s bomb** on that Runner.
 - **Bomber tag cooldown:** 1.5 s after any tag [TUNE] (`TAG_COOLDOWN`). Their hand glows again when it's ready.
+- **The slap (F-BOMB-10, D-FEEL-01):** every ready Bomber holds a small copy of the bomb (the hero bomb, its face and the Bomber's skin) in their right hand. The face looks at the nearest Runner. A tag is a **slap**: a quick lunge and an overhand slap, and the hand bomb clamps onto the Runner's back. The hand is empty while the tag cools down, then a fresh bomb grows back and its fuse lights when the tag is ready. So **anyone can read at a glance whether a Bomber is loaded**.
+- **The stumble:** the slap shoves the tagged Runner **6 studs** forward, away from the Bomber, over 0.25 s (`TAG_SHOVE`, `TAG_SHOVE_TIME`), with a stumble. The new Carrier lands among the other Runners instead of next to the Bomber who just tagged them.
 - **A Runner can carry only one bomb.** A Bomber touching a Carrier does nothing; the touch is ignored, no new bomb.
 - There is **no limit on bombs in play**: every Bomber can create one with each tag.
 
 ### 7.4 Passing (F-BOMB-03..05)
 | ID | Rule |
 |---|---|
-| F-BOMB-03 | **Contact passes.** When a Carrier's hitbox overlaps another eligible player, the bomb jumps to them **instantly** (server-authoritative). A 0.18 s visual arc plays from back to back. There is no button: contact is the pass. This makes it mobile-first, and it means accidents are part of the comedy. |
+| F-BOMB-03 | **Contact passes.** When a Carrier's hitbox overlaps another eligible player, the bomb jumps to them **instantly** (server-authoritative). A 0.18 s visual arc plays from back to back. There is no button: contact is the pass. This makes it mobile-first, and it means accidents are part of the comedy.<br><br>**The bump (D-FEEL-01):** a pass knocks the two bodies apart, **3 studs** each, away from each other (`PASS_BUMP`), so "BUMP SOMEONE!" is literally what you see. |
 | F-BOMB-04 | **The fuse keeps its remaining time.** It never resets, never extends. |
 | F-BOMB-05 | **Eligible receivers:** anyone *not in a Safe Strip* and *not already carrying*. That includes Runners and Bombers.<br><br>**No pass-back for 1.0 s:** you can't pass a bomb straight back to the player who just gave it to you (`NO_PASSBACK`). This kills ping-pong.<br><br>**Receive grace of 0.2 s:** a fresh Carrier can't pass in the first 0.2 s (`RECEIVE_GRACE`). This stops same-frame bounces and gives the receiver one frame of "oh no". |
 
@@ -171,7 +173,9 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 |---|---|---|
 | `FUSE` | 4.0 | Seconds on a fresh bomb [TUNE] |
 | `STAGE_HOT` / `STAGE_CRITICAL` | 2.5 / 1.0 | Stage thresholds |
-| `TAG_RANGE` | 4.5 | Studs, root-to-root (Bomber reach) [TUNE] |
+| `TAG_RANGE` | 3.5 | Studs, root-to-root (Bomber reach) [TUNE]. Was 4.5: with the lag slack, tags landed from 6.5 studs and never looked like a touch (D-FEEL-01) |
+| `TAG_SHOVE` / `TAG_SHOVE_TIME` | 6 / 0.25 | studs / s: the slap's stumble (F-BOMB-10) |
+| `PASS_BUMP` | 3 | studs each: the pass knock-apart (F-BOMB-03) |
 | `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE] |
 | `TAG_COOLDOWN` | 1.5 | s |
 | `NO_PASSBACK` | 1.0 | s |

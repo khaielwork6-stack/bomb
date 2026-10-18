@@ -5,9 +5,14 @@ return {
 	FUSE = 4.0, -- D5: seconds on a fresh bomb
 	STAGE_HOT = 2.5, -- remaining time at which LIT turns HOT
 	STAGE_CRITICAL = 1.0, -- …and HOT turns CRITICAL
-	TAG_RANGE = 4.5, -- root to root: a Bomber's reach
+	TAG_RANGE = 3.5, -- root to root: a Bomber's reach (D-FEEL-01: 4.5 + the lag slack tagged from 6.5 studs)
 	PASS_RANGE = 4.0, -- root to root: body contact
 	TAG_COOLDOWN = 1.5,
+	-- The slap (F-BOMB-10): the tagged Runner stumbles forward, away from the Bomber; a pass bumps both bodies apart.
+	TAG_SHOVE = 6, -- studs
+	TAG_SHOVE_TIME = 0.25,
+	PASS_BUMP = 3, -- studs each
+	PASS_BUMP_TIME = 0.2,
 	NO_PASSBACK = 1.0, -- you can't pass straight back to whoever just gave it to you
 	RECEIVE_GRACE = 0.2, -- a fresh Carrier can't pass in its first moments
 	BOMBER_STUN = 3.0, -- a bomb that blows on a Bomber

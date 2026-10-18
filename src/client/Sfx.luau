@@ -37,6 +37,13 @@ local function make(key: string): Sound?
 	end
 	local s = Instance.new("Sound")
 	s.SoundId = def.id
+	if def.alt and #def.alt > 0 then
+		-- another take of the same sound, so a frequent moment never repeats exactly
+		local pick = math.random(0, #def.alt)
+		if pick > 0 then
+			s.SoundId = def.alt[pick]
+		end
+	end
 	s.Volume = def.volume
 	s.SoundGroup = getGroup()
 	if def.pitch then

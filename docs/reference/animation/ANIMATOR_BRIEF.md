@@ -40,3 +40,11 @@ Reference frames:
 - Keep the root still: **no root motion**. The game moves the character.
 - Upload as Roblox Animations to the group **"99 Dreams Studio" (3774675)** and send us the 5 asset ids, plus the
   `.rbxm` KeyframeSequence sources.
+
+## Two more clips: the slap (added 2026-10-18)
+The tag is now a **slap**: every ready Bomber holds a small bomb in their right hand and slaps it onto the Runner's back. We made in-house first versions (`tools/anim/Slap.luau`, `Stumble.luau`). Please make the final versions by hand, with the same rules as above (R6, Action, no root motion, upload to the group).
+
+| File (Assets.Anim key) | Body | Plays when | Length | Notes |
+|---|---|---|---|---|
+| **`Slap`** | **Upper body only** (`Torso`, `Head`, both arms; legs unkeyed) | A Bomber tags someone | **0.30–0.36 s** | A tight overhand slap with the **right** hand: cock up and back, whip over and down through the target, follow through past the hip. **Contact at 0.11 s** (the game freezes on that frame). The torso drives the hit, the free arm snaps back, and the head leads in |
+| **`Stumble`** | **Upper body only** | The Runner who got slapped | **0.45–0.55 s** | Slapped on the back and shoved forward: the chest snaps back, the arms fling up and splay, then the body pitches forward catching its balance with the arms windmilling. Funny, not painful |

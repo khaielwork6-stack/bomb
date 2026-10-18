@@ -331,6 +331,18 @@ Every prop is built in the `art/` pipeline (§10) with the materials library:
 - **Total:** ≤ 220 particles at peak.
 - **The light variant** (more than 3 booms at once): flash + fireball + 8 sparks + 3 smoke puffs.
 
+### 5.1b The slap (GDD F-BOMB-10)
+The tag's beat, in the same toon language as the explosion stack. It plays on the contact frame, `SLAP_LEAD` after the server's Stick.
+
+| Layer | What it is |
+|---|---|
+| **Smack** | `art/vfx/make_smack.py`: a 4×4 flipbook (1024², 16 frames, drawn at 4× and filtered down, so its edges are anti-aliased). A comic impact star: 9 uneven spikes, white core → `Spark` → `Fuse` inside a thick `Ink` outline. It pops in with an overshoot, thin speed strokes fly out between the spikes, and it snaps shut into its core. One particle, 2.8 studs, lifetime 0.32 s, on the Runner's back |
+| **Flash** | The 6-point star flash, 2.6 → 0.6 studs over 0.09 s |
+| **Spray** | 7 velocity-aligned streaks, `Paper` → `Spark`, sprayed the way the slap travels |
+| **The hand bomb** | The hero bomb at 0.42× in every ready Bomber's right fist: the Bomber's skin, the face watching the nearest Runner, the fuse leaning out so its spark shows. It pops back in (a 0.22 s swell) when the tag is ready again |
+| **Sound** | Pro Sound Effects "Hand Slap, Sharp Smacking" (4 takes, thud tail trimmed) over the clamp, plus a quick high whoosh on the swing |
+| **Motion** | `tools/anim/Slap` (Bomber, upper body) and `Stumble` (Runner, upper body), in-house v1. The animator's brief has the final versions |
+
 ### 5.2 Fuse spark (default "Classic")
 - A core sprite (a 6-point star, flickering size 0.3–0.45) plus 6–10 tiny streak sparks per second, falling with gravity.
 - A PointLight (range 4, warm).

@@ -70,8 +70,8 @@ When you're carrying, the HUD helps you make the 1-second decision:
 ### 10.3 Impact & punctuation (F-FEEL-03)
 | Moment | Treatment |
 |---|---|
-| **Tag lands** | 60 ms hit-stop on both rigs (Chase Game's fixed hit-stop registry), a metallic "CLANK" as the clamp bites, and the bomb slams onto the back with squash-stretch. |
-| **Pass** | A 0.18 s arc with a whistle and a motion trail. The receiver's bomb lands with the same CLANK, pitched up. |
+| **Tag lands** | **The slap (F-BOMB-10):** the Bomber lunges and slaps the hand bomb onto the Runner's back. A 90 ms hit-stop on both rigs, the in-house "smack" burst at the contact point (Asset Bible §5), a slap layered over the metallic "CLANK" as the clamp bites, and the bomb slams onto the back with squash-stretch, its face snapping to GOTCHA. The Runner stumbles forward. On the Bomber's own screen: a small camera punch. |
+| **Pass** | A 0.18 s arc with a whistle and a motion trail. The receiver's bomb lands with the same CLANK, pitched up. The two bodies bump apart. |
 | **Boom** | Full explosion stack (Asset Bible §5). Camera shake scales with distance: 0.6 within 10 studs, 0.25 within 30. A ragdoll fling with a soot-stained body for 3 s. |
 | **Boom on you** | 0.35 s **impact freeze** (the camera holds while the explosion expands), then a whoosh as you fly. Then "YOU'RE A BOMBER" slams in with your new red role chip. You are back in control the moment you land. |
 | **Field detonation** | A rolling blast wave across the field. Every on-field client gets the shake; Safe Strip players get a heavy rumble and a glass-rattle SFX. |

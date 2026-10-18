@@ -162,14 +162,7 @@ local function onBomb(p: any)
 		return
 	end
 	local mine = p.who == ClientState.myId()
-	if p.kind == "Stick" then
-		local r = rootOf(p.who)
-		if mine then
-			Sfx.play("BombClamp", 1.2)
-		elseif r then
-			Sfx.at("BombClamp", r.Position)
-		end
-	elseif p.kind == "Pass" then
+	if p.kind == "Pass" then -- (a tag's clamp is played on the slap's contact frame by SlapController)
 		local from, to = rootOf(p.from), rootOf(p.who)
 		if from then
 			Sfx.at("PassWhoosh", from.Position)

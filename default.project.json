@@ -32,6 +32,9 @@
     "ServerStorage": {
       "Builders": {
         "$path": "builders"
+      },
+      "AnimTools": {
+        "$path": "tools/anim"
       }
     }
   }
