@@ -1046,7 +1046,10 @@ def bake_all(parts, res):
     return {name: bake_maps(parts[name], name, r) for name, r in res.items()}
 
 
-def export_fbx(parts):
+def export_fbx(parts, scale=1.0):
+    """Export the parts as one FBX. Roblox caps each imported mesh at 2048 units on its longest axis, and an FBX in the
+    default centimetres puts 1 stud at 100 units, so any part over 20.48 studs gets shrunk on its own (the assembly
+    breaks). Tall props export at scale=0.1 (1 stud = 10 units) and studio_import_props.luau scales them by 0.1."""
     for o in S.scene.objects:
         o.select_set(False)
     for o in parts.values():
@@ -1057,6 +1060,7 @@ def export_fbx(parts):
         filepath=fbx,
         use_selection=True,
         apply_unit_scale=True,
+        global_scale=scale,
         bake_space_transform=True,
         object_types={"MESH"},
         mesh_smooth_type="FACE",

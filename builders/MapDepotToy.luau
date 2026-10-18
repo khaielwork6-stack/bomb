@@ -10,7 +10,13 @@
 --   • adds the crate stands (the three crates on the modelled stands, the price on each sign) at the front-left corner
 --     and the modelled spin wheel at the front-right, with the prompts the client opens screens from (FV_Open);
 --   • the Fuse Range's part-built practice-bomb dispenser becomes the modelled machine (FV_Art.Props.Dispenser); the
---     old "Dispenser" box stays, invisible, as its collision and prompt holder.
+--     old "Dispenser" box stays, invisible, as its collision and prompt holder;
+--   • the clock tower's part-built shell (Base, Shaft, Band, Crown) becomes the modelled tower (FV_Art.Props.ClockTower);
+--     every part the code reads (ClockFace and its Sign, TowerBomb, SpiralFuse.Seg*, Spark) stays exactly as it is;
+--   • the dressing barrels become the modelled powder keg (FV_Art.Props.PowderKeg), each old one invisible as its
+--     collision;
+--   • the shop stall's counter, back wall and awning become the modelled stall (FV_Art.Props.Kiosk); ShopSign (its
+--     text), ShopPromptPart and the plinths stay, the old parts stay invisible as its collision.
 -- Re-runnable: it rebuilds its own "Toy" folder and its colour rules are absolute. Re-run it after every MapDepot run.
 
 local rgb = Color3.fromRGB
@@ -114,6 +120,11 @@ local CRATES = { -- the stands, left to right as you face them from the plaza
 local STAND_SPACING = 10.5
 local WHEEL_SCALE = 1.4
 local AWNING_STRIPES = { C.Red, C.White }
+-- The modelled props are built 1:1 with MapDepot's parts (art/props/build_*.py; numbers from their manifest.json):
+local TOWER_SHAFT_H = 26 -- Prop.ClockTower "shaft_height_studs" (MapDepot's Shaft)
+local TOWER_SHELL = { Base = true, Shaft = true, Band = true, Crown = true } -- hidden; Base + Shaft keep colliding
+local KIOSK_SHELL = { Counter = true, CounterTop = true, Back = true, Awning = true } -- hidden, still colliding
+local KIOSK_FROM_PIVOT = Vector3.new(0, 0, -1.35) -- Prop.Kiosk "CounterBase" roblox_from_pivot (the Counter's foot)
 
 return function(ctx)
 	local T = ctx.req("Theme")
@@ -385,11 +396,126 @@ return function(ctx)
 		dispensed = true
 	end
 
-	return ("Depot restyled: %d parts recoloured, %d crates swapped, %d stands, wheel %s, dispenser %s"):format(
+	-- a modelled prop's own collision box ("Hit") off: the old parts it replaces stay as the collision
+	local function noHit(m: Model)
+		local hit = m:FindFirstChild("Hit")
+		if hit and hit:IsA("BasePart") then
+			hit.CanCollide, hit.CanQuery, hit.CanTouch = false, false, false
+		end
+	end
+	-- Roblox's camera only stops at parts that are solid and visible: make the model's big visible shells solid too,
+	-- so the camera never swings inside them (the old invisible parts underneath still do the blocking)
+	local function camSolid(m: Model, names: { string })
+		for _, n in ipairs(names) do
+			local p = m:FindFirstChild(n)
+			if p and p:IsA("BasePart") then
+				p.CanCollide, p.CanQuery = true, true
+			end
+		end
+	end
+	local function hide(p: BasePart, collide: boolean)
+		p.Transparency = 1
+		p.CastShadow = false
+		if not collide then
+			p.CanCollide, p.CanQuery, p.CanTouch = false, false, false
+		end
+	end
+
+	-- ── 5. The clock tower's shell becomes the modelled tower ───────────────────────────────────────────────────
+	-- Only the shell is hidden (Base, Shaft, the Bands, Crown); ClockFace (DepotController writes the countdown on its
+	-- Sign), TowerBomb (the hero bomb's mount), SpiralFuse.Seg* and Spark are untouched. Base and Shaft stay solid as
+	-- the tower's collision (and Base stays a BotService lobby spot); the bands and the crown stop colliding. The model
+	-- stands on the Base's bottom with its gold clock frame turned toward the ClockFace.
+	local towerArt = props and props:FindFirstChild("ClockTower")
+	local tower = lobby:FindFirstChild("ClockTower")
+	local towered = false
+	if towerArt and towerArt:IsA("Model") and tower then
+		local base, shaft, face =
+			tower:FindFirstChild("Base"), tower:FindFirstChild("Shaft"), tower:FindFirstChild("ClockFace")
+		if base and base:IsA("BasePart") and shaft and shaft:IsA("BasePart") and face and face:IsA("BasePart") then
+			local m = towerArt:Clone()
+			m.Name = "ClockTowerModel"
+			local s = shaft.Size.Y / TOWER_SHAFT_H
+			if math.abs(s - 1) > 1e-3 then
+				m:ScaleTo(m:GetScale() * s)
+			end
+			local foot = base.Position - Vector3.new(0, base.Size.Y / 2, 0)
+			local dir = (face.Position - shaft.Position) * Vector3.new(1, 0, 1)
+			m:PivotTo(CFrame.lookAt(foot, foot + dir))
+			noHit(m)
+			camSolid(m, { "Brick" })
+			m.Parent = toy
+			for _, p in ipairs(tower:GetChildren()) do
+				if p:IsA("BasePart") and TOWER_SHELL[p.Name] then
+					hide(p, p.Name == "Base" or p.Name == "Shaft")
+				end
+			end
+			towered = true
+		end
+	end
+
+	-- ── 6. The dressing barrels become the modelled powder keg ───────────────────────────────────────────────────
+	-- Each keg stands on its barrel's foot, scaled to its height, its label turned toward the spawn; the old barrel
+	-- (a cylinder standing on end: its length is on X) stays, invisible, as the collision.
+	local kegArt = props and props:FindFirstChild("PowderKeg")
+	local kegHit = kegArt and kegArt:FindFirstChild("Hit")
+	local kegs = 0
+	if kegArt and kegArt:IsA("Model") and kegHit and kegHit:IsA("BasePart") and dressing then
+		for _, c in ipairs(dressing:GetChildren()) do
+			if c:IsA("BasePart") and c.Name == "Barrel" then
+				local h = c.Size.X
+				local m = kegArt:Clone()
+				m.Name = "PowderKeg"
+				m:ScaleTo(m:GetScale() * h / kegHit.Size.Y)
+				local foot = c.Position - Vector3.new(0, h / 2, 0)
+				m:PivotTo(CFrame.lookAt(foot, Vector3.new(look.X, foot.Y, look.Z)))
+				-- the pivot is the bounding box's bottom centre (the label and the fuse pull it off-centre): centre the
+				-- keg itself ("Wood") on the old barrel
+				local wood = m:FindFirstChild("Wood")
+				if wood and wood:IsA("BasePart") then
+					local d = foot - wood.Position
+					m:PivotTo(m:GetPivot() + Vector3.new(d.X, 0, d.Z))
+				end
+				noHit(m)
+				m.Parent = toy
+				hide(c, true)
+				kegs += 1
+			end
+		end
+	end
+
+	-- ── 7. The shop stall's counter, back wall and awning become the modelled stall ─────────────────────────────
+	-- The model's Counter foot lands on the old Counter's foot, facing the same way (the customer side, -Z, where the
+	-- ShopPromptPart is). ShopSign keeps its "FIREWORKS & SKINS" SurfaceGui inside the model's gold frame;
+	-- ShopPromptPart and PlinthBase / Plinth1..4 (DepotController spins the featured items on them) are untouched.
+	local kioskArt = props and props:FindFirstChild("Kiosk")
+	local shop = lobby:FindFirstChild("ShopKiosk")
+	local counter = shop and shop:FindFirstChild("Counter")
+	local stalled = false
+	if kioskArt and kioskArt:IsA("Model") and shop and counter and counter:IsA("BasePart") then
+		local m = kioskArt:Clone()
+		m.Name = "ShopKioskModel"
+		local foot = counter.CFrame * CFrame.new(0, -counter.Size.Y / 2, 0)
+		m:PivotTo(foot * CFrame.new(-KIOSK_FROM_PIVOT))
+		noHit(m)
+		camSolid(m, { "Counter", "Back" })
+		m.Parent = toy
+		for _, p in ipairs(shop:GetChildren()) do
+			if p:IsA("BasePart") and KIOSK_SHELL[p.Name] then
+				hide(p, true)
+			end
+		end
+		stalled = true
+	end
+
+	return ("Depot restyled: %d parts recoloured, %d crates swapped, %d stands, wheel %s, dispenser %s, tower %s, %d kegs, stall %s"):format(
 		recoloured,
 		swapped,
 		#CRATES,
 		if wheelArt then "yes" else "missing",
-		if dispensed then "yes" else "missing"
+		if dispensed then "yes" else "missing",
+		if towered then "yes" else "missing",
+		kegs,
+		if stalled then "yes" else "missing"
 	)
 end

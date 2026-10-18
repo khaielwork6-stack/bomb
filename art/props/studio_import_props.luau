@@ -9,7 +9,7 @@
 --     prop's footprint that carries the collision; HIT_H trims its height where the top is decoration (crate rockets,
 --     the hand-truck's handle);
 --   • the pivot at the bottom centre.
--- builders/MapYardProps.luau then swaps the Yard's part-built props for clones of these.
+-- builders/MapYardProps.luau then swaps the Yard's part-built props for clones of these (MapDepotToy the Depot's).
 
 -- [Name] = { model id, { [MeshPart] = { COLOR, ROUGHNESS, NORMAL, METAL decal ids } } }; an optional `obsidian` is a
 -- second texture set for the same mesh (the Crown's level-50 variant), built as its own prop <Name>Obsidian (a
@@ -84,11 +84,11 @@ local PROPS: {
 		},
 	},
 	GiantRocket = {
-		model = 88640243731732,
+		model = 73010623403079,
 		maps = {
-			Body = { 79770112857605, 91566644164800, 77111815795880, 72754162952880 }, -- near-white: MapYardProps tints it (colour A)
-			Stripes = { 124223839758639, 102438008879381, 93475950553892, 134827126368155 }, -- near-white: tinted colour B
-			Trim = { 120902600797384, 120307932374469, 132867453222589, 118248059776738 },
+			Body = { 76290805341429, 85182617283709, 134403170122538, 123360068859239 }, -- near-white: MapYardProps tints it (colour A)
+			Stripes = { 139914322460250, 102259068785103, 84238377133186, 72108101103687 }, -- near-white: tinted colour B
+			Trim = { 82611897013953, 118405221999702, 119436461862224, 90309750327222 },
 		},
 	},
 	Dispenser = {
@@ -114,19 +114,61 @@ local PROPS: {
 			Finials = { 99095943397895, 125352620081453, 72660473728509, 95571595056369 },
 		},
 	},
+	ClockTower = { -- the Depot's clock tower shell (MapDepotToy; ClockFace / TowerBomb / SpiralFuse stay)
+		model = 128389046554717,
+		maps = {
+			Brick = { 133523963377720, 137639886604910, 122918794118183, 114438745131623 },
+			Trim = { 132403287502306, 128497236757484, 103828173794006, 72911238855476 },
+			Gold = { 107319392381542, 71903066397901, 73279126405865, 116543329011781 },
+		},
+	},
+	PowderKeg = { -- the Depot's dressing barrels (MapDepotToy)
+		model = 133162482217426,
+		maps = {
+			Wood = { 131455464920370, 135255889699499, 114066214390313, 77897799525161 },
+			Trim = { 136161995031746, 93571237658584, 70376224854172, 133502032052972 },
+		},
+	},
+	Kiosk = { -- the Depot's shop stall (MapDepotToy; ShopSign / prompt / plinths stay MapDepot's)
+		model = 132086991559987,
+		maps = {
+			Counter = { 117370972302621, 74026055319882, 118107178492870, 101468739627998 },
+			Back = { 103767645047107, 84484181112923, 80502372059532, 97657188670982 },
+			Awning = { 111628261013319, 109999489537513, 122091663232639, 81489504557402 },
+			Trim = { 117850919305808, 85058243538925, 112568898160320, 102453391663028 },
+		},
+	},
+	Palm = { -- MapYardToy's palms (MapYardProps)
+		model = 72400061239653,
+		maps = {
+			Trunk = { 82147168886796, 93514758975973, 86477119792137, 104759194024790 },
+			Fronds = { 135419809269461, 93238111431092, 92419486246900, 100044332677271 },
+		},
+	},
+	VoxelTree = { -- MapYardToy's voxel trees (MapYardProps)
+		model = 111451232124753,
+		maps = {
+			Leaves = { 95683798832031, 89716751905577, 73045568868156, 72668329097580 },
+			Trunk = { 127484447829226, 117939372563419, 125196481615626, 123346375019924 },
+		},
+	},
 }
 local GLOW: { [string]: Color3 } = {
 	Lens = Color3.fromRGB(255, 240, 210),
-	Spark = Color3.fromRGB(255, 216, 74), -- the lit fuse tips (GiantRocket, Dispenser)
+	Spark = Color3.fromRGB(255, 216, 74), -- the lit fuse tips (GiantRocket, Dispenser, PowderKeg)
 }
 local HIT_H: { [string]: number } = { -- collision height where the bounding box's top is decoration
 	FireworkCrate = 2.6, -- the crate body, not the rockets
 	HandTruck = 3.4, -- as the part-built one
 	Dispenser = 3.4, -- the cabinet, not the bomb (MapDepotToy keeps the old box as the collision anyway)
+	PowderKeg = 3, -- the keg, not its fuse: MapDepotToy scales each keg to its barrel's height with this
 }
 local NO_HIT: { [string]: boolean } = { -- worn / decorative only: the Hit box exists (the PrimaryPart) but never blocks
 	Crown = true,
 }
+-- the FBX's units per stud (kit.export_fbx): 100 by default; props over 20.48 studs tall export at 10 units per stud so
+-- Roblox's 2048-unit mesh cap never shrinks a part on its own
+local IMPORT_SCALE: { [string]: number } = { ClockTower = 0.1, GiantRocket = 0.1 }
 local ONLY: string? = nil -- set to a prop name to re-import just that one
 
 local IS = game:GetService("InsertService")
@@ -174,7 +216,7 @@ for name, def in pairs(PROPS) do
 	end
 	imp:Destroy()
 	model.WorldPivot = CFrame.new()
-	model:ScaleTo(0.01)
+	model:ScaleTo(IMPORT_SCALE[name] or 0.01)
 	local bb, size = model:GetBoundingBox()
 	local pivot = CFrame.new(bb.Position - Vector3.new(0, size.Y / 2, 0))
 

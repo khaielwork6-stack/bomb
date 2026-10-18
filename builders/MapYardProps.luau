@@ -21,7 +21,10 @@
 --   • every "Bumper" (and its "BumperStripe") → FV_Art.Props.DockBumper, the same box, still solid;
 --   • MapYardToy's four corner "GiantRocket"s → FV_Art.Props.GiantRocket, scaled to the old one's height, bottom on
 --     the same ground, its fuse turned toward the field; its "Body" tinted with the old colour A and its "Stripes"
---     (spirals, fins, nose) with colour B (SurfaceAppearance.Color, as the gas bottles); decoration, as before.
+--     (spirals, fins, nose) with colour B (SurfaceAppearance.Color, as the gas bottles); decoration, as before;
+--   • MapYardToy's ~70 "Palm"s and "VoxelTree"s → FV_Art.Props.Palm / VoxelTree, each scaled to the old one's height,
+--     its trunk base on the old trunk's foot; a palm keeps its old lean direction, a tree its old canopy yaw;
+--     decoration, as before.
 -- Each swapped model keeps the original's name and parent (the folder structure doesn't change; a door's model is
 -- named "Shutter") and is tagged with the attribute FV_Prop. A prop type whose FV_Art model is missing is left
 -- exactly as MapYard built it.
@@ -35,6 +38,14 @@ local Props: { [string]: string } = {
 	GasBottle = "GasBottle",
 	Floodlight = "Floodlight",
 	GiantRocket = "GiantRocket",
+	Palm = "Palm",
+	VoxelTree = "VoxelTree",
+}
+-- Where each tree model's trunk base sits from its pivot (the bounding box's bottom centre), in model space at the
+-- imported scale: the manifests' "TrunkBase" roblox_from_pivot (art/out/Prop.Palm|VoxelTree/manifest.json).
+local TRUNK_FROM_PIVOT: { [string]: Vector3 } = {
+	Palm = Vector3.new(-0.0134, 0.0288, 2.4529),
+	VoxelTree = Vector3.new(-0.3754, 0, 0.225),
 }
 -- MapYard's dock dressing is loose BaseParts (no Model per prop)
 local Loose: { [string]: string } = {
@@ -499,6 +510,51 @@ return function(_ctx: any): string
 		end
 	end
 
+	-- ── MapYardToy's palms and voxel trees ──────────────────────────────────────────────────────────────────────
+	-- `foot` is the old trunk's foot, `yaw` a rotation-only CFrame (the palm's lean / the tree's canopy turn); the new
+	-- one is scaled to the old one's height and its trunk base put on the foot.
+	local function plant(old: Instance, kind: string, foot: Vector3, yaw: CFrame)
+		local p = proto(kind)
+		local ph = if p then hitOf(p) else nil
+		if not ph then
+			return
+		end
+		local bbCF, bbSize = (old :: Model):GetBoundingBox()
+		local top = bbCF.Position.Y + bbSize.Y / 2
+		local s = (top - foot.Y) / ph.Size.Y
+		local m = swap(old, kind, CFrame.new(foot) * yaw, s)
+		if m then
+			m:PivotTo(m:GetPivot() * CFrame.new(-TRUNK_FROM_PIVOT[kind] * s))
+			noCollide(m) -- dressing beyond the yard, as before
+			tally(kind)
+		end
+	end
+	for _, old in ipairs(found.Palm or {}) do
+		local t1 = part(old, "Trunk1")
+		if not t1 then
+			continue
+		end
+		-- MapYardToy's trunk segments are cylinders along X, +X up the trunk, overlapping by 0.2
+		local foot = t1.CFrame:PointToWorldSpace(Vector3.new(-(t1.Size.X - 0.2) / 2, 0, 0))
+		local last = t1
+		for i = 2, 12 do
+			last = part(old, "Trunk" .. i) or last
+		end
+		local lean = (last.Position - foot) * Vector3.new(1, 0, 1)
+		local yaw = if lean.Magnitude > 1e-3 then CFrame.lookAt(Vector3.zero, lean) else CFrame.identity
+		plant(old, "Palm", foot, yaw)
+	end
+	for _, old in ipairs(found.VoxelTree or {}) do
+		local trunk = part(old, "Trunk")
+		local leaves = part(old, "Leaves1")
+		if not trunk then
+			continue
+		end
+		local foot = trunk.Position - Vector3.new(0, trunk.Size.Y / 2, 0)
+		local yaw = if leaves then leaves.CFrame.Rotation else CFrame.identity
+		plant(old, "VoxelTree", foot, yaw)
+	end
+
 	-- the field cover stands ON the yard floor (MapYard's TOP sits 1.3 below the restyled slabs' tops): drop each
 	-- cover prop onto whatever is under its centre, ignoring the zone volumes and the cover itself
 	local cover = map:FindFirstChild("Cover", true)
@@ -528,6 +584,8 @@ return function(_ctx: any): string
 		"Shutter",
 		"DockBumper",
 		"GiantRocket",
+		"Palm",
+		"VoxelTree",
 	}) do
 		table.insert(parts, ("%s %d%s"):format(kind, count[kind] or 0, if proto(kind) then "" else " (missing)"))
 	end

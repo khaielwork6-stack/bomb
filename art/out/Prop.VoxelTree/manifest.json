@@ -1,0 +1,48 @@
+{
+  "key": "Prop.VoxelTree",
+  "gdd": "Asset Bible \u00a72 Toy Arcade world dressing, \u00a74.2 Yard (MapYardToy voxel trees)",
+  "tris": {
+    "Leaves": 3296,
+    "Trunk": 540
+  },
+  "tris_total": 3836,
+  "pivot_blender": [
+    -0.3754,
+    -0.225,
+    0.0
+  ],
+  "size_studs": [
+    9.7508,
+    14.0,
+    9.05
+  ],
+  "parts": {
+    "Leaves": {
+      "COLOR": "Prop_VoxelTree_Leaves_COLOR.png",
+      "ROUGHNESS": "Prop_VoxelTree_Leaves_ROUGHNESS.png",
+      "NORMAL": "Prop_VoxelTree_Leaves_NORMAL.png",
+      "METAL": "Prop_VoxelTree_Leaves_METAL.png"
+    },
+    "Trunk": {
+      "COLOR": "Prop_VoxelTree_Trunk_COLOR.png",
+      "ROUGHNESS": "Prop_VoxelTree_Trunk_ROUGHNESS.png",
+      "NORMAL": "Prop_VoxelTree_Trunk_NORMAL.png",
+      "METAL": "Prop_VoxelTree_Trunk_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {
+    "TrunkBase": {
+      "blender": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "roblox_from_pivot": [
+        -0.3754,
+        0.0,
+        0.225
+      ]
+    }
+  }
+}

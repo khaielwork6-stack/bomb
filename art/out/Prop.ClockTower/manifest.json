@@ -1,0 +1,99 @@
+{
+  "key": "Prop.ClockTower",
+  "gdd": "GDD \u00a719.1 the Depot lobby, \u00a715 MEGA BOMB clock; Asset Bible \u00a74.3",
+  "tris": {
+    "Brick": 664,
+    "Trim": 5960,
+    "Gold": 4548
+  },
+  "tris_total": 11172,
+  "pivot_blender": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "size_studs": [
+    8.0,
+    34.15,
+    8.0
+  ],
+  "shaft_height_studs": 26.0,
+  "parts": {
+    "Brick": {
+      "COLOR": "Prop_ClockTower_Brick_COLOR.png",
+      "ROUGHNESS": "Prop_ClockTower_Brick_ROUGHNESS.png",
+      "NORMAL": "Prop_ClockTower_Brick_NORMAL.png",
+      "METAL": "Prop_ClockTower_Brick_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_ClockTower_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_ClockTower_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_ClockTower_Trim_NORMAL.png",
+      "METAL": "Prop_ClockTower_Trim_METAL.png"
+    },
+    "Gold": {
+      "COLOR": "Prop_ClockTower_Gold_COLOR.png",
+      "ROUGHNESS": "Prop_ClockTower_Gold_ROUGHNESS.png",
+      "NORMAL": "Prop_ClockTower_Gold_NORMAL.png",
+      "METAL": "Prop_ClockTower_Gold_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {
+    "ClockFaceCentre": {
+      "blender": [
+        0.0,
+        -3.15,
+        24.0
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        24.0,
+        -3.15
+      ]
+    },
+    "TowerBomb": {
+      "blender": [
+        0,
+        0,
+        36.0
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        36.0,
+        0.0
+      ]
+    }
+  },
+  "front_note": "The clock frame faces the front (-Y in Blender = the model's LookVector in Roblox). The pivot is the base's bottom centre = MapDepot's Base bottom centre; the model is built 1:1 with MapDepot's tower.",
+  "ids": {
+    "model": 128389046554717,
+    "maps": {
+      "Brick": [
+        133523963377720,
+        137639886604910,
+        122918794118183,
+        114438745131623
+      ],
+      "Gold": [
+        107319392381542,
+        71903066397901,
+        73279126405865,
+        116543329011781
+      ],
+      "Trim": [
+        132403287502306,
+        128497236757484,
+        103828173794006,
+        72911238855476
+      ]
+    },
+    "maps_order": [
+      "COLOR",
+      "ROUGHNESS",
+      "NORMAL",
+      "METAL"
+    ]
+  },
+  "fbx_units_per_stud": 10
+}

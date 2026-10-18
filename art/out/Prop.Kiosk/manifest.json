@@ -1,0 +1,75 @@
+{
+  "key": "Prop.Kiosk",
+  "gdd": "GDD \u00a719.1 the Depot's shop stall; Asset Bible \u00a74.3",
+  "tris": {
+    "Counter": 2418,
+    "Back": 3782,
+    "Awning": 2072,
+    "Trim": 2128
+  },
+  "tris_total": 10400,
+  "pivot_blender": [
+    0.0,
+    1.35,
+    0.0
+  ],
+  "size_studs": [
+    15.0,
+    12.3269,
+    6.3
+  ],
+  "parts": {
+    "Counter": {
+      "COLOR": "Prop_Kiosk_Counter_COLOR.png",
+      "ROUGHNESS": "Prop_Kiosk_Counter_ROUGHNESS.png",
+      "NORMAL": "Prop_Kiosk_Counter_NORMAL.png",
+      "METAL": "Prop_Kiosk_Counter_METAL.png"
+    },
+    "Back": {
+      "COLOR": "Prop_Kiosk_Back_COLOR.png",
+      "ROUGHNESS": "Prop_Kiosk_Back_ROUGHNESS.png",
+      "NORMAL": "Prop_Kiosk_Back_NORMAL.png",
+      "METAL": "Prop_Kiosk_Back_METAL.png"
+    },
+    "Awning": {
+      "COLOR": "Prop_Kiosk_Awning_COLOR.png",
+      "ROUGHNESS": "Prop_Kiosk_Awning_ROUGHNESS.png",
+      "NORMAL": "Prop_Kiosk_Awning_NORMAL.png",
+      "METAL": "Prop_Kiosk_Awning_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_Kiosk_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_Kiosk_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_Kiosk_Trim_NORMAL.png",
+      "METAL": "Prop_Kiosk_Trim_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {
+    "CounterBase": {
+      "blender": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        0.0,
+        -1.35
+      ]
+    },
+    "ShopSign": {
+      "blender": [
+        0.0,
+        3.2,
+        10.2
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        10.2,
+        1.85
+      ]
+    }
+  },
+  "front_note": "The counter's customer side faces the front (-Y in Blender = the model's LookVector in Roblox). CounterBase = MapDepot's Counter bottom centre (ShopKiosk 'SC')."
+}

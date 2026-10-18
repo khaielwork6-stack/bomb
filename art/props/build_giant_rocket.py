@@ -197,7 +197,7 @@ if DO_RENDER:
 if PREVIEW_TINT:
     sys.exit(0)
 maps = kit.bake_all(parts, {"Body": 1024, "Stripes": 1024, "Trim": 1024}) if BAKE else {}
-kit.export_fbx(parts)
+kit.export_fbx(parts, scale=0.1)  # over 20.48 studs tall: see kit.export_fbx
 kit.write_manifest(
     {
         "key": KEY,
