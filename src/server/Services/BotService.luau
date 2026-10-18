@@ -19,6 +19,7 @@ local MovementCore = require(ReplicatedStorage.Shared.MovementCore)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BombBrain = require(ServerScriptService.Server.Logic.BombBrain)
+local LookShare = require(ServerScriptService.Server.Logic.LookShare)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local AvatarPool = require(script.Parent.AvatarPool)
@@ -213,6 +214,7 @@ end
 -- D-LOBBY-02: the bots wear the humans' friends, split evenly (2 players → half each). A bot wearing a filler look, a
 -- look of someone who left, or more than its owner's share is swapped for a look of the player furthest under their
 -- share, while the pool has one built. Runs at INTERMISSION (everyone's in The Depot, the post-round flash covers it).
+local lookRound = 0 -- moves the uneven split's extra bot round the players
 function BotService.balanceLooks()
 	local owners: { number } = {}
 	for _, h in ipairs(Participants.humans()) do
@@ -224,17 +226,25 @@ function BotService.balanceLooks()
 	if #owners == 0 or #bots == 0 then
 		return
 	end
-	local share: { [number]: number } = {}
-	for i, owner in ipairs(owners) do
-		share[owner] = math.floor(#bots / #owners) + (if i <= #bots % #owners then 1 else 0)
+	table.sort(owners) -- a stable order, so the rotating remainder is fair
+	local present: { [number]: boolean } = {}
+	for _, owner in ipairs(owners) do
+		present[owner] = true
 	end
 	local count: { [number]: number } = {}
 	for _, b in ipairs(bots) do
 		local o = b.data.avatarOwner
-		if o and share[o] then
+		if o and present[o] then
 			count[o] = (count[o] or 0) + 1
 		end
 	end
+	-- a player shows friends if they have looks left to give or bots already wearing them
+	local canShow: { [number]: boolean } = {}
+	for _, owner in ipairs(owners) do
+		canShow[owner] = AvatarPool.hasFriends(owner) or (count[owner] or 0) > 0
+	end
+	lookRound += 1
+	local share = LookShare.shares(owners, #bots, canShow, lookRound)
 	local function neediest(): number?
 		local best: number? = nil
 		local gap = 0
@@ -248,7 +258,7 @@ function BotService.balanceLooks()
 	end
 	for _, b in ipairs(bots) do
 		local o = b.data.avatarOwner
-		local misfit = not o or not share[o] or (count[o] or 0) > share[o]
+		local misfit = not o or (share[o] or 0) == 0 or (count[o] or 0) > share[o]
 		if misfit then
 			local want = neediest()
 			if not want then

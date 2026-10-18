@@ -417,6 +417,21 @@ function AvatarPool.takeRig(prefer: number?): (Model?, HumanoidDescription?, num
 	return r.model, r.desc, r.userId, r.owner
 end
 
+-- Does this player have friends' looks to give (some left to fetch, or built and waiting)? A player with no friends
+-- (or a private list) has none, and BotService gives their share of the bots to the others (D-LOBBY-02).
+function AvatarPool.hasFriends(owner: number): boolean
+	local list = friendsOf[owner]
+	if list and #list > 0 then
+		return true
+	end
+	for _, r in ipairs(rigs) do
+		if r.owner == owner then
+			return true
+		end
+	end
+	return false
+end
+
 -- How many built looks of this player's friends are waiting.
 function AvatarPool.readyFor(owner: number): number
 	local n = 0
