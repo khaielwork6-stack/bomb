@@ -23,6 +23,7 @@ local ORDER = {
 	"DataService",
 	"BombService",
 	"CalloutService",
+	"MomentService",
 	"MegaService",
 	"RoundService",
 	"BotService",

@@ -86,6 +86,14 @@ return {
 		MegaBoom = "MEGA BOOM",
 		HurrySub = "the fuse is cut short",
 	},
+	-- The moment system (GDD §10.5): the corner card at RESULTS.
+	Moment = {
+		Title = "MOMENT OF THE ROUND",
+		ClutchDefuse = "CLUTCH DEFUSE",
+		Chain = "CHAIN x%d",
+		LastStandWin = "LAST STAND WON",
+		LastStand = "LAST STAND",
+	},
 	Tips = {
 		FirstCarry = "BUMP SOMEONE, OR RUN TO A SAFE SIDE!",
 		FirstBomber = "TOUCH RUNNERS TO STICK BOMBS!",

@@ -678,6 +678,21 @@ local function passArc(fromId: string, toId: string)
 	end)
 end
 
+-- A still bomb (no fuse burn, sparks or ring) welded to `torso` the same way: MomentController's replay puppets.
+function BombController.dummy(torso: BasePart, skinId: string?): Model
+	local template = artTemplate()
+	local model, mount
+	if template then
+		model, mount = buildFromArt(torso, template, skinId)
+	else
+		model, mount = build(torso)
+	end
+	mount.Anchored = false
+	new("Weld", { Part0 = torso, Part1 = mount, C0 = MOUNT, Parent = mount })
+	model.Parent = torso.Parent
+	return model
+end
+
 function BombController.start()
 	RunService.RenderStepped:Connect(step)
 	Net.listen("BombFx", function(payload)

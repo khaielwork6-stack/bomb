@@ -2,7 +2,8 @@
 -- The round (GDD §5, §6, §8): INTERMISSION → INTRO → (READY → CROSSING → RESOLVE) × up to 8 → LAST STAND → RESULTS.
 -- Owns roles, teleports, locks, the Field Fuse and every ending condition; BombService owns the bombs.
 -- Until the lobby ("The Depot", P6) exists, intermission waits on the start Safe Strip (docs/DECISIONS.md).
--- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing.
+-- MomentService picks the round's best moment; it goes out with the results (F-FEEL-06).
+-- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing, F-FEEL-06 (hooks).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -18,6 +19,7 @@ local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
 local CalloutService = require(script.Parent.CalloutService)
 local MegaService = require(script.Parent.MegaService)
+local MomentService = require(script.Parent.MomentService)
 local DataService = require(script.Parent.DataService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
@@ -366,6 +368,7 @@ local function finish(outcome: string, winners: { Participant })
 		winners = ids,
 		mvp = if mvp then mvp.id else nil,
 		stats = stats,
+		moment = MomentService.best(), -- F-FEEL-06: the MOMENT OF THE ROUND replay (nil if none was top-tier)
 		at = now(),
 	})
 	RoundService.Ended:Fire(outcome, winners, mvp)
@@ -411,7 +414,9 @@ local function lastStand(runner: Participant, from: number): boolean
 	hold(RC.LAST_STAND_INTRO)
 	local result = crossing(GameState.get("Crossing") + 1, from, RC.LAST_STAND_FUSE * lengthFactor(), true)
 	runner.attrs:SetAttribute("SpeedMult", nil)
-	return result == "clear" and runner.role == R.Runner
+	local won = result == "clear" and runner.role == R.Runner
+	MomentService.lastStandEnded(runner, won)
+	return won
 end
 
 local function playRound()
@@ -420,6 +425,7 @@ local function playRound()
 	-- F-MEGA-01/02: a MEGA BOMB round has one giant and no regular Bombers at the start
 	local giant = MegaService.claim(list)
 	local bombers = if giant then { [giant] = true } else pickBombers(list, count)
+	MomentService.reset()
 	table.clear(lastBombers)
 	for _, p in ipairs(list) do
 		p.stats = Participants.newStats()

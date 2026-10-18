@@ -4,9 +4,10 @@
 -- then two columns — "your round" (a receipt whose lines print one after another) and the payout (each round key
 -- with its XP and Stars, the round's callouts as "Moments", the Hot Streak / squad bonus), then the XP bar filling
 -- (wrapping into a level-up), and, after your first win of the session, SHOW YOUR FRIENDS (F-SOC-04). The card fits
--- the screen (phones scale it down). Shown for RESULTS, gone at INTERMISSION.
+-- the screen (phones scale it down). Shown for RESULTS, gone at INTERMISSION. The round's best moment replays in the
+-- corner card beside it (MomentController, F-FEEL-06).
 -- Implements: F-RES-01, F-RES-02, F-PROG-01 (round payout shown), F-SOC-01 (streak line), F-SOC-03 (squad line),
--- F-SOC-04 (invite).
+-- F-SOC-04 (invite), F-FEEL-06 (the MOMENT OF THE ROUND card).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,6 +24,7 @@ local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Progress = require(script.Parent.Parent.Progress)
+local MomentController = require(script.Parent.MomentController)
 local ProgressController = require(script.Parent.ProgressController)
 
 local S = Config.Strings
@@ -37,6 +39,7 @@ local card: Frame?
 local face: Frame?
 local pendingReward: any = nil
 local invitedThisSession = false
+local closeMoment: (() -> ())? = nil
 
 local W, ROW = 660, 30
 
@@ -58,6 +61,10 @@ local LINES = {
 local function close()
 	local c = card
 	card, face, pendingReward = nil, nil, nil
+	if closeMoment then
+		closeMoment()
+		closeMoment = nil
+	end
 	if c then
 		Widgets.springOut(c, function()
 			c:Destroy()
@@ -542,6 +549,9 @@ local function show(payload: any)
 				)
 			end
 		end)
+	end
+	if payload.moment ~= nil then
+		closeMoment = MomentController.show(gui, payload.moment)
 	end
 	if pendingReward then
 		applyReward(pendingReward)

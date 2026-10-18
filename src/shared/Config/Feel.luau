@@ -1,6 +1,6 @@
 --!strict
 -- Impact & punctuation (GDD §10.3, §10.4 F-FEEL-04): the hit-stop, the pass flight, the impact freeze and the
--- presentation slow-mo. Times in seconds, distances in studs. [TUNE]
+-- presentation slow-mo; the moment system (§10.5 F-FEEL-06). Times in seconds, distances in studs. [TUNE]
 
 return {
 	-- Tag / pass (§10.3): both rigs freeze for HITSTOP; the bomb pops on landing; your own camera kicks.
@@ -26,6 +26,27 @@ return {
 	SLOWMO_PASS_LEFT = 0.5, -- a pass with this little fuse left earns it
 	SLOWMO_RANGE = 45, -- only moments this close to the camera (or your own)
 	SLOWMO_FOV = -6, -- the camera leans in
+
+	-- The moment system (§10.5, MomentService / MomentController): top-tier moments are flagged, the best one of the
+	-- round replays at RESULTS. Score: the higher wins; a tie goes to the later moment.
+	MOMENT_SCORE = {
+		LastStandWin = 100, -- the Last Stand's Runner made it across
+		ClutchDefuse = 80,
+		LastStand = 60, -- the Last Stand ended in a boom
+		Chain = 40, -- + MOMENT_CHAIN_LINK per Carrier
+	} :: { [string]: number },
+	MOMENT_CHAIN_LINK = 10,
+	MOMENT_CHAIN_MIN = 4, -- a 4+ Chain is top-tier (CHAIN callouts start at 3)
+	MOMENT_REPLAY = 4, -- seconds of replay
+	MOMENT_AFTER = 0.6, -- of which this many follow the moment itself (the reaction)
+	MOMENT_HZ = 15, -- replay frames per second sent to clients (the client interpolates)
+	MOMENT_RADIUS = 60, -- participants this close to the featured one at the moment are in the shot
+	MOMENT_MAX_ACTORS = 12,
+	MOMENT_GAP = 0.6, -- seconds the replay holds its last frame before it loops
+	MOMENT_CAM_OFFSET = Vector3.new(0, 16, 24), -- the replay camera, from the featured participant (world space)
+	MOMENT_CAM_FOV = 50,
+	MOMENT_CAM_SMOOTH = 6, -- 1/s: how fast the camera follows
+	MOMENT_TUMBLE_TILT = 80, -- degrees a tumbled (ragdolled) puppet lies over
 
 	-- The bomb's face (Asset Bible §3.8, art/bomb/face.py). Poses in degrees, as reviewed on the contact sheet:
 	--   lid    + swings back into the body (open), 0 = half-lidded, −95 closed     slant: + droops the outer corner
