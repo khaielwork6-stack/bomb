@@ -65,7 +65,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 ## 7. VFX polish (AB §5)
 - [x] Defuse: a 6-frame steam-curl flipbook (today it reuses Smoke), and the clutch light-ray burst (FREE).
 - [x] Pass-arc ribbon trail (HOOKED).
-- [ ] Tag-ready hand glow on Bombers (HOOKED).
+- [x] ~~Tag-ready hand glow on Bombers~~: superseded by the partner's slap-tag (P6-05): every ready Bomber now holds the hand bomb (SlapController), which is the tag-ready read.
 - [x] Bomber stun: spinning sparks and a soot face; reads `StunnedUntil` (HOOKED).
 - [x] Ragdoll soot overlay and smoke wisps (HOOKED).
 - [ ] Bomb HOT smoke wisps; CRITICAL seam sprays and heat shimmer (verify first, then HOOKED).
