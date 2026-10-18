@@ -79,7 +79,7 @@ end
 DailyController.close = closePanel
 
 -- The screens' header art (the reference video): the title's 3D icon and the strip's colours.
-local PANEL_ICON = { Shop = "Shop", Locker = "Items", Quests = "Scroll", Calendar = "Calendar" }
+local PANEL_ICON = { Shop = "Shop", Locker = "Items", Quests = "Scroll", Calendar = "Calendar", Settings = "Gear" }
 local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 96, 130)),
 	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 168, 64)),

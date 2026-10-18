@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Settings = require(script.Parent.Parent.Settings)
 local Sfx = require(script.Parent.Parent.Sfx)
 
 local B = Config.Bomb
@@ -110,10 +111,8 @@ local function step(dt: number)
 	local wantHigh = if carrying then -22 else 0
 	muffle.HighGain += (wantHigh - muffle.HighGain) * math.min(1, dt * 8)
 	muffle.MidGain += ((if carrying then -8 else 0) - muffle.MidGain) * math.min(1, dt * 8)
-	musicGroup.Volume += ((if carrying then MUSIC_VOLUME * 0.55 else MUSIC_VOLUME) - musicGroup.Volume) * math.min(
-		1,
-		dt * 6
-	)
+	local base = MUSIC_VOLUME * ((Settings.get("musicVolume") or 70) / 70)
+	musicGroup.Volume += ((if carrying then base * 0.55 else base) - musicGroup.Volume) * math.min(1, dt * 6)
 	if not carrying then
 		if heartbeat then
 			heartbeat:Destroy()

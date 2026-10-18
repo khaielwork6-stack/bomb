@@ -52,6 +52,7 @@ local ORDER: { string } = {
 	"LobbyController",
 	"CrateController",
 	"OfferController",
+	"SettingsController",
 }
 
 -- No Backpack tools exist in FUSE VALLEY (the bomb is a welded model, GDD §7.2).
