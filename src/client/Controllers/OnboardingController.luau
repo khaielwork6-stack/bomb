@@ -1,5 +1,6 @@
 --!strict
--- The first session (GDD §20): the four rules card on first join (four animated panels, one GOT IT — reopenable
+-- The first session (GDD §20): the four rules card on first join (four animated panels on bright cards under a gold
+-- ribbon, the reference video's style; one GOT IT — reopenable
 -- with OnboardingController.showRules), the contextual tips once each (first carry, first time a Bomber, first
 -- Field Fuse warning: big, centred, gone in 2.5 s), and the quest intro after round 2 (F-ONB-06: the tracker
 -- slides in with "Daily quests: earn Stars!" and a tap to view). Flags live on the profile (the server keeps them).
@@ -16,6 +17,7 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local Settings = require(script.Parent.Parent.Settings)
 local Screen = require(script.Parent.Parent.UI.Screen)
+local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -29,6 +31,14 @@ local player = Players.LocalPlayer
 
 local OnboardingController = {}
 
+-- The rules cards' fills (the reference video's bright cards), one per rule.
+local RULE_FILL = {
+	{ Color3.fromRGB(255, 120, 110), Color3.fromRGB(206, 36, 48) },
+	{ Color3.fromRGB(255, 186, 80), Color3.fromRGB(232, 112, 20) },
+	{ Color3.fromRGB(200, 140, 255), Color3.fromRGB(120, 60, 220) },
+	{ Color3.fromRGB(120, 228, 110), Color3.fromRGB(44, 162, 60) },
+}
+
 local gui: ScreenGui
 local rulesOpen = false
 local tipsShown: { [string]: boolean } = {}
@@ -38,10 +48,10 @@ local introShown = false
 -- Each panel's 2 s looping illustration, built from the icon set.
 local function illustrate(stage: Frame, i: number)
 	local function person(tint: Color3, x: number): Frame
-		local img = Widgets.icon(stage, "Person", 54, {
+		-- the 3D team icons (the Runner / Bomber figures from art/icons)
+		local img = Widgets.icon(stage, if tint == P.Bomber then "Bomber" else "Runner", 60, {
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(x, 0, 1, -6),
-			tint = tint,
+			Position = UDim2.new(x, 0, 1, -4),
 			ZIndex = 6,
 		})
 		return img.Parent :: Frame
@@ -134,28 +144,24 @@ function OnboardingController.showRules()
 		Name = "Rules",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.53),
-		Size = UDim2.fromOffset(700, 340),
-		color = P.Ink2,
-		border = P.Fuse,
-		border2 = P.Ember,
-		dots = P.Fuse,
-		dotsT = 0.9,
-		glow = P.Fuse,
-		glowT = 0.55,
+		Size = UDim2.fromOffset(720, 360),
+		color = Color3.fromRGB(58, 64, 96),
+		color2 = Color3.fromRGB(30, 32, 52),
+		dots = Color3.new(1, 1, 1),
+		dotsT = 0.93,
 	})
 	local holder = face.Parent :: Frame
 	holder.ZIndex = 5
 	local v = Screen.size()
-	new("UIScale", { Scale = math.min(1, (v.Y - 50) / 340, (v.X - 30) / 700), Parent = holder })
-	Theme.display(face, {
-		Text = S.RulesTitle,
-		TextSize = 34,
-		color = P.Spark,
-		Position = UDim2.new(0.5, 0, 0, 30),
-		ZIndex = 6,
+	new("UIScale", { Scale = math.min(1, (v.Y - 80) / 380, (v.X - 30) / 720), Parent = holder })
+	Skin.ribbon(holder, S.RulesTitle, P.Gold, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 0),
+		Size = UDim2.fromOffset(380, 66),
+		ZIndex = 8,
 	})
 	local row = new("Frame", {
-		Position = UDim2.fromOffset(20, 58),
+		Position = UDim2.fromOffset(20, 50),
 		Size = UDim2.new(1, -40, 0, 200),
 		BackgroundTransparency = 1,
 		ZIndex = 4,
@@ -171,16 +177,19 @@ function OnboardingController.showRules()
 	for i, rule in ipairs(S.Rules) do
 		local card = Theme.panel(row, {
 			Name = "Rule" .. i,
-			Size = UDim2.fromOffset(152, 200),
-			color = Color3.fromRGB(44, 34, 56),
-			border = P.Paper,
-			border2 = P.Ash,
+			Size = UDim2.fromOffset(156, 214),
+			color = RULE_FILL[i][1],
+			color2 = RULE_FILL[i][2],
+			border = Color3.new(1, 1, 1),
+			border2 = Color3.fromRGB(226, 230, 240),
+			dots = Color3.new(1, 1, 1),
+			dotsT = 0.86,
 		});
 		(card.Parent :: Frame).LayoutOrder = i
 		local num = new("Frame", {
 			Position = UDim2.fromOffset(8, 8),
-			Size = UDim2.fromOffset(26, 26),
-			BackgroundColor3 = P.Fuse,
+			Size = UDim2.fromOffset(30, 30),
+			BackgroundColor3 = Color3.new(1, 1, 1),
 			ZIndex = 6,
 			Parent = card,
 		})
@@ -188,8 +197,10 @@ function OnboardingController.showRules()
 		new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = num })
 		Widgets.label(num, {
 			Size = UDim2.fromScale(1, 1),
-			TextSize = 16,
+			TextSize = 20,
 			font = Theme.Font.Display,
+			color = RULE_FILL[i][2],
+			stroke = false,
 			Text = tostring(i),
 			ZIndex = 7,
 		})
@@ -204,18 +215,18 @@ function OnboardingController.showRules()
 		})
 		illustrate(stage, i)
 		Widgets.label(card, {
-			Position = UDim2.fromOffset(6, 128),
-			Size = UDim2.new(1, -12, 0, 24),
-			TextSize = 15,
+			Position = UDim2.fromOffset(6, 130),
+			Size = UDim2.new(1, -12, 0, 26),
+			TextSize = 18,
 			font = Theme.Font.Display,
-			color = P.Spark,
+			stroke = 2.5,
 			Text = rule.head,
 			ZIndex = 6,
 		})
 		Widgets.label(card, {
-			Position = UDim2.fromOffset(8, 152),
-			Size = UDim2.new(1, -16, 0, 42),
-			TextSize = 14,
+			Position = UDim2.fromOffset(8, 158),
+			Size = UDim2.new(1, -16, 0, 50),
+			TextSize = 15,
 			font = Theme.Font.Bold,
 			wrap = true,
 			Text = rule.body,
@@ -223,7 +234,7 @@ function OnboardingController.showRules()
 			stroke = 1.5,
 		})
 	end
-	Widgets.button(face, S.Ui.GotIt, "fuse", UDim2.fromOffset(200, 50), function()
+	Widgets.button(face, S.Ui.GotIt, "green", UDim2.fromOffset(220, 56), function()
 		Progress.action("RulesSeen")
 		Widgets.springOut(holder, function()
 			for _, c in ipairs(gui:GetChildren()) do

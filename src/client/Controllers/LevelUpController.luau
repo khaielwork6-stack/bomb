@@ -1,8 +1,10 @@
 --!strict
 -- The level-up celebration (GDD §12.3, Asset Bible §7.3): the screen dims, the level badge smashes in (scale 3 → 1)
 -- with a shockwave ring and a firework burst of stars, LEVEL UP! drops above it, and the reward card flips in and
--- pays its Stars into the counter. Level-ups are queued and wait for a calm moment (never mid-crossing); several
--- in a row play one after another. Tap to continue.
+-- pays its Stars into the counter. The reference-video polish: a turning gold ray fan behind the badge, the 3D
+-- Blender badge (bronze; the higher tiers tint the mask), a gentle turntable sway, a gold ribbon title and a choir hit
+-- under the fanfare. Level-ups are queued and wait for a calm moment (never mid-crossing); several in a row play one
+-- after another. Tap to continue.
 -- Implements: F-PROG-03 (celebration), F-UI-04 (Level Up).
 
 local Players = game:GetService("Players")
@@ -15,6 +17,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -24,6 +27,7 @@ local S = Config.Strings
 local P = Theme.Palette
 local new = Theme.new
 local Ph = Types.Phase
+local RAY_GOLD = Color3.fromRGB(255, 214, 90)
 local player = Players.LocalPlayer
 
 local LevelUpController = {}
@@ -111,15 +115,31 @@ local function play(up: Up)
 		Parent = gui,
 	})
 	Sfx.play("LevelUp")
+	Sfx.play("ClutchChoir", 0.45)
+	if not Widgets.reduced() then
+		Widgets.rays(stage, RAY_GOLD, true, UDim2.fromScale(0.5, 0.45))
+	end
 	burst(stage)
-	-- the badge smashes in
-	local badge = Widgets.icon(stage, "Badge", 170, {
+	-- the badge smashes in: the 3D bronze badge, or the mask tinted for the higher tiers
+	local bronze = up.badge == "Bronze" or ProgressController.BADGE_TINT[up.badge] == nil
+	local badge = Widgets.icon(stage, if bronze then "LevelBadge" else "Badge", 190, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.45),
-		tint = ProgressController.BADGE_TINT[up.badge] or ProgressController.BADGE_TINT.Bronze,
+		tint = if bronze then nil else ProgressController.BADGE_TINT[up.badge],
 		ZIndex = 6,
 	})
 	local badgeHolder = badge.Parent :: Frame
+	if not Widgets.reduced() then
+		task.spawn(function()
+			local t0 = os.clock()
+			while badgeHolder.Parent do
+				local t = os.clock() - t0
+				badgeHolder.Rotation = math.sin(t * 2.2) * 5
+				badgeHolder.Position = UDim2.new(0.5, 0, 0.45, math.sin(t * 3.1) * 4)
+				task.wait()
+			end
+		end)
+	end
 	Widgets.label(badgeHolder, {
 		Size = UDim2.fromScale(1, 1),
 		TextSize = 72,
@@ -131,11 +151,10 @@ local function play(up: Up)
 	local smash = new("UIScale", { Scale = if Widgets.reduced() then 1 else 3, Parent = badgeHolder })
 	TweenService:Create(smash, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
-	local title = Theme.display(stage, {
-		Text = S.Ui.LevelUp,
-		TextSize = 58,
-		color = P.Spark,
+	local title = Skin.ribbon(stage, S.Ui.LevelUp, P.Gold, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.1),
+		Size = UDim2.fromOffset(380, 72),
 		ZIndex = 7,
 	})
 	local tScale = new("UIScale", { Scale = 0.6, Parent = title })
@@ -222,6 +241,15 @@ function LevelUpController.start()
 			table.insert(queue, { level = r.level, stars = r.stars or 0, badge = r.badge or "Bronze" })
 		end
 	end)
+	-- Studio preview: set the player's FV_PreviewLevelUp attribute to a level number (plays at the next calm moment)
+	if game:GetService("RunService"):IsStudio() then
+		player:GetAttributeChangedSignal("FV_PreviewLevelUp"):Connect(function()
+			local lv = player:GetAttribute("FV_PreviewLevelUp")
+			if type(lv) == "number" then
+				table.insert(queue, { level = lv, stars = 50, badge = "Bronze" })
+			end
+		end)
+	end
 	task.spawn(function()
 		while true do
 			task.wait(0.3)

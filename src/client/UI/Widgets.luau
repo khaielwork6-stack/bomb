@@ -6,6 +6,7 @@
 -- Implements: F-UI-01 (motion rules), Asset Bible §6.3 / §6.5.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
@@ -328,6 +329,56 @@ function Widgets.backdrop(gui: Instance, transparency: number?): Frame
 	})
 	TweenService:Create(f, TweenInfo.new(0.15), { BackgroundTransparency = transparency or 0.35 }):Play()
 	return f
+end
+
+-- A slowly turning light-ray fan (the crate reveal, the level-up): 12 rays fading out from the centre.
+function Widgets.rays(parent: Instance, color: Color3, strong: boolean, position: UDim2?): Frame
+	local holder = new("Frame", {
+		Name = "Rays",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = position or UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(900, 900),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+		Parent = parent,
+	})
+	for i = 1, 12 do
+		-- GUI rotation pivots on an element's centre, so each ray is the top half of a full-height arm centred on
+		-- the fan's middle
+		local arm = new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(80, 900),
+			Rotation = i * 30,
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+			Parent = holder,
+		})
+		local r = new("Frame", {
+			Size = UDim2.fromScale(1, 0.5),
+			BackgroundColor3 = color,
+			BackgroundTransparency = if strong then 0.5 else 0.75,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+			Parent = arm,
+		})
+		new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.6, 0.35),
+				NumberSequenceKeypoint.new(1, 0.1),
+			}),
+			Rotation = 90,
+			Parent = r,
+		})
+	end
+	task.spawn(function()
+		while holder.Parent do
+			holder.Rotation += 0.15
+			RunService.RenderStepped:Wait()
+		end
+	end)
+	return holder
 end
 
 return Widgets

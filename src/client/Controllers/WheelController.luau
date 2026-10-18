@@ -7,7 +7,8 @@
 -- Server side (the free timer, the roll, the products, the payout) is the partner's: docs/PARTNER_REQUESTS.md #2 —
 -- this reads `wheel = { spins, freeIn }` from the Progress snapshot, fires the `Spin` remote and lands on the
 -- Reward { kind = "Wheel", segment } reply. Opened by the lobby wheel's prompt (attribute FV_Open = "Wheel") or
--- WheelController.open(). Studio preview: the player's FV_PreviewWheel attribute (spins land on weighted randoms).
+-- WheelController.open(). Studio preview: the player's FV_PreviewWheel attribute (spins land on weighted randoms;
+-- set it to "spin" while open to press SPIN).
 -- Implements: the spin wheel (client).
 
 local Players = game:GetService("Players")
@@ -269,6 +270,7 @@ function WheelController.open()
 	local back = Widgets.backdrop(r, 0.45)
 	back.MouseButton1Click:Connect(close)
 	local stage = new("Frame", {
+		Name = "Stage",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.47),
 		Size = UDim2.fromOffset(560, 640),
@@ -370,6 +372,7 @@ function WheelController.open()
 	x.Activated:Connect(close)
 	-- the spin row
 	local row = new("Frame", {
+		Name = "Row",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -30),
 		Size = UDim2.fromOffset(560, 56),
@@ -400,6 +403,7 @@ function WheelController.open()
 		end, { TextSize = 22, LayoutOrder = 1, ZIndex = 7 })
 	end
 	local spinBtn = Widgets.button(row, "", "gold", UDim2.fromOffset(170, 56), trySpin, { LayoutOrder = 2, ZIndex = 7 })
+	spinBtn.Name = "Spin"
 	local spinLabel = Widgets.label(spinBtn, {
 		Size = UDim2.fromScale(1, 1),
 		TextSize = 30,
@@ -465,7 +469,9 @@ function WheelController.start()
 	end)
 	if RunService:IsStudio() then
 		player:GetAttributeChangedSignal("FV_PreviewWheel"):Connect(function()
-			if player:GetAttribute("FV_PreviewWheel") then
+			if player:GetAttribute("FV_PreviewWheel") == "spin" and root then -- Studio test hook: press SPIN
+				trySpin()
+			elseif player:GetAttribute("FV_PreviewWheel") then
 				preview = true
 				previewSpins = 3
 				WheelController.open()

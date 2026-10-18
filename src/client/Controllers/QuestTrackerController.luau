@@ -20,6 +20,10 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
+local Dock = require(script.Parent.Parent.UI.Dock)
+
+-- the tracker sits right of the left dock column (DailyController: the tiles + their 14 px margin and badges)
+local DOCK_CLEAR = Dock.SIZE + 40
 
 local S = Config.Strings
 local P = Theme.Palette
@@ -247,7 +251,7 @@ local function apply(s: { [string]: any })
 		revealed = true
 		local safe = Screen.safe()
 		TweenService:Create(root, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0, 10 + safe.left, 0.4, 0),
+			Position = UDim2.new(0, DOCK_CLEAR + safe.left, 0.4, 0),
 		}):Play()
 	end
 	for i, r in ipairs(rows) do

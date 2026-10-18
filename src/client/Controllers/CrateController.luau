@@ -103,52 +103,7 @@ end
 
 -- The light-ray fan behind the reveal (Legendary, and softer for the rest).
 local function rays(parent: Instance, color: Color3, strong: boolean): Frame
-	local holder = new("Frame", {
-		Name = "Rays",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.44),
-		Size = UDim2.fromOffset(900, 900),
-		BackgroundTransparency = 1,
-		ZIndex = 2,
-		Parent = parent,
-	})
-	for i = 1, 12 do
-		-- GUI rotation pivots on an element's centre, so each ray is the top half of a full-height arm centred on
-		-- the fan's middle
-		local arm = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(80, 900),
-			Rotation = i * 30,
-			BackgroundTransparency = 1,
-			ZIndex = 2,
-			Parent = holder,
-		})
-		local r = new("Frame", {
-			Size = UDim2.fromScale(1, 0.5),
-			BackgroundColor3 = color,
-			BackgroundTransparency = if strong then 0.5 else 0.75,
-			BorderSizePixel = 0,
-			ZIndex = 2,
-			Parent = arm,
-		})
-		new("UIGradient", {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.6, 0.35),
-				NumberSequenceKeypoint.new(1, 0.1),
-			}),
-			Rotation = 90,
-			Parent = r,
-		})
-	end
-	task.spawn(function()
-		while holder.Parent do
-			holder.Rotation += 0.15
-			RunService.RenderStepped:Wait()
-		end
-	end)
-	return holder
+	return Widgets.rays(parent, color, strong, UDim2.fromScale(0.5, 0.44))
 end
 
 local function itemArt(parent: Instance, item: { [string]: any })

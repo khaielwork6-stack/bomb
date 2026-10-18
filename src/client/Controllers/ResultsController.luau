@@ -3,8 +3,9 @@
 -- winners (avatar headshots for players; bots show their initial on a team-coloured chip) with the MVP called out,
 -- then two columns — "your round" (a receipt whose lines print one after another) and the payout (each round key
 -- with its XP and Stars, the round's callouts as "Moments", the Hot Streak / squad bonus), then the XP bar filling
--- (wrapping into a level-up), and, after your first win of the session, SHOW YOUR FRIENDS (F-SOC-04). The card fits
--- the screen (phones scale it down). Shown for RESULTS, gone at INTERMISSION.
+-- (wrapping into a level-up), and, after your first win of the session, SHOW YOUR FRIENDS (F-SOC-04). Above the card
+-- the top three stand on the 3D podium (UI/Podium; the MVP first, then crossings and defuses). The card fits the
+-- screen (phones scale it down). Shown for RESULTS, gone at INTERMISSION.
 -- Implements: F-RES-01, F-RES-02, F-PROG-01 (round payout shown), F-SOC-01 (streak line), F-SOC-03 (squad line),
 -- F-SOC-04 (invite).
 
@@ -22,6 +23,7 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
+local Podium = require(script.Parent.Parent.UI.Podium)
 local Progress = require(script.Parent.Parent.Progress)
 local ProgressController = require(script.Parent.ProgressController)
 
@@ -118,6 +120,34 @@ local function winnerChip(parent: Instance, id: string, order: number, mvp: bool
 		stroke = 1.5,
 	})
 	label.TextTruncate = Enum.TextTruncate.AtEnd
+end
+
+-- The podium's top three: the MVP first, then the most crossings, then defuses (a Bombers win: the MVP alone).
+local function topThree(payload: any): { Podium.Entry }
+	local winners = if type(payload.winners) == "table" then table.clone(payload.winners) else {}
+	local stats = if type(payload.stats) == "table" then payload.stats else {}
+	if payload.outcome == "Bombers" then
+		winners = if type(payload.mvp) == "string" then { payload.mvp } else {}
+	end
+	local function score(id: string): number
+		if id == payload.mvp then
+			return math.huge
+		end
+		local st = stats[id] or {}
+		return (tonumber(st.crossings) or 0) * 100
+			+ (tonumber(st.defuses) or 0) * 10
+			+ (tonumber(st.clutches) or 0) * 20
+	end
+	table.sort(winners, function(a, b)
+		return score(a) > score(b)
+	end)
+	local out = {}
+	for i = 1, math.min(3, #winners) do
+		local name = nameOf(winners[i])
+		local _, model = ClientState.byId(winners[i])
+		table.insert(out, { model = model, name = name, rank = i })
+	end
+	return out
 end
 
 local function column(parent: Instance, name: string, title: string, x: number): Frame
@@ -425,9 +455,14 @@ local function show(payload: any)
 	local v = Screen.size()
 	new("UIScale", {
 		Name = "Fit",
-		Scale = math.min(1, (v.Y - 60) / holder.Size.Y.Offset, (v.X - 30) / W),
+		Scale = math.min(1, (v.Y - 60) / (holder.Size.Y.Offset + Podium.HEIGHT), (v.X - 30) / W),
 		Parent = holder,
 	})
+	holder.Position = UDim2.new(0.5, 0, 0.5, Podium.HEIGHT / 2 * (holder:FindFirstChild("Fit") :: UIScale).Scale)
+	local top = topThree(payload)
+	if #top > 0 then
+		Podium.build(holder, top, payload.outcome == "Bombers")
+	end
 	Widgets.springIn(holder)
 	Skin.ribbon(holder, o.title, o.color, {
 		AnchorPoint = Vector2.new(0.5, 0.5),

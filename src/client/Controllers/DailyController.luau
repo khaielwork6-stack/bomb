@@ -40,7 +40,14 @@ local TIER_FILL = {
 	Medium = { Color3.fromRGB(255, 220, 96), Color3.fromRGB(236, 150, 24) },
 	Hard = { Color3.fromRGB(255, 120, 110), Color3.fromRGB(206, 36, 48) },
 }
-local REWARD_ICON = { Stars = "Star", SparkCrate = "Crate", GiftBox = "Gift", RareItem = "Gift", StreakBomb = "Bomb" }
+local REWARD_ICON =
+	{ Stars = "Star", SparkCrate = "Crate", GiftBox = "GiftBox", RareItem = "Gift", StreakBomb = "Bomb" }
+-- The calendar's day cards (the reference video's bright cards): blue days, today green, the big Day 7 gold.
+local DAY_FILL = {
+	Day = { Color3.fromRGB(110, 190, 255), Color3.fromRGB(40, 110, 220) },
+	Today = { Color3.fromRGB(120, 228, 110), Color3.fromRGB(44, 162, 60) },
+	Big = { Color3.fromRGB(255, 220, 96), Color3.fromRGB(236, 150, 24) },
+}
 
 local hud: ScreenGui
 local modal: ScreenGui
@@ -436,7 +443,7 @@ local function buildCalendar(s: { [string]: any }, refresh: boolean?)
 		return
 	end
 	local login = d.login
-	local face = panel("Calendar", S.Ui.CalendarTitle, Vector2.new(620, 330), P.Fuse, refresh)
+	local face = panel("Calendar", S.Ui.CalendarTitle, Vector2.new(700, 360), P.Fuse, refresh)
 	local day = login.day
 	local idx = rewardIndex(day)
 	local first = if day <= #D.LOGIN then 1 else day - (idx - D.LOOP_FROM) - (D.LOOP_FROM - 1)
@@ -476,29 +483,34 @@ local function buildCalendar(s: { [string]: any }, refresh: boolean?)
 		local big = ri == #D.LOGIN
 		local isToday = n == day
 		local claimed = n < day or (isToday and not login.claimable)
+		local fill = if big then DAY_FILL.Big elseif isToday then DAY_FILL.Today else DAY_FILL.Day
 		local card = Theme.panel(row, {
 			Name = "Day" .. n,
-			Size = UDim2.fromOffset(if big then 104 else 74, if big then 160 else 132),
-			color = if claimed then Color3.fromRGB(34, 28, 42) else Color3.fromRGB(255, 243, 226),
-			color2 = if claimed then Color3.fromRGB(26, 21, 32) else Color3.fromRGB(232, 214, 184),
-			border = if isToday and login.claimable then P.Fuse elseif big then P.Gold else P.Ink,
-			border2 = P.Ink,
-			glow = if isToday and login.claimable then P.Fuse else nil,
-			glowT = 0.4,
+			Size = UDim2.fromOffset(if big then 118 else 80, if big then 172 else 142),
+			color = fill[1],
+			color2 = fill[2],
+			border = if isToday and login.claimable
+				then Color3.new(1, 1, 1)
+				elseif big then P.Gold
+				else Color3.fromRGB(226, 230, 240),
+			border2 = if big then P.Gold:Lerp(P.Ink, 0.25) else Color3.fromRGB(190, 196, 210),
+			glow = if isToday and login.claimable then Color3.new(1, 1, 1) elseif big then P.Gold else nil,
+			glowT = 0.45,
+			dots = Color3.new(1, 1, 1),
+			dotsT = 0.86,
 		})
 		local holder = card.Parent :: Frame
 		holder.LayoutOrder = k
 		Widgets.label(card, {
 			Position = UDim2.fromOffset(0, 6),
-			Size = UDim2.new(1, 0, 0, 20),
-			TextSize = 15,
+			Size = UDim2.new(1, 0, 0, 22),
+			TextSize = if big then 20 else 17,
 			font = Theme.Font.Display,
-			color = if claimed then P.Ash else P.Ink,
-			stroke = false,
+			stroke = 2,
 			Text = string.format(S.Ui.CalendarDay, n),
 			ZIndex = 4,
 		})
-		Widgets.icon(card, REWARD_ICON[reward.kind] or "Star", if big then 64 else 46, {
+		Widgets.icon(card, REWARD_ICON[reward.kind] or "Star", if big then 76 else 52, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.48),
 			ZIndex = 5,
@@ -506,36 +518,52 @@ local function buildCalendar(s: { [string]: any }, refresh: boolean?)
 		Widgets.label(card, {
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -6),
-			Size = UDim2.new(1, -6, 0, 30),
-			TextSize = 13,
+			Size = UDim2.new(1, -6, 0, 32),
+			TextSize = if reward.kind == "Stars" then (if big then 26 else 20) else 13,
+			font = Theme.Font.Display,
 			wrap = true,
-			color = if claimed then P.Ash else P.Ink,
-			stroke = false,
+			stroke = 2,
 			Text = if reward.kind == "Stars"
 				then tostring(reward.amount)
 				else (S.Rewards :: any)[reward.kind] or reward.kind,
 			ZIndex = 5,
 		})
 		if claimed then
+			-- a claimed day dims under a green check and the CLAIMED stamp
+			local dim = new("Frame", {
+				Name = "Dim",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = P.Ink,
+				BackgroundTransparency = 0.45,
+				ZIndex = 6,
+				Parent = card,
+			})
+			new("UICorner", { CornerRadius = UDim.new(0, 10), Parent = dim })
+			Widgets.icon(card, "Check", 40, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.42),
+				ZIndex = 7,
+			})
 			local stamp = Widgets.label(card, {
 				Name = "Stamp",
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.66),
 				Size = UDim2.new(1, 4, 0, 26),
-				TextSize = 15,
+				TextSize = 16,
 				font = Theme.Font.Display,
+				stroke = 2.5,
 				color = P.Safe,
 				Text = S.Ui.Claimed,
-				ZIndex = 7,
+				ZIndex = 8,
 			})
-			stamp.Rotation = -14
+			stamp.Rotation = -12
 		end
 		if isToday and login.claimable then
 			Widgets.pulse(holder)
 		end
 	end
 	if login.claimable then
-		local b = Widgets.button(face, S.Ui.Claim, "fuse", UDim2.fromOffset(180, 48), function()
+		local b = Widgets.button(face, S.Ui.Claim, "green", UDim2.fromOffset(180, 48), function()
 			Progress.action("ClaimLogin")
 		end, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -16), TextSize = 24, ZIndex = 6 })
 		Widgets.pulse(b)

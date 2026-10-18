@@ -37,13 +37,6 @@ local C = {
 	Ink = rgb(22, 18, 28),
 }
 
--- Uploaded props (art/props → tools/upload_assets.py ids). 0 = not uploaded: the part-built fallback is used.
-local PROPS = {
-	CrateStand = 0,
-	SpinWheel = 0,
-	Podium = 0,
-}
-
 return function(ctx)
 	local T = ctx.req("Theme")
 	local map = workspace:FindFirstChild("Maps") and workspace.Maps:FindFirstChild("Yard")
@@ -67,10 +60,23 @@ return function(ctx)
 		local hit = workspace:Raycast(Vector3.new(x, fc.Y + 200, z), Vector3.new(0, -400, 0), params)
 		return if hit then hit.Position.Y else fc.Y - field.Size.Y / 2
 	end
-	local O = Vector3.new(fc.X + HL + 58, 0, fc.Z) -- the plaza centre (x past the warehouse behind Dock B)
+	local O = Vector3.new(fc.X + HL + 76, 0, fc.Z) -- the plaza centre (x past the warehouse behind Dock B)
 	local Y0 = groundY(O.X, O.Z)
 	local function at(x: number, y: number, z: number): Vector3
 		return Vector3.new(O.X + x, Y0 + y, O.Z + z)
+	end
+
+	-- clear MapYardToy's dressing (voxel trees, palms, rockets) off the Depot's footprint
+	local toy = map:FindFirstChild("Toy")
+	if toy then
+		for _, m in ipairs(toy:GetDescendants()) do
+			if m:IsA("Model") and (m.Name == "VoxelTree" or m.Name == "Palm" or m.Name == "GiantRocket") then
+				local p = m:GetPivot().Position - O
+				if math.abs(p.X) < 48 and math.abs(p.Z) < 38 then
+					m:Destroy()
+				end
+			end
+		end
 	end
 
 	-- A ProximityPrompt the client opens a screen from (StoreController / WheelController read FV_Open).
@@ -539,19 +545,15 @@ return function(ctx)
 	local stands = Instance.new("Model")
 	stands.Name = "CrateStands"
 	stands.Parent = depot
-	local IS = game:GetService("InsertService")
 	local crates = art and art:FindFirstChild("Crates")
+	local props = art and art:FindFirstChild("Props")
 	for i, kind in ipairs({ "Spark", "Inferno", "GiftBox" }) do
 		local x = -12 + (i - 1) * 12
 		local base = at(x, 0, 16)
-		local stand: Instance? = nil
-		if PROPS.CrateStand ~= 0 then
-			local ok, m = pcall(function()
-				return IS:LoadAsset(PROPS.CrateStand)
-			end)
-			if ok and m then
-				stand = m:FindFirstChildWhichIsA("Model") or m
-			end
+		local stand: Model? = nil
+		local standArt = props and props:FindFirstChild("CrateStand")
+		if standArt and standArt:IsA("Model") then
+			stand = standArt:Clone()
 		end
 		local top: BasePart
 		if not stand then
@@ -574,15 +576,19 @@ return function(ctx)
 				{ studs = false }
 			)
 		else
-			(stand :: Model):PivotTo(CFrame.new(base));
-			(stand :: Model).Parent = stands
-			top = (stand :: Model).PrimaryPart or (stand :: Model):FindFirstChildWhichIsA("BasePart") :: BasePart
+			local st = stand :: Model
+			-- face the plaza centre (the models' front is -Z, art/props/kit.py)
+			st:PivotTo(CFrame.lookAt(base, Vector3.new(O.X, base.Y, O.Z)))
+			st.Parent = stands
+			top = st:FindFirstChild("Pedestal") :: BasePart
 		end
+		local spot = stand and stand:FindFirstChild("CrateSpot", true) :: Attachment?
+		local crateAt = if spot then spot.WorldCFrame.Position else base + Vector3.new(0, 1.6, 0)
 		local crate = crates and (crates:FindFirstChild(kind) or crates:FindFirstChild("Spark"))
 		if crate then
 			local c = crate:Clone()
 			c.Name = "Crate_" .. kind
-			c:PivotTo(CFrame.new(base + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, math.rad(180), 0))
+			c:PivotTo(CFrame.lookAt(crateAt, Vector3.new(O.X, crateAt.Y, O.Z)))
 			c.Parent = stands
 		end
 		local labels = {
@@ -598,6 +604,43 @@ return function(ctx)
 			7
 		)
 		top:SetAttribute("CrateStand", kind)
+		-- the stand's little sign board: the price on a thin card laid on SignFace (centre / size / normal from the
+		-- art/props manifest; a SurfaceGui on the angled mesh itself would project onto its bounding box)
+		if stand and stand:FindFirstChild("SignFace") then
+			local pv = stand:GetPivot()
+			local centre = pv:PointToWorldSpace(Vector3.new(-2.463, 1.88, -2.885))
+			local normal = pv:VectorToWorldSpace(Vector3.new(-0.4695, 0, -0.8829))
+			local card = Instance.new("Part")
+			card.Name = "SignCard"
+			card.Anchored = true
+			card.CanCollide, card.CanQuery, card.CanTouch = false, false, false
+			card.Material = Enum.Material.SmoothPlastic
+			card.Color = C.Paper
+			card.CastShadow = false
+			card.Size = Vector3.new(1.1, 0.5, 0.02)
+			card.CFrame = CFrame.lookAt(centre + normal * 0.12, centre + normal * 2)
+			card.Parent = stand
+			local sg = Instance.new("SurfaceGui")
+			sg.Face = Enum.NormalId.Front
+			sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			sg.PixelsPerStud = 100
+			sg.LightInfluence = 0.3
+			sg.Parent = card
+			local t = Instance.new("TextLabel")
+			t.Size = UDim2.fromScale(1, 1)
+			t.BackgroundTransparency = 1
+			t.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json")
+			t.TextScaled = true
+			t.TextColor3 = C.Ink
+			t.Text = labels[kind][2]
+			t.Parent = sg
+			local pad = Instance.new("UIPadding")
+			pad.PaddingLeft = UDim.new(0.08, 0)
+			pad.PaddingRight = UDim.new(0.08, 0)
+			pad.PaddingTop = UDim.new(0.12, 0)
+			pad.PaddingBottom = UDim.new(0.12, 0)
+			pad.Parent = t
+		end
 		prompt(top, "Open", labels[kind][1], "Crates")
 	end
 	-- the spin wheel by the shop
@@ -605,40 +648,62 @@ return function(ctx)
 	wheel.Name = "SpinWheel"
 	wheel.Parent = depot
 	local wpos = at(-36, 0, -16)
-	local wheelCF = CFrame.new(wpos + Vector3.new(0, 7.5, 0)) * CFrame.Angles(0, math.rad(-60), 0)
-	part(wheel, "Stand", Vector3.new(3, 7, 2), wpos + Vector3.new(0, 3.5, 0), C.BoardBlue, { studs = false })
-	local segColors = {
-		rgb(232, 56, 48),
-		rgb(255, 150, 40),
-		rgb(255, 214, 46),
-		rgb(70, 196, 70),
-		rgb(52, 140, 236),
-		rgb(150, 76, 230),
-		rgb(255, 92, 168),
-		rgb(40, 200, 200),
-	}
-	for k = 1, 8 do
-		local a = math.rad((k - 0.5) * 45)
-		part(
-			wheel,
-			"Seg" .. k,
-			Vector3.new(0.6, 3.6, 2.6),
-			wheelCF * CFrame.Angles(a, 0, 0) * CFrame.new(0, 2.2, 0),
-			segColors[k],
-			{ studs = false }
+	local wheelArt = props and props:FindFirstChild("SpinWheel")
+	if wheelArt and wheelArt:IsA("Model") then
+		-- the modelled wheel (art/props/build_wheel.py), scaled up to lobby size, facing the plaza
+		local w = wheelArt:Clone()
+		w:ScaleTo(w:GetScale() * 1.4)
+		w:PivotTo(CFrame.lookAt(wpos, Vector3.new(O.X, wpos.Y, O.Z)))
+		for _, c in ipairs(w:GetChildren()) do
+			c.Parent = wheel
+		end
+		w:Destroy()
+		local stand = wheel:FindFirstChild("Stand") :: BasePart
+		stand.CanCollide = true
+		billboard(
+			wheel:FindFirstChild("Hub") :: BasePart,
+			"SPIN THE WHEEL",
+			"free spin every 12 hours",
+			rgb(255, 214, 46),
+			8.5
 		)
+		prompt(stand, "Spin", "Spin Wheel", "Wheel")
+	else
+		local wheelCF = CFrame.new(wpos + Vector3.new(0, 7.5, 0)) * CFrame.Angles(0, math.rad(-60), 0)
+		part(wheel, "Stand", Vector3.new(3, 7, 2), wpos + Vector3.new(0, 3.5, 0), C.BoardBlue, { studs = false })
+		local segColors = {
+			rgb(232, 56, 48),
+			rgb(255, 150, 40),
+			rgb(255, 214, 46),
+			rgb(70, 196, 70),
+			rgb(52, 140, 236),
+			rgb(150, 76, 230),
+			rgb(255, 92, 168),
+			rgb(40, 200, 200),
+		}
+		for k = 1, 8 do
+			local a = math.rad((k - 0.5) * 45)
+			part(
+				wheel,
+				"Seg" .. k,
+				Vector3.new(0.6, 3.6, 2.6),
+				wheelCF * CFrame.Angles(a, 0, 0) * CFrame.new(0, 2.2, 0),
+				segColors[k],
+				{ studs = false }
+			)
+		end
+		cyl(wheel, "Rim", 0.8, 9.6, wheelCF, C.Gold, { studs = false })
+		cyl(wheel, "Hub", 1, 2, wheelCF * CFrame.new(0.2, 0, 0), C.White, { studs = false })
+		part(wheel, "Pointer", Vector3.new(0.8, 1.6, 1.2), wheelCF * CFrame.new(0, 5.2, 0), C.Gold, { studs = false })
+		billboard(
+			wheel:FindFirstChild("Hub") :: BasePart,
+			"SPIN THE WHEEL",
+			"free spin every 12 hours",
+			rgb(255, 214, 46),
+			8
+		)
+		prompt(wheel:FindFirstChild("Stand") :: BasePart, "Spin", "Spin Wheel", "Wheel")
 	end
-	cyl(wheel, "Rim", 0.8, 9.6, wheelCF, C.Gold, { studs = false })
-	cyl(wheel, "Hub", 1, 2, wheelCF * CFrame.new(0.2, 0, 0), C.White, { studs = false })
-	part(wheel, "Pointer", Vector3.new(0.8, 1.6, 1.2), wheelCF * CFrame.new(0, 5.2, 0), C.Gold, { studs = false })
-	billboard(
-		wheel:FindFirstChild("Hub") :: BasePart,
-		"SPIN THE WHEEL",
-		"free spin every 12 hours",
-		rgb(255, 214, 46),
-		8
-	)
-	prompt(wheel:FindFirstChild("Stand") :: BasePart, "Spin", "Spin Wheel", "Wheel")
 
 	-- ── 8. Dressing: benches, palms already round the yard; a few flower beds and lamps ───────────────────────────
 	for k = 0, 5 do
