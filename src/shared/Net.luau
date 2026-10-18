@@ -18,6 +18,7 @@ Net.ClientToServer = {
 	Admin = 4,
 	DailyAction = 4, -- { kind = ClaimLogin | ClaimGift | Reroll | ClaimDailyCrate | RulesSeen | Tip | Funnel, … } (P4)
 	StoreAction = 4, -- { kind = Buy | Equip | Unequip | OpenCrate | BuyRobux | BuyProduct | BuyPass, … } (P5)
+	Strike = 2, -- the Mole's STRIKE intent (GDD §6.4, F-MOD-04)
 }
 
 Net.ServerToClient = {
@@ -27,6 +28,7 @@ Net.ServerToClient = {
 	"RoundFx", -- { kind = Intro | LastStand | Results, … } (RoundService)
 	"Callout", -- { key, n?, xp?, stars?, at } to one player (CalloutService + RewardService, GDD §11.1)
 	"Progress", -- the player's progression snapshot: level, xp, stars, streak, quests, calendar, gift (P4)
+	"ModFx", -- { kind = Mole | Armed, … } to one player: the secret Mole's own beats (GDD §6.4)
 	"Reward", -- { kind = LevelUp | Round | Quest | Login | Gift | DailyCrate | Group, … } to one player (P4)
 }
 

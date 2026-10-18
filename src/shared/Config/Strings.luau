@@ -110,6 +110,18 @@ return {
 		MegaBoom = "MEGA BOOM",
 		HurrySub = "the fuse is cut short",
 	},
+	-- Round modifiers (GDD §6.4): the INTRO headline (name + its one-line rule) and the round chip.
+	Modifiers = {
+		Face = { Name = "READ THE FACE", Line = "no timers: watch the bomb's face" },
+		LightsOut = { Name = "LIGHTS OUT", Line = "the Yard goes dark: bombs are the only light" },
+		Mole = { Name = "THE MOLE", Line = "one Runner is secretly a Bomber" },
+		YouMole = "YOU'RE THE MOLE",
+		YouMoleSub = "blend in, then STRIKE a Runner",
+		Strike = "STRIKE",
+		StrikeArmed = "TOUCH A RUNNER!",
+		StrikeWait = "STRIKE %ds",
+		Reveal = "IT WAS THE MOLE",
+	},
 	-- The moment system (GDD §10.5): the corner card at RESULTS.
 	Moment = {
 		Title = "MOMENT OF THE ROUND",

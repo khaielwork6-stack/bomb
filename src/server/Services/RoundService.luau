@@ -4,7 +4,9 @@
 -- Between rounds everyone is in the lobby, The Depot (GDD §19; Characters.lobbyCFrame falls back to the start strip
 -- when a place has no lobby).
 -- MomentService picks the round's best moment; it goes out with the results (F-FEEL-06).
--- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing, F-FEEL-06 (hooks).
+-- ModifierService decides at each round start whether this round bends a rule (GDD §6.4).
+-- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing, F-FEEL-06 (hooks),
+-- F-MOD-01 (hooks).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,6 +22,7 @@ local Arena = require(script.Parent.Arena)
 local BombService = require(script.Parent.BombService)
 local CalloutService = require(script.Parent.CalloutService)
 local MegaService = require(script.Parent.MegaService)
+local ModifierService = require(script.Parent.ModifierService)
 local MomentService = require(script.Parent.MomentService)
 local DataService = require(script.Parent.DataService)
 local Characters = require(script.Parent.Characters)
@@ -327,6 +330,7 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 	end
 	CalloutService.crossingEnded(result, crossed)
 	RoundService.CrossingEnded:Fire(k, result)
+	ModifierService.crossingEnded(k) -- F-MOD-04: the Mole's deadline
 	return result
 end
 
@@ -379,6 +383,7 @@ end
 -- ── The round ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function resetToLobby()
 	MegaService.finish()
+	ModifierService.reset()
 	BombService.live = false
 	BombService.clear()
 	GameState.headline("")
@@ -444,6 +449,7 @@ local function playRound()
 	if giant then
 		MegaService.begin(giant)
 	end
+	ModifierService.begin(giant ~= nil, runnersAlive()) -- F-MOD-01: before INTRO, which announces it
 	local startRunners = #runnersAlive()
 	GameState.set("MaxCrossings", RC.MAX_CROSSINGS)
 	-- INTRO: everyone to their spots, frozen, the Bombers revealed.

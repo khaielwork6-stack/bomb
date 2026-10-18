@@ -6,7 +6,8 @@
 --   Bombers  HOT (a Runner within HOT_RANGE, or carrying) · HUNT (one within HUNT_RANGE) · IDLE · DOWN · BETWEEN
 -- plus the longest stretch a bot went without a HOT moment, and per crossing: its length, when the first Runner
 -- reached safety, how long the safe ones then waited, and how it ended. Bots only (an idle Studio tester would skew
--- it). Never runs in a live server.
+-- it). Never runs in a live server. Round modifiers (GDD §6.4, F-MOD-05) also get their own line each: bombs, passes
+-- per bomb, boom %, and who won their rounds ("-" = no modifier).
 
 local RunService = game:GetService("RunService")
 
@@ -14,6 +15,7 @@ local Types = require(game:GetService("ReplicatedStorage").Shared.Types)
 local AdminService = require(script.Parent.Parent.Services.AdminService)
 local BombService = require(script.Parent.Parent.Services.BombService)
 local GameState = require(script.Parent.Parent.Services.GameState)
+local RoundService = require(script.Parent.Parent.Services.RoundService)
 local Participants = require(script.Parent.Parent.Services.Participants)
 
 local R, S, Ph = Types.Role, Types.State, Types.Phase
@@ -41,6 +43,16 @@ type BombLife = { born: number, lastHand: number }
 local lives: { [number]: BombLife } = {}
 local bombStats =
 	{ tags = 0, passes = 0, booms = 0, defuses = 0, clutches = 0, life = 0, ended = 0, hold = 0, dodges = 0 }
+type ModTally = { tags: number, passes: number, booms: number, defuses: number, rounds: { [string]: number } }
+local byMod: { [string]: ModTally } = {}
+local function mod(): ModTally
+	local m = GameState.get("Modifier")
+	local key = if type(m) == "string" and m ~= "" then m else "-"
+	if not byMod[key] then
+		byMod[key] = { tags = 0, passes = 0, booms = 0, defuses = 0, rounds = {} }
+	end
+	return byMod[key]
+end
 local function ended(bomb: any, how: string)
 	local life = bomb and lives[bomb.id]
 	if life then
@@ -50,8 +62,10 @@ local function ended(bomb: any, how: string)
 	end
 	if how == "boom" then
 		bombStats.booms += 1
+		mod().booms += 1
 	else
 		bombStats.defuses += 1
+		mod().defuses += 1
 	end
 end
 
@@ -217,6 +231,23 @@ local function report(): string
 			worst
 		)
 	)
+	for key, m in pairs(byMod) do
+		local mDone = m.booms + m.defuses
+		local wins = {}
+		for outcome, count in pairs(m.rounds) do
+			table.insert(wins, `{outcome} {count}`)
+		end
+		table.insert(
+			lines,
+			("modifier %s: %d tags, %.2f passes per bomb, %.0f%% boom, rounds won: %s"):format(
+				key,
+				m.tags,
+				if m.tags > 0 then m.passes / m.tags else 0,
+				if mDone > 0 then m.booms / mDone * 100 else 0,
+				if #wins > 0 then table.concat(wins, ", ") else "-"
+			)
+		)
+	end
 	for i, c in ipairs(crossings) do
 		if c.finish then
 			local len = c.finish - c.start
@@ -241,12 +272,18 @@ function PaceProbe.start()
 	if not RunService:IsStudio() then
 		return
 	end
+	RoundService.Ended:Connect(function(outcome: string)
+		local m = mod()
+		m.rounds[outcome] = (m.rounds[outcome] or 0) + 1
+	end)
 	BombService.Tagged:Connect(function(_, _, bomb)
 		bombStats.tags += 1
+		mod().tags += 1
 		lives[bomb.id] = { born = os.clock(), lastHand = os.clock() }
 	end)
 	BombService.Passed:Connect(function(_, _, bomb)
 		bombStats.passes += 1
+		mod().passes += 1
 		local life = lives[bomb.id]
 		if life then
 			bombStats.hold += os.clock() - life.lastHand
@@ -274,6 +311,7 @@ function PaceProbe.start()
 				(bombStats :: any)[k] = 0
 			end
 			table.clear(lives)
+			table.clear(byMod)
 			tally = { Runner = {}, Bomber = {} }
 			phaseTime, sinceHot, longestCold, crossings, current, rounds = {}, {}, {}, {}, nil, 0
 			started = os.clock()

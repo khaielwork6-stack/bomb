@@ -2,7 +2,7 @@
 -- The bomb's rules as pure functions over plain data (GDD §7). BombService feeds it snapshots of the participants
 -- ("bodies") and applies the decisions; the specs in Tests/BombRules.spec cover every rule and §7.7 edge case.
 -- Implements: F-BOMB-02 (tag), F-BOMB-03..05 (pass), F-BOMB-06/07 (who it blows on), F-BOMB-09 (clutch),
--- F-FLOW-09/§5.4 (starting Bombers), F-FUSE-01 (field fuse lengths).
+-- F-FLOW-09/§5.4 (starting Bombers), F-FUSE-01 (field fuse lengths), F-MOD-04 (the Mole's strike is a tag).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -20,6 +20,8 @@ export type Bomb = {
 	lastGiver: string?, -- who passed it to the current Carrier (no pass-back)
 	receivedAt: number,
 	locked: boolean, -- on a Bomber: can't be passed on (F-BOMB-07)
+	masked: boolean?, -- READ THE FACE (F-MOD-02): clients don't get the boom time while it's LIT
+	shown: boolean?, -- …and it has turned HOT, so they do
 }
 
 -- A participant as the rules see it, snapshotted each step.
@@ -33,6 +35,7 @@ export type Body = {
 	tagReadyAt: number, -- Bombers: server time their tag cooldown ends
 	reach: number?, -- extra contact reach (the MEGA BOMBER's size, GDD §16): its tags, and passes onto it
 	mega: boolean?, -- the MEGA BOMBER
+	striker: boolean?, -- a Runner whose touch tags right now: the Mole's armed STRIKE (F-MOD-04)
 }
 
 local BombRules = {}
@@ -65,7 +68,8 @@ end
 
 -- F-BOMB-02: may this Bomber stick a fresh bomb on this target right now?
 function BombRules.canTag(bomber: Body, target: Body, now: number): boolean
-	return bomber.role == "Bomber"
+	return (bomber.role == "Bomber" or bomber.striker == true)
+		and target.id ~= bomber.id
 		and bomber.active
 		and now >= bomber.tagReadyAt
 		and target.role == "Runner"
@@ -134,11 +138,11 @@ function BombRules.clearOf(a: Vector3, b: Vector3): boolean
 end
 
 function BombRules.pickTagTarget(bomber: Body, bodies: { Body }, now: number): Body?
-	if bomber.role ~= "Bomber" or not bomber.active or now < bomber.tagReadyAt then
+	if (bomber.role ~= "Bomber" and not bomber.striker) or not bomber.active or now < bomber.tagReadyAt then
 		return nil
 	end
 	return closest(bomber.pos, bodies, B.TAG_RANGE + (bomber.reach or 0), function(b)
-		return b.id ~= bomber.id and BombRules.canTag(bomber, b, now)
+		return BombRules.canTag(bomber, b, now)
 	end)
 end
 

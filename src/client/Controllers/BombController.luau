@@ -5,7 +5,9 @@
 -- through LIT → HOT → CRITICAL; the bomb hangs on a sprung clamp and wobbles with the body. A ring above the
 -- Carrier's head shows the time to everyone. P1 builds the bomb from engine parts in the hero design's shapes and
 -- materials; the Blender hero model (Asset Bible §3.2) replaces the parts in P3.
--- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability.
+-- READ THE FACE (GDD §6.4): a masked bomb (`BombMasked`, no `BombExplodeAt` yet) shows no time while LIT: full braid,
+-- full ring, the LIT pulse; once the server sends its time at HOT the braid and ring run over the last STAGE_HOT.
+-- Implements: F-BOMB-01 (visuals), F-FEEL-01 (carrier layer), GDD §7.2 stages, §10.4 readability, F-MOD-02.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -51,7 +53,8 @@ type Visual = {
 	light: PointLight,
 	ring: BillboardGui,
 	ringDots: { Frame },
-	explodeAt: number,
+	explodeAt: number?, -- nil while a READ THE FACE bomb is LIT (its time is hidden)
+	masked: boolean,
 	wobble: Vector3, -- spring state (rad): x pitch, z roll
 	wobbleVel: Vector3,
 	lastVel: Vector3,
@@ -432,7 +435,8 @@ local function attach(host: Instance): Visual?
 		light = light,
 		ring = ring,
 		ringDots = dots,
-		explodeAt = host:GetAttribute("BombExplodeAt") or now(),
+		explodeAt = host:GetAttribute("BombExplodeAt"),
+		masked = host:GetAttribute("BombMasked") == true,
 		wobble = Vector3.zero,
 		wobbleVel = Vector3.zero,
 		lastVel = Vector3.zero,
@@ -492,8 +496,9 @@ end
 
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function update(v: Visual, dt: number, t: number)
-	local remaining = math.max(0, v.explodeAt - t)
-	local frac = math.clamp(remaining / B.FUSE, 0, 1)
+	local at = v.explodeAt
+	local remaining = if at then math.max(0, at - t) elseif v.masked then math.huge else 0
+	local frac = math.clamp(remaining / (if v.masked then B.STAGE_HOT else B.FUSE), 0, 1)
 	local stage = if remaining <= B.STAGE_CRITICAL then "CRITICAL" elseif remaining <= B.STAGE_HOT then "HOT" else "LIT"
 	local stageColor = Theme.stageColor(stage)
 	-- The fuse: segments above the burn point are gone, the burning one shortens, the ones just below char.
@@ -613,7 +618,13 @@ local function step(dt: number)
 				v = attach(host)
 			end
 			if v then
-				v.explodeAt = host:GetAttribute("BombExplodeAt") or v.explodeAt
+				local at = host:GetAttribute("BombExplodeAt")
+				v.masked = host:GetAttribute("BombMasked") == true
+				if type(at) == "number" then
+					v.explodeAt = at
+				elseif v.masked then
+					v.explodeAt = nil
+				end
 				update(v, dt, t)
 			end
 		end

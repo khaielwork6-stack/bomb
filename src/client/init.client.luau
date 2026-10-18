@@ -39,6 +39,7 @@ local ORDER: { string } = {
 	"HudController",
 	"CalloutController",
 	"CarrierController",
+	"ModifierController",
 	"LastStandController",
 	"ResultsController",
 	"AudioController",

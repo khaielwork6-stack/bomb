@@ -11,6 +11,7 @@ local Config = {
 	Bomb = require(script.Bomb),
 	Feel = require(script.Feel),
 	Mega = require(script.Mega),
+	Modifiers = require(script.Modifiers),
 	Lobby = require(script.Lobby),
 	Bots = require(script.Bots),
 	Callouts = require(script.Callouts),

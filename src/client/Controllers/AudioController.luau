@@ -105,7 +105,8 @@ end
 -- ── The carrier layer (every frame) ─────────────────────────────────────────────────────────────────────────────
 local function step(dt: number)
 	local explodeAt = player:GetAttribute("BombExplodeAt")
-	local carrying = type(explodeAt) == "number" and player:GetAttribute("BombId") ~= nil
+	local masked = player:GetAttribute("BombMasked") == true -- READ THE FACE: no time while LIT (F-MOD-02)
+	local carrying = (type(explodeAt) == "number" or masked) and player:GetAttribute("BombId") ~= nil
 	-- Music: muffled and pulled down while you carry (the drums "cut out", GDD §10.1).
 	local wantHigh = if carrying then -22 else 0
 	muffle.HighGain += (wantHigh - muffle.HighGain) * math.min(1, dt * 8)
@@ -122,7 +123,7 @@ local function step(dt: number)
 		tickAcc = 0
 		return
 	end
-	local remaining = (explodeAt :: number) - workspace:GetServerTimeNow()
+	local remaining = if type(explodeAt) == "number" then explodeAt - workspace:GetServerTimeNow() else math.huge
 	local stage = if remaining <= B.STAGE_CRITICAL then 3 elseif remaining <= B.STAGE_HOT then 2 else 1
 	if not heartbeat then
 		heartbeat = Sfx.loop("Heartbeat", nil)

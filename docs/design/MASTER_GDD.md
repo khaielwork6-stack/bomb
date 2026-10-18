@@ -217,6 +217,28 @@ The crossing's own timer is a **physical fuse**: a burning cord runs along both 
 - It removes the one bad pattern of crossing-tag games: Runners hugging the safe edge and waiting.
 - It shortens every crossing as the round goes on, so the pace climbs exactly as the Bomber crowd grows.
 
+### 6.4 Round modifiers (F-MOD-01..05) [OURS]
+Some rounds bend one rule. A modifier has to pass all six of these tests, or it doesn't ship:
+1. It makes tag, pass and defuse matter **more**, and never replaces them.
+2. Every role gets new decisions, and nobody idles.
+3. No death comes without a tell and a counter.
+4. It can be explained in one line in 2 seconds at INTRO.
+5. It keeps the Runner / Bomber balance, as measured by the pace probe.
+6. It needs no new art.
+
+| ID | Rule |
+|---|---|
+| F-MOD-01 | **Rotation:** every **3rd** round is a modifier round (`Config.Modifiers.EVERY`). The modifier is picked at random from the pool, never the same one twice in a row. **Never on a MEGA BOMB round:** MEGA wins, and the modifier waits for the next round. A modifier that needs more players (the Mole) is skipped when there aren't enough. INTRO announces it as the headline, with the modifier's name and its one-line rule. A small chip under the team counter names it for the whole round. Studio: `Config.Debug.FORCE_MODIFIER`. |
+| F-MOD-02 | **READ THE FACE**: *"No timers. Watch the bomb."* While a bomb is LIT, nothing shows its time: no overhead ring count, no burning braid, no tick speed-up, no faster Carrier vignette, no SAFE / TOO FAR verdict (the chevron shows only the run time). Every fuse is a random **3.0–5.0 s**, so the average stays 4.0. **The face never lies:** from **2.5 s left** (HOT) everything shows as usual. The face goes UHOH, and PANIC is always the last **1.0 s**. The server doesn't send the boom time to any client until the bomb turns HOT. Bots act on the same view: while a bomb is LIT, they assume the shortest fuse. |
+| F-MOD-03 | **LIGHTS OUT**: *"The Yard goes dark. Bombs are the only light."* The Yard goes to night, never pitch black: silhouettes still read on a phone. Every live bomb is a lamp in its stage colour, **16 / 20 / 24 studs** at LIT / HOT / CRITICAL. Every Runner has a soft **6-stud** glow. Bombers have no glow, only two red eye glints that fade in within **28 studs**. The Safe Strips glow. A Carrier lights up the Bombers around them, and themselves too. Bots see the same: bot Runners see a Bomber only within 28 studs or inside a bomb's light. |
+| F-MOD-04 | **THE MOLE**: *"One Runner is secretly a Bomber."* At INTRO, one Runner becomes the Mole, and only they are told. It needs **4+** starting Runners and is never a player in their first **5** rounds. The Mole plays and scores as a Runner. **STRIKE** (Q / gamepad X / the on-screen button) arms them for **3 s**: the next Runner they touch outside a Safe Strip gets a normal bomb, under the same rules as a tag. The Mole can't strike while carrying a bomb or standing in a Safe Strip, and a missed strike can be retried after **5 s**. A strike **reveals** the Mole: "IT WAS THE MOLE: name" goes to everyone, and the Mole is a Bomber from then on. The Mole is also revealed if they boom, at the end of crossing **3**, or once only one other Runner is left, so a Last Stand is never against a hidden Bomber. The strike counts as a tag, and its boom credits the Mole. |
+| F-MOD-05 | **Rewards and records:** modifiers change no payout table. Every Star still comes from the normal callouts and round payouts (F-ECO-03 cap). The pace probe reports every modifier separately (passes per bomb, boom %, who won). |
+
+**Why these three:** each one bends a different axis, so the rotation never feels like the same round again.
+- READ THE FACE bends **timing**, and turns the hero bomb's face into the gameplay.
+- LIGHTS OUT bends **what you can see**, and turns every bomb into a moving light.
+- THE MOLE bends **who you trust**: Runners need each other to pass, and now they can't be sure of each other.
+
 ---
 
 ## 7. The Bomb (core mechanic)
@@ -889,7 +911,9 @@ Declared in `Shared/Net.luau`:
 | `BombFx` | S→C | `{kind = "Stick" \| "Pass" \| "Boom" \| "Defuse", bomb, from, to, pos, at, clutch?}` |
 | `FieldFx` | S→C | `{kind = "Warn" \| "Detonate" \| "Clear", crossing, at}` |
 | `Callout` | S→C (one player) | `{key, xp, stars, mult}` |
-| `RoundFx` | S→C | Intro, Last Stand and results beats |
+| `RoundFx` | S→C | Intro, Last Stand and results beats; `MoleReveal` (§6.4) |
+| `ModFx` | S→C (one player) | `{kind = "Mole"}`: you're the Mole (§6.4, nobody else is told) |
+| `Strike` | C→S | The Mole's STRIKE intent (§6.4); validated on the server |
 | `ClaimGift`, `ClaimLogin`, `RerollQuest`, `Equip`, `BuyStars`, `BuyRobux`, `OpenCrate`, `MegaSummon` | C→S | Every one is validated and rate-limited |
 
 ---
@@ -1026,7 +1050,7 @@ Built on Roblox `AnalyticsService`:
 | **P3 Feel & hero assets** | It feels incredible | **The hero bomb** (Asset Bible §3), the explosion stack (§5), the audio escalation (§10.1), callouts (§11), Last Stand presentation, results screen, the launch map's first pass | Every shipped asset passes the Quality Bar checklist (Asset Bible §1.3); 60 FPS on a mid-range phone; the user signs off on the bomb |
 | **P4 Retention** | The 30-minute loop | XP and levels, Stars, quests, login streak, playtime gifts, Hot Streak, leaderboards, squad bonus, onboarding | Economy soak lands at 600–900 Stars/hour; every funnel event fires; a new player hits level 2 within 2 rounds |
 | **P5 Store** | People can pay | Shop, Locker, crates (pity, policy), products, passes, Starter Bundle, the launch catalogue (all premium) | Studio test purchases work end to end; receipts are idempotent; odds are shown; the policy branch is tested |
-| **P6 Event & launch** | Ship | MEGA BOMB, final lobby, final map, moment replay, settings and accessibility, analytics dashboards, performance pass, store page (icon, thumbnails, trailer frames) | The launch checklist passes, and soft launch begins (KPIs in §25.1) |
+| **P6 Event & launch** | Ship | MEGA BOMB, round modifiers (§6.4), final lobby, final map, moment replay, settings and accessibility, analytics dashboards, performance pass, store page (icon, thumbnails, trailer frames) | The launch checklist passes, and soft launch begins (KPIs in §25.1) |
 
 ### 26.2 Working rules (same discipline as Chase Game)
 - Every task ends with:
@@ -1053,5 +1077,6 @@ Built on Roblox `AnalyticsService`:
 | `Config.Daily` | `QUESTS` (pool, §14.1), `QUEST_REWARDS`, `REROLL_COST = 50`, `LOGIN_REWARDS` (§14.2), `STREAK_MISS_PENALTY = 2`, `GIFTS` (§14.3) |
 | `Config.Mega` | `SCALE = 3`, `HUMAN_WEIGHT = 3`, `TAG_FUSE = 3.0`, `STOMP_RADIUS = 12`, `STOMP_TELEGRAPH = 0.6`, `STOMP_CD = 6`, `MEGA_FUSE = 90`, `FEED_BURN = 6`, `FEED_STAGGER = 1.5`, `REWARD_MULT = 3` |
 | `Config.Store` | `Products` (§17.2), `Passes`, `Crates` (odds, pity = 8), `FEATURED = 4`, `DEAL_DISCOUNT = 0.2`, `STARTER_OFFER_ROUND = 3`, `STARTER_OFFER_HOURS = 48` |
+| `Config.Modifiers` | `EVERY = 3`, `POOL = {Face, LightsOut, Mole}`, Face: `FUSE_MIN = 3.0`, `FUSE_MAX = 5.0`; Lights Out: `LAMP = {16, 20, 24}`, `RUNNER_GLOW = 6`, `EYE_RANGE = 28`; Mole: `MIN_RUNNERS = 4`, `MIN_ROUNDS = 5`, `STRIKE_TIME = 3`, `STRIKE_RETRY = 5`, `DEADLINE = 3` (§6.4) |
 | `Config.Bots` | `FILL_TARGET = 16`, `TIERS` (§18.2), `TIER_MIX = {0.3,0.5,0.2}`, `NEWBIE_MIX = {0.6,0.4,0}` |
 | `Config.Strings` | Every player-facing string |

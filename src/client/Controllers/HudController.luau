@@ -294,6 +294,9 @@ end
 local lastHeadline = ""
 local holdUntil = 0 -- an event headline (YOU'RE A BOMBER, ALL CLEAR) holds until then
 local function show(text: string, sub: string?, color: Color3?)
+	if not headline then
+		return
+	end
 	if text == lastHeadline and subline.Text == (sub or "") then
 		return
 	end
@@ -307,6 +310,20 @@ local function show(text: string, sub: string?, color: Color3?)
 			:Create(headlineScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 			:Play()
 	end
+end
+
+-- The round's modifier strings (GDD §6.4), or nil on a normal round.
+local function modifierText(): { Name: string, Line: string }?
+	local m = gs:GetAttribute("Modifier")
+	local s = if type(m) == "string" and m ~= "" then (Config.Strings.Modifiers :: any)[m] else nil
+	return if type(s) == "table" then s else nil
+end
+
+-- An event headline from another controller (the Mole's reveal, GDD §6.4): holds for `seconds`.
+function HudController.flash(text: string, sub: string?, color: Color3?, seconds: number)
+	lastHeadline = ""
+	show(text, sub, color)
+	holdUntil = os.clock() + seconds
 end
 
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -370,9 +387,11 @@ local function step()
 	bombersLabel.Text = tostring(gs:GetAttribute("BombersCount") or 0)
 	-- MOVE! and the Carrier vignette.
 	moveWarn.Visible = player:GetAttribute("MoveWarn") == true
+	-- (a READ THE FACE bomb has no time while LIT: the vignette keeps its LIT beat, F-MOD-02)
 	local explodeAt = player:GetAttribute("BombExplodeAt")
-	local carrying = player:GetAttribute("BombId") ~= nil and type(explodeAt) == "number"
-	local rem = if carrying then (explodeAt :: number) - t else math.huge
+	local carrying = player:GetAttribute("BombId") ~= nil
+		and (type(explodeAt) == "number" or player:GetAttribute("BombMasked") == true)
+	local rem = if carrying and type(explodeAt) == "number" then explodeAt - t else math.huge
 	local hz = if rem <= 1 then 10 elseif rem <= 2.5 then 4 else 2
 	local beat = 0.5 + 0.5 * math.sin(t * hz * math.pi * 2)
 	local strength = if rem <= 1 then 0.7 elseif rem <= 2.5 then 0.45 else 0.2
@@ -386,6 +405,9 @@ local function step()
 	end
 	if phase == Ph.Intro and gs:GetAttribute("MegaId") then
 		show(Config.Strings.Round.Mega, Config.Strings.Round.MegaSub, P.Mega) -- GDD §16
+	elseif phase == Ph.Intro and modifierText() then
+		local m = modifierText() :: { Name: string, Line: string }
+		show(m.Name, m.Line, P.Gold) -- F-MOD-01: the round's modifier, in one line
 	elseif phase == Ph.Intro then
 		show("BOMBERS", "watch out for the red team", P.Bomber)
 	elseif phase == Ph.Ready then

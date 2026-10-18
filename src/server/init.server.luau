@@ -25,6 +25,7 @@ local ORDER = {
 	"CalloutService",
 	"MomentService",
 	"MegaService",
+	"ModifierService",
 	"RoundService",
 	"BotService",
 	"ProgressionService",

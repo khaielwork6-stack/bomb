@@ -62,6 +62,8 @@ The order matters:
 - [ ] **YOU**: Publish.
 
 ## Stage 3: Movement animation + feel
+- [x] **CODE**: Round modifiers (GDD §6.4): READ THE FACE, LIGHTS OUT and THE MOLE, every 3rd round (P6-04).
+  **PARTNER** restyles the modifier chip and the STRIKE button in the UI pass.
 - [ ] **ANIMATOR**: The 5 clips in `docs/reference/animation/ANIMATOR_BRIEF.md`: `Brake`, `DashLeft`, `DashRight`,
   `DashLeftArms`, `DashRightArms`.
 - [ ] **CODE**: Wire them.
@@ -74,7 +76,7 @@ The order matters:
 
 ## Stage 4: Art and UI polish (PARTNER, with CODE hooks)
 - [ ] **PARTNER**: Restyle the functional UI added so far: the MEGA clock chip, the "HURRY!" headline, the Moment of
-  the Round card, the Starter Bundle offer card.
+  the Round card, the Starter Bundle offer card, the modifier chip and the Mole's STRIKE button.
 - [ ] **PARTNER + CODE**: The crate opening sequence (P5-05, Asset Bible §7.4). CODE handles the reveal logic and
   timing; PARTNER the visuals.
 - [ ] **PARTNER + CODE**: The title plate under the nametag (P5-06).
