@@ -1,0 +1,29 @@
+{
+  "key": "Prop.Rock2",
+  "gdd": "QUARRY_BRIEF Backdrop (rocks on the ledges and the low +Z side); GDD \u00a719; Asset Bible \u00a74, \u00a71",
+  "tris": {
+    "Rock": 514
+  },
+  "tris_total": 514,
+  "pivot_blender": [
+    0.0206,
+    -0.0368,
+    0.0
+  ],
+  "size_studs": [
+    5.2458,
+    2.2457,
+    4.158
+  ],
+  "fbx_units_per_stud": 100,
+  "parts": {
+    "Rock": {
+      "COLOR": "Prop_Rock2_Rock_COLOR.png",
+      "ROUGHNESS": "Prop_Rock2_Rock_ROUGHNESS.png",
+      "NORMAL": "Prop_Rock2_Rock_NORMAL.png",
+      "METAL": "Prop_Rock2_Rock_METAL.png"
+    }
+  },
+  "glow": [],
+  "front_note": "Front = -Y in Blender (the model's LookVector in Roblox); turn freely, it reads from every side."
+}

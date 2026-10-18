@@ -152,23 +152,105 @@ local PROPS: {
 			Trunk = { 127484447829226, 117939372563419, 125196481615626, 123346375019924 },
 		},
 	},
+	MineCart = { -- The Quarry's field cover (MapQuarry): ore tub on its rail stub
+		model = 100677542748645,
+		maps = {
+			Tub = { 90905122605894, 136871924211262, 78770867626335, 137112619222712 },
+			Trim = { 77975513681973, 133430513028186, 87697229319670, 103276813305454 },
+			Wheels = { 78644368692157, 121138100234133, 125346233673416, 107885980159967 },
+			Ore = { 119040727452309, 128427812444388, 88153293861701, 96848031568099 },
+			Rails = { 72563045437689, 74562457559166, 107951822114022, 114321915212443 },
+		},
+	},
+	DynamiteStack = { -- The Quarry's field cover (MapQuarry): crates and dynamite
+		model = 96346303593666,
+		maps = {
+			Crate = { 96607505272048, 97089279343170, 107785138224150, 128755499517230 },
+			Trim = { 128908705683481, 126985796155176, 132147731872473, 116860414906471 },
+			Dynamite = { 100251230025399, 81371744535412, 123096102187806, 75447036925754 },
+		},
+	},
+	TunnelMouth = { -- The Quarry's mine entrance behind each Safe Strip (MapQuarry; lantern glass = Glow)
+		model = 124753035785020,
+		maps = {
+			Rock = { 131686017841156, 83058241949918, 82649821977423, 79403847236975 },
+			Tunnel = { 110043221279724, 136781787076782, 95967005673999, 116460495308536 },
+			Timber = { 74435823261374, 91309505463008, 117065951439197, 105705458885527 },
+			Trim = { 78703580001879, 98176646878489, 84747602782667, 121459012393052 },
+		},
+	},
+	HeadFrame = { -- The Quarry's backdrop head-frame / ore crane (MapQuarry; 10 FBX units per stud)
+		model = 88185206760839,
+		maps = {
+			Timber = { 94815239975697, 79326348914363, 108790575184655, 80355887142929 },
+			Trim = { 95532920657116, 135372602811613, 118915466370597, 131460944330474 },
+			Wheel = { 120017033094863, 92557524985518, 96192331337585, 72321287881945 },
+			Bucket = { 128080549471852, 107788684421613, 98915719781489, 82611979880369 },
+		},
+	},
+	WaterTower = { -- The Quarry's backdrop water tower (MapQuarry)
+		model = 138816142464108,
+		maps = {
+			Timber = { 78874117418707, 122219107456367, 91533416817830, 111828353374802 },
+			Tank = { 105663041734571, 124359400695645, 109765903526973, 80377399232707 },
+			Roof = { 127856261192070, 122907466401687, 135247990320270, 102843614944036 },
+			Trim = { 140299378346346, 114000945934154, 93097201740728, 113925832243179 },
+		},
+	},
+	QuarrySign = { -- The Quarry's FUSE VALLEY QUARRY title sign (MapQuarry; 10 FBX units per stud)
+		model = 71944066917396,
+		maps = {
+			Board = { 116923615501943, 80320028097850, 94289636421368, 91607653349981 },
+			Frame = { 104660446586107, 127841205689774, 92178485148372, 108404177999063 },
+			Letters = { 101013643941417, 118517611274920, 75123689834775, 72569392185247 },
+			Picks = { 86338827944084, 139942914787502, 111994617333741, 130407271358511 },
+		},
+	},
+	Cactus = { -- The Quarry's saguaro (MapQuarry)
+		model = 132515338611897,
+		maps = {
+			Cactus = { 120170041843919, 119595198561108, 114680592547230, 121296233104982 },
+		},
+	},
+	CactusSmall = { -- The Quarry's flowering barrel cactus (MapQuarry)
+		model = 133825347608881,
+		maps = {
+			Cactus = { 101780714107051, 136039851917552, 97106297620639, 86069513833310 },
+			Flower = { 115217114494060, 84290934818024, 104323038999052, 100310582881247 },
+		},
+	},
+	Rock1 = { -- The Quarry's stepped sandstone boulder (MapQuarry)
+		model = 114552258870350,
+		maps = {
+			Rock = { 81710132940747, 85042890702134, 108506689183456, 118564459238523 },
+		},
+	},
+	Rock2 = { -- The Quarry's low sandstone boulder with a pebble (MapQuarry)
+		model = 85331610182529,
+		maps = {
+			Rock = { 93409477305022, 111563835831585, 127955781969524, 73763416997445 },
+		},
+	},
 }
 local GLOW: { [string]: Color3 } = {
 	Lens = Color3.fromRGB(255, 240, 210),
 	Spark = Color3.fromRGB(255, 216, 74), -- the lit fuse tips (GiantRocket, Dispenser, PowderKeg)
+	Glow = Color3.fromRGB(255, 196, 110), -- the Quarry tunnel mouth's lantern glass (TunnelMouth)
 }
 local HIT_H: { [string]: number } = { -- collision height where the bounding box's top is decoration
 	FireworkCrate = 2.6, -- the crate body, not the rockets
 	HandTruck = 3.4, -- as the part-built one
 	Dispenser = 3.4, -- the cabinet, not the bomb (MapDepotToy keeps the old box as the collision anyway)
 	PowderKeg = 3, -- the keg, not its fuse: MapDepotToy scales each keg to its barrel's height with this
+	MineCart = 2.4, -- the tub rim, not the ore heap
+	DynamiteStack = 2.6, -- the crates, not the dynamite on top
 }
 local NO_HIT: { [string]: boolean } = { -- worn / decorative only: the Hit box exists (the PrimaryPart) but never blocks
 	Crown = true,
 }
 -- the FBX's units per stud (kit.export_fbx): 100 by default; props over 20.48 studs tall export at 10 units per stud so
 -- Roblox's 2048-unit mesh cap never shrinks a part on its own
-local IMPORT_SCALE: { [string]: number } = { ClockTower = 0.1, GiantRocket = 0.1 }
+local IMPORT_SCALE: { [string]: number } = { ClockTower = 0.1, GiantRocket = 0.1, HeadFrame = 0.1, QuarrySign = 0.1 }
 local ONLY: string? = nil -- set to a prop name to re-import just that one
 
 local IS = game:GetService("InsertService")

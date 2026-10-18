@@ -1,0 +1,30 @@
+{
+  "key": "Prop.Cactus",
+  "gdd": "QUARRY_BRIEF Backdrop (cacti on the ledges, the low +Z side); GDD \u00a719; Asset Bible \u00a74, \u00a71",
+  "tris": {
+    "Cactus": 3876
+  },
+  "tris_total": 3876,
+  "pivot_blender": [
+    -0.1232,
+    0.0,
+    -0.0011
+  ],
+  "size_studs": [
+    3.6529,
+    6.878,
+    1.5237
+  ],
+  "fbx_units_per_stud": 100,
+  "parts": {
+    "Cactus": {
+      "COLOR": "Prop_Cactus_Cactus_COLOR.png",
+      "ROUGHNESS": "Prop_Cactus_Cactus_ROUGHNESS.png",
+      "NORMAL": "Prop_Cactus_Cactus_NORMAL.png",
+      "METAL": "Prop_Cactus_Cactus_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {},
+  "front_note": "Front = -Y in Blender (the model's LookVector in Roblox); turn freely, it reads from every side."
+}

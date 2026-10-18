@@ -1,0 +1,73 @@
+{
+  "key": "Prop.QuarrySign",
+  "gdd": "QUARRY_BRIEF Backdrop (the concept's FUSE VALLEY QUARRY title sign); GDD \u00a719; Asset Bible \u00a74, \u00a71",
+  "tris": {
+    "Board": 552,
+    "Frame": 864,
+    "Letters": 6504,
+    "Picks": 3020
+  },
+  "tris_total": 10940,
+  "pivot_blender": [
+    0.0,
+    0.1263,
+    0.0
+  ],
+  "size_studs": [
+    30.0,
+    12.925,
+    3.4974
+  ],
+  "fbx_units_per_stud": 10,
+  "parts": {
+    "Board": {
+      "COLOR": "Prop_QuarrySign_Board_COLOR.png",
+      "ROUGHNESS": "Prop_QuarrySign_Board_ROUGHNESS.png",
+      "NORMAL": "Prop_QuarrySign_Board_NORMAL.png",
+      "METAL": "Prop_QuarrySign_Board_METAL.png"
+    },
+    "Frame": {
+      "COLOR": "Prop_QuarrySign_Frame_COLOR.png",
+      "ROUGHNESS": "Prop_QuarrySign_Frame_ROUGHNESS.png",
+      "NORMAL": "Prop_QuarrySign_Frame_NORMAL.png",
+      "METAL": "Prop_QuarrySign_Frame_METAL.png"
+    },
+    "Letters": {
+      "COLOR": "Prop_QuarrySign_Letters_COLOR.png",
+      "ROUGHNESS": "Prop_QuarrySign_Letters_ROUGHNESS.png",
+      "NORMAL": "Prop_QuarrySign_Letters_NORMAL.png",
+      "METAL": "Prop_QuarrySign_Letters_METAL.png"
+    },
+    "Picks": {
+      "COLOR": "Prop_QuarrySign_Picks_COLOR.png",
+      "ROUGHNESS": "Prop_QuarrySign_Picks_ROUGHNESS.png",
+      "NORMAL": "Prop_QuarrySign_Picks_NORMAL.png",
+      "METAL": "Prop_QuarrySign_Picks_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {
+    "BoardCentre": {
+      "blender": [
+        0.0,
+        -0.45,
+        7.5
+      ],
+      "roblox_from_pivot": [
+        -0.0,
+        7.5,
+        -0.5763
+      ],
+      "board_size_studs": [
+        30.0,
+        9.0,
+        0.9
+      ]
+    },
+    "BoardBottom": {
+      "height_from_pivot": 3.0,
+      "note": "sink the posts up to this to sit the board on a ledge"
+    }
+  },
+  "front_note": "The lettering faces the front (-Y in Blender = the model's LookVector in Roblox)."
+}

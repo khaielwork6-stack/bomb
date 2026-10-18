@@ -1,0 +1,68 @@
+{
+  "key": "Prop.WaterTower",
+  "gdd": "QUARRY_BRIEF Backdrop (a water tower); GDD \u00a719; Asset Bible \u00a74, \u00a71",
+  "tris": {
+    "Timber": 2192,
+    "Tank": 1408,
+    "Roof": 1440,
+    "Trim": 4296
+  },
+  "tris_total": 9336,
+  "pivot_blender": [
+    0.801,
+    0.0,
+    -0.0036
+  ],
+  "size_studs": [
+    11.1474,
+    22.6936,
+    9.0966
+  ],
+  "fbx_units_per_stud": 100,
+  "parts": {
+    "Timber": {
+      "COLOR": "Prop_WaterTower_Timber_COLOR.png",
+      "ROUGHNESS": "Prop_WaterTower_Timber_ROUGHNESS.png",
+      "NORMAL": "Prop_WaterTower_Timber_NORMAL.png",
+      "METAL": "Prop_WaterTower_Timber_METAL.png"
+    },
+    "Tank": {
+      "COLOR": "Prop_WaterTower_Tank_COLOR.png",
+      "ROUGHNESS": "Prop_WaterTower_Tank_ROUGHNESS.png",
+      "NORMAL": "Prop_WaterTower_Tank_NORMAL.png",
+      "METAL": "Prop_WaterTower_Tank_METAL.png"
+    },
+    "Roof": {
+      "COLOR": "Prop_WaterTower_Roof_COLOR.png",
+      "ROUGHNESS": "Prop_WaterTower_Roof_ROUGHNESS.png",
+      "NORMAL": "Prop_WaterTower_Roof_NORMAL.png",
+      "METAL": "Prop_WaterTower_Roof_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_WaterTower_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_WaterTower_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_WaterTower_Trim_NORMAL.png",
+      "METAL": "Prop_WaterTower_Trim_METAL.png"
+    }
+  },
+  "glow": [],
+  "markers": {
+    "TankCentre": {
+      "blender": [
+        0.0,
+        0.0,
+        16.3
+      ],
+      "roblox_from_pivot": [
+        0.801,
+        16.3036,
+        0.0
+      ],
+      "radius": 4.05
+    },
+    "DeckTop": {
+      "height_from_pivot": 12.8536
+    }
+  },
+  "front_note": "The ladder faces the front (-Y in Blender = the model's LookVector in Roblox); the spout is on the model's left in Roblox (Blender +X)."
+}

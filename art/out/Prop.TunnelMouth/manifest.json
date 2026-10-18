@@ -1,0 +1,106 @@
+{
+  "key": "Prop.TunnelMouth",
+  "gdd": "QUARRY_BRIEF Safe Strips (a timber-framed mine tunnel mouth behind each strip); GDD \u00a719; Asset Bible \u00a74, \u00a71",
+  "tris": {
+    "Rock": 1598,
+    "Tunnel": 60,
+    "Timber": 1348,
+    "Trim": 2620,
+    "Glow": 224
+  },
+  "tris_total": 5850,
+  "pivot_blender": [
+    -0.0671,
+    -0.2177,
+    0.0
+  ],
+  "size_studs": [
+    14.4613,
+    13.0072,
+    7.0353
+  ],
+  "fbx_units_per_stud": 100,
+  "parts": {
+    "Rock": {
+      "COLOR": "Prop_TunnelMouth_Rock_COLOR.png",
+      "ROUGHNESS": "Prop_TunnelMouth_Rock_ROUGHNESS.png",
+      "NORMAL": "Prop_TunnelMouth_Rock_NORMAL.png",
+      "METAL": "Prop_TunnelMouth_Rock_METAL.png"
+    },
+    "Tunnel": {
+      "COLOR": "Prop_TunnelMouth_Tunnel_COLOR.png",
+      "ROUGHNESS": "Prop_TunnelMouth_Tunnel_ROUGHNESS.png",
+      "NORMAL": "Prop_TunnelMouth_Tunnel_NORMAL.png",
+      "METAL": "Prop_TunnelMouth_Tunnel_METAL.png"
+    },
+    "Timber": {
+      "COLOR": "Prop_TunnelMouth_Timber_COLOR.png",
+      "ROUGHNESS": "Prop_TunnelMouth_Timber_ROUGHNESS.png",
+      "NORMAL": "Prop_TunnelMouth_Timber_NORMAL.png",
+      "METAL": "Prop_TunnelMouth_Timber_METAL.png"
+    },
+    "Trim": {
+      "COLOR": "Prop_TunnelMouth_Trim_COLOR.png",
+      "ROUGHNESS": "Prop_TunnelMouth_Trim_ROUGHNESS.png",
+      "NORMAL": "Prop_TunnelMouth_Trim_NORMAL.png",
+      "METAL": "Prop_TunnelMouth_Trim_METAL.png"
+    }
+  },
+  "glow": [
+    "Glow"
+  ],
+  "markers": {
+    "OpeningCentre": {
+      "blender": [
+        0.0,
+        -2.775,
+        4.1
+      ],
+      "roblox_from_pivot": [
+        -0.0671,
+        4.1,
+        -2.5573
+      ],
+      "opening_size_studs": [
+        5.9,
+        8.2
+      ]
+    },
+    "FrontFace": {
+      "note": "the posts' front faces",
+      "roblox_from_pivot_z": -2.5573
+    },
+    "RailTop": {
+      "height_from_pivot": 0.37,
+      "gauge_centres_studs": 1.8,
+      "rails_run": "model Z (out of the tunnel toward the front)"
+    },
+    "Lanterns": [
+      {
+        "blender": [
+          -3.42,
+          -3.395,
+          5.92
+        ],
+        "roblox_from_pivot": [
+          3.3529,
+          5.92,
+          -3.1773
+        ]
+      },
+      {
+        "blender": [
+          3.42,
+          -3.395,
+          5.92
+        ],
+        "roblox_from_pivot": [
+          -3.4871,
+          5.92,
+          -3.1773
+        ]
+      }
+    ]
+  },
+  "front_note": "The opening faces the front (-Y in Blender = the model's LookVector in Roblox)."
+}
