@@ -58,6 +58,7 @@ local ORDER: { string } = {
 	"SettingsController",
 	"MapVoteController",
 	"WheelController",
+	"StatusFxController",
 	"DepotController",
 }
 

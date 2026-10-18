@@ -690,13 +690,18 @@ local function passArc(fromId: string, toId: string)
 	if body then
 		local top = new("Attachment", { Position = Vector3.new(0, RADIUS * 0.6, 0), Parent = body })
 		local bottom = new("Attachment", { Position = Vector3.new(0, -RADIUS * 0.6, 0), Parent = body })
+		-- the ribbon it draws through the air (art/vfx/make_polish.py): a hot core in a gold → orange band, sparks shed
 		new("Trail", {
 			Attachment0 = top,
 			Attachment1 = bottom,
-			Color = ColorSequence.new(P.Spark, P.Fuse),
-			Transparency = NumberSequence.new(0.2, 1),
-			Lifetime = 0.16,
-			LightEmission = 0.6,
+			Texture = Assets.Vfx.PassRibbon,
+			TextureMode = Enum.TextureMode.Stretch,
+			Color = ColorSequence.new(Color3.new(1, 1, 1)),
+			Transparency = NumberSequence.new(0, 0.4),
+			WidthScale = NumberSequence.new(1.2, 0.5),
+			Lifetime = 0.24,
+			LightEmission = 0.8,
+			LightInfluence = 0,
 			FaceCamera = true,
 			Parent = body,
 		})

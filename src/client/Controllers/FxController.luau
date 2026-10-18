@@ -436,18 +436,32 @@ end
 -- Defuse (GDD §10.3): a steam puff off the socket and a soft green ring; a clutch adds a gold flare.
 function FxController.defuse(pos: Vector3, clutch: boolean)
 	local att = burstAt(pos + Vector3.new(0, 1.5, 0), 2)
+	-- the snuff: a puffy steam wisp that billows up and curls over (art/vfx/make_polish.py), two smaller beside it
 	emit(
 		att,
-		3,
+		1,
 		flipbook({
-			Texture = Assets.Vfx.Smoke,
-			Color = ColorSequence.new(Color3.fromRGB(240, 246, 244)),
-			Size = seq(1.4, 3),
-			Lifetime = NumberRange.new(0.8, 1),
-			Speed = NumberRange.new(3, 5),
-			SpreadAngle = Vector2.new(25, 25),
+			Texture = Assets.Vfx.Steam,
+			Size = NumberSequence.new(4.5),
+			Lifetime = NumberRange.new(1.1),
+			Speed = NumberRange.new(1.5),
 			EmissionDirection = Enum.NormalId.Top,
-			Rotation = NumberRange.new(-20, 20),
+			Rotation = NumberRange.new(-8, 8),
+			LightEmission = 0.15,
+		})
+	)
+	emit(
+		att,
+		2,
+		flipbook({
+			Texture = Assets.Vfx.Steam,
+			Size = NumberSequence.new(2.6),
+			Lifetime = NumberRange.new(0.9, 1.1),
+			Speed = NumberRange.new(2, 3.5),
+			SpreadAngle = Vector2.new(40, 40),
+			EmissionDirection = Enum.NormalId.Top,
+			Rotation = NumberRange.new(-30, 30),
+			LightEmission = 0.15,
 		})
 	)
 	emit(att, 1, {
@@ -464,6 +478,21 @@ function FxController.defuse(pos: Vector3, clutch: boolean)
 	})
 	if clutch then
 		flash(pos, 18, 5, P.Gold, 0.4)
+		-- the clutch's light-ray burst, turning as it opens
+		emit(att, 1, {
+			Texture = Assets.Vfx.Rays,
+			Color = ColorSequence.new(P.Gold, P.Spark),
+			LightEmission = 1,
+			LightInfluence = 0,
+			Size = keys({ { 0, 2 }, { 0.3, 13 }, { 1, 16 } }),
+			Transparency = keys({ { 0, 0 }, { 0.6, 0.25 }, { 1, 1 } }),
+			Lifetime = NumberRange.new(0.7),
+			Speed = NumberRange.new(0.01), -- 0 can leave a lone particle never drawn
+			Brightness = 3,
+			Rotation = NumberRange.new(0, 360),
+			RotSpeed = NumberRange.new(60),
+			ZOffset = -1,
+		})
 		emit(att, 30, {
 			Texture = Assets.Vfx.Ember,
 			Color = ColorSequence.new(P.Gold, P.Spark),
