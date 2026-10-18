@@ -35,6 +35,11 @@ local player = Players.LocalPlayer
 local DailyController = {}
 
 local TIER_COLOR = { Easy = P.Safe, Medium = P.Spark, Hard = P.Bomber }
+local TIER_FILL = {
+	Easy = { Color3.fromRGB(120, 228, 110), Color3.fromRGB(44, 162, 60) },
+	Medium = { Color3.fromRGB(255, 220, 96), Color3.fromRGB(236, 150, 24) },
+	Hard = { Color3.fromRGB(255, 120, 110), Color3.fromRGB(206, 36, 48) },
+}
 local REWARD_ICON = { Stars = "Star", SparkCrate = "Crate", GiftBox = "Gift", RareItem = "Gift", StreakBomb = "Bomb" }
 
 local hud: ScreenGui
@@ -272,12 +277,17 @@ local function buildQuests(s: { [string]: any }, refresh: boolean?)
 	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local freeLeft = d.rerolls < d.freeRerolls
 	for i, q in ipairs(d.quests) do
+		-- the reference's chance rows: a bright gradient row in the tier's colour, white border, ink outline
+		local fill = TIER_FILL[q.tier] or TIER_FILL.Easy
 		local card = Theme.panel(list, {
 			Name = "Quest" .. i,
 			Size = UDim2.new(1, 0, 0, 72),
-			color = Color3.fromRGB(44, 34, 56),
-			border = TIER_COLOR[q.tier] or P.Paper,
-			border2 = (TIER_COLOR[q.tier] or P.Paper):Lerp(P.Ink, 0.4),
+			color = fill[1],
+			color2 = fill[2],
+			border = Color3.new(1, 1, 1),
+			border2 = Color3.fromRGB(226, 230, 240),
+			dots = Color3.new(1, 1, 1),
+			dotsT = 0.85,
 		});
 		(card.Parent :: Frame).LayoutOrder = i
 		local chip = new("Frame", {
@@ -300,9 +310,11 @@ local function buildQuests(s: { [string]: any }, refresh: boolean?)
 		})
 		Widgets.label(card, {
 			Name = "Text",
-			Position = UDim2.fromOffset(104, 8),
-			Size = UDim2.new(1, -236, 0, 26),
-			TextSize = 17,
+			Position = UDim2.fromOffset(104, 6),
+			Size = UDim2.new(1, -236, 0, 28),
+			TextSize = 21,
+			font = Theme.Font.Display,
+			stroke = 2.5,
 			align = Enum.TextXAlignment.Left,
 			Text = questText(q.id, q.target),
 			ZIndex = 4,
