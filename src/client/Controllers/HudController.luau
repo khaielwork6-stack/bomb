@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
@@ -414,6 +415,11 @@ function HudController.start()
 		end
 	end)
 	Net.listen("FieldFx", function(p)
+		if type(p) == "table" and p.kind == "Hurry" then
+			lastHeadline = ""
+			show(Config.Strings.Round.Hurry, Config.Strings.Round.HurrySub, P.Detonate)
+			holdUntil = os.clock() + 1.4
+		end
 		if type(p) == "table" and p.kind == "Clear" then
 			lastHeadline = ""
 			show("ALL CLEAR", "", P.Safe)

@@ -27,6 +27,10 @@ return {
 	BOMBERS_MAX = 3,
 	BOMBER_REPEAT_GUARD = true, -- nobody starts as a Bomber two rounds in a row
 	IDLE_WARN = 5, -- F-CROSS-01: a Runner still in the start strip this long after GO gets "MOVE!"
+	-- The hurry-up (D-PACE-01): once this share of the Runners still in play is safe — or only idlers are left in the
+	-- start strip — the Field Fuse cuts to its last HURRY_LEFT seconds, so the safe ones never stand around waiting.
+	HURRY_SHARE = 0.5,
+	HURRY_LEFT = 4,
 	MIN_PARTICIPANTS = 2, -- a round needs at least this many (bots fill from P2)
 	BOOM_GETUP = 1.6, -- F-BOMB-06: ragdoll time before a boomed Runner gets up as a Bomber
 }

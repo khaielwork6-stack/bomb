@@ -70,6 +70,7 @@ The crossing's own timer is a **physical fuse**: a burning cord runs along both 
 | F-FUSE-03 | **At 0, the field detonates.** A rolling chain of blasts runs across the field over 0.6 s. Every participant still on the field booms: Runners join the Bombers, and Bombers are only flung (they respawn in the middle at `READY`). |
 | F-FUSE-04 | When every Runner is safe or boomed before the fuse ends, the crossing ends early and the remaining fuse fizzles out. You get a "ALL CLEAR" sting. |
 | F-FUSE-05 | Field detonation booms award **no** Bomber credit. The callout is "FUSE OUT" in grey; it's the field's kill, not a person's. |
+| F-FUSE-06 | **The hurry-up** (D-PACE-01): once half the Runners still in play are safe, or only idlers are left in the start strip, the Field Fuse cuts to its last **4 s** (`HURRY_SHARE`, `HURRY_LEFT`). "HURRY!" slams in and the 5-second warning fires at once. The Runners who made it never stand around waiting on stragglers, and the last ones get a scramble. The Last Stand keeps its full fuse. |
 
 ### 6.3 Why the Field Fuse matters
 - It removes the one bad pattern of crossing-tag games: Runners hugging the safe edge and waiting.

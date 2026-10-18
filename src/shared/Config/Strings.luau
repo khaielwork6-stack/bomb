@@ -77,6 +77,8 @@ return {
 		Callouts = "Moments",
 		Streak = "Hot Streak",
 		Squad = "Squad bonus",
+		Hurry = "HURRY!",
+		HurrySub = "the fuse is cut short",
 	},
 	Tips = {
 		FirstCarry = "BUMP SOMEONE, OR RUN TO A SAFE SIDE!",

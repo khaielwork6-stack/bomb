@@ -219,6 +219,7 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 	BombService.live = true
 	local result = "fuse"
 	local warned = false
+	local hurried = lastStand -- the Last Stand keeps its full fuse
 	while true do
 		task.wait(0.05)
 		local t = now()
@@ -245,6 +246,28 @@ local function crossing(k: number, from: number, fuse: number, lastStand: boolea
 			end
 		end
 		publishCounts()
+		-- The hurry-up (D-PACE-01): most Runners are safe, or only idlers are left in the start strip → the fuse cuts
+		-- to its last seconds (the warning below then fires at once).
+		if not hurried and #alive > 0 then
+			local safe, onField = 0, 0
+			for _, p in ipairs(alive) do
+				if p.state == S.Safe then
+					safe += 1
+				elseif p.state == S.Active and not (p.root and Arena.inSafe(p.root.Position, from)) then
+					onField += 1
+				end
+			end
+			local idlersOnly = onField == 0 and t - goAt > RC.IDLE_WARN / timeScale()
+			if safe > 0 and (safe / #alive >= RC.HURRY_SHARE or idlersOnly) then
+				hurried = true
+				local cut = t + RC.HURRY_LEFT / timeScale()
+				if cut < endsAt then
+					endsAt = cut
+					GameState.set("FuseEndsAt", endsAt)
+					Net.fireAll("FieldFx", { kind = "Hurry", crossing = k, at = t })
+				end
+			end
+		end
 		if not warned and endsAt - t <= RC.FUSE_WARN / timeScale() then
 			warned = true
 			Net.fireAll("FieldFx", { kind = "Warn", crossing = k, at = t })

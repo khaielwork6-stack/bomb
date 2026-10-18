@@ -66,6 +66,7 @@ end
 -- Studio test tools (Dev/*): never run in a live server.
 if RunService:IsStudio() then
 	require(script.Dev.Dummies).start()
+	require(script.Dev.PaceProbe).start()
 end
 
 if RunService:IsStudio() and Config.Debug.RUN_TESTS then
