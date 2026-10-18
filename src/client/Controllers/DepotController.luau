@@ -9,9 +9,6 @@
 --     walking up to either and pressing E opens the Shop / Quests.
 --   • the leaderboard wall renders the weekly boards DepotService publishes; the VIP gate lets VIP pass owners through.
 --   • going into a round, a quick flash hides the teleport.
---   • your friends on the dummies (D-LOBBY-01): DepotService builds up to three of your friends' avatars into your
---     PlayerGui; they're moved into the world here over the padded dummies (which stay, hidden, as the practice
---     targets), rock with the springs, idle, and wear their display names. Only you see them.
 -- Idle when the place has no lobby.
 -- Implements: F-LOBBY-01 (the Depot's stations), F-LOBBY-02 (intermission), F-STORE-03 (featured plinths in world).
 
@@ -22,7 +19,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -68,99 +64,6 @@ end
 
 local function inLobby(): boolean
 	return ClientState.role() == Types.Role.None
-end
-
--- ── Friends on the dummies (D-LOBBY-01) ─────────────────────────────────────────────────────────────────────
-type Friend = { model: Model, torso: BasePart, dummyTorso: BasePart }
-local friends: { Friend } = {}
-local friendsFolder: Folder? = nil
-
-local function dressDummy(dummy: Model, avatar: Model)
-	local dummyTorso = dummy:FindFirstChild("Torso") :: BasePart?
-	local torso = avatar:FindFirstChild("Torso") :: BasePart?
-	local hum = avatar:FindFirstChildOfClass("Humanoid")
-	if not dummyTorso or not torso or not hum then
-		avatar:Destroy()
-		return
-	end
-	-- the padded dummy stays (it's the practice target the bomb clamps to), hidden on this screen only
-	for _, d in ipairs(dummy:GetChildren()) do
-		if d:IsA("BasePart") and d.Name ~= "Spring" then
-			d.LocalTransparencyModifier = 1
-		end
-	end
-	for _, d in ipairs(avatar:GetDescendants()) do
-		if d:IsA("BasePart") then
-			d.Anchored = d == torso
-			d.CanCollide = false
-			d.CanQuery = false
-			d.CanTouch = false
-			d.Massless = true
-		end
-	end
-	hum.PlatformStand = true
-	hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
-	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
-	hum.NameDisplayDistance = 60
-	local name = avatar:GetAttribute("DisplayName")
-	hum.DisplayName = if type(name) == "string" then name else ""
-	torso.CFrame = dummyTorso.CFrame
-	-- their name overhead, in the game's display type (Roblox's own name tags are off in FUSE VALLEY)
-	local head = avatar:FindFirstChild("Head") :: BasePart?
-	if head and hum.DisplayName ~= "" then
-		hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		local tag = new("BillboardGui", {
-			Name = "FV_FriendTag",
-			Size = UDim2.fromOffset(220, 34),
-			StudsOffsetWorldSpace = Vector3.new(0, 2.3, 0),
-			MaxDistance = LC.FRIEND_TAG_RANGE,
-			LightInfluence = 0,
-			AlwaysOnTop = false,
-			Parent = head,
-		})
-		Theme.display(tag, { Size = UDim2.fromScale(1, 1), Text = hum.DisplayName, TextSize = 22, color = P.Paper })
-	end
-	if not friendsFolder then
-		local f = new("Folder", { Name = "FV_FriendDummies", Parent = workspace }) :: Folder
-		friendsFolder = f
-	end
-	avatar.Parent = friendsFolder
-	-- a gentle idle, so they look like they're waiting their turn
-	local animator = hum:FindFirstChildOfClass("Animator") or new("Animator", { Parent = hum })
-	local okLoad, track = pcall(function()
-		return (animator :: Animator):LoadAnimation(new("Animation", { AnimationId = Assets.Anim.Idle }))
-	end)
-	if okLoad and track then
-		track.Looped = true
-		track:Play(0.2, 1, 0.85 + math.random() * 0.3)
-	end
-	table.insert(friends, { model = avatar, torso = torso, dummyTorso = dummyTorso })
-end
-
-local function dressDummies(holder: Instance, dummyList: { Model })
-	local bySlot: { [number]: Model } = {}
-	for _, d in ipairs(dummyList) do
-		local n = tonumber(string.match(d.Name, "(%d+)$"))
-		if n then
-			bySlot[n] = d
-		end
-	end
-	for _, avatar in ipairs(holder:GetChildren()) do
-		local slot = avatar:GetAttribute("Slot")
-		local dummy = if type(slot) == "number" then bySlot[slot] else nil
-		if avatar:IsA("Model") and dummy then
-			dressDummy(dummy, avatar)
-		end
-	end
-	holder:Destroy()
-end
-
-local function friendStep()
-	for _, f in ipairs(friends) do
-		if f.model.Parent then
-			f.torso.CFrame = f.dummyTorso.CFrame -- rock with the spring
-		end
-	end
 end
 
 -- ── The Fuse Range (practice hot potato) ──────────────────────────────────────────────────────────────────────
@@ -703,22 +606,8 @@ function DepotController.start()
 			end
 		end
 	end)
-	-- your friends on the dummies (they may arrive a moment after you do)
-	local pg = player:WaitForChild("PlayerGui")
-	local function tryDress(holder: Instance)
-		if holder.Name == "FV_FriendDummies" and #dummies > 0 then
-			task.wait(0.5) -- let every avatar model finish replicating
-			dressDummies(holder, dummies)
-		end
-	end
-	pg.ChildAdded:Connect(tryDress)
-	local existing = pg:FindFirstChild("FV_FriendDummies")
-	if existing then
-		task.spawn(tryDress, existing)
-	end
 	RunService.RenderStepped:Connect(function(dt)
 		practiceStep()
-		friendStep()
 		towerStep(dt)
 		for _, m in ipairs(plinthModels) do
 			local base = m:GetAttribute("Base")

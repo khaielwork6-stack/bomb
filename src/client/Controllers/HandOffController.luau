@@ -105,7 +105,7 @@ rayParams.FilterType = Enum.RaycastFilterType.Exclude
 rayParams.IgnoreWater = true
 local rayRefreshAt = 0
 
--- The floor under a body: ignore every body (players, bots, dummies, friends on the dummies) and our own rings.
+-- The floor under a body: ignore every body (players, bots, the practice dummies) and our own rings.
 local function refreshRayFilter()
 	local list: { Instance } = { folder }
 	for _, p in ipairs(Players:GetPlayers()) do
@@ -113,7 +113,7 @@ local function refreshRayFilter()
 			table.insert(list, p.Character)
 		end
 	end
-	for _, path in ipairs({ { "Bots" }, { "FV_FriendDummies" }, { "Lobby", "FuseRange", "Dummies" } }) do
+	for _, path in ipairs({ { "Bots" }, { "Lobby", "FuseRange", "Dummies" } }) do
 		local at: Instance? = workspace
 		for _, n in ipairs(path) do
 			at = at and at:FindFirstChild(n)

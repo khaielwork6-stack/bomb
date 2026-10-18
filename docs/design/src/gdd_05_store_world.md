@@ -110,7 +110,7 @@ A compact, premium lobby island built in the new art direction (Asset Bible §4.
 | **Shop kiosk** | Opens the Shop. The featured items rotate on 3D plinths outside. |
 | **Quest board** | Opens Quests. Shows today's 3 quests as physical cards pinned to the board. |
 | **Leaderboard wall** | 3 boards + 3 weekly champion statues. |
-| **Fuse Range** (practice) | Training dummies to tag and pass to. There's a "practice bomb" dispenser and a defuse pad. New players learn here safely, and AFK players have something to do. **The dummies wear your friends** (up to 3, online ones first, with their display names). Only you see them (D-LOBBY-01). |
+| **Fuse Range** (practice) | Training dummies to tag and pass to. There's a "practice bomb" dispenser and a defuse pad. New players learn here safely, and AFK players have something to do. |
 | **VIP lounge** | A gold-trimmed balcony with a better view and a VIP-only firework button. |
 
 ### 19.2 Intermission (F-LOBBY-02)
