@@ -96,15 +96,20 @@ new("ImageLabel", {
 -- logo (the 3D render; a styled title until its id is known)
 local logoHolder = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.36),
-	Size = UDim2.fromOffset(640, 400),
+	Position = UDim2.fromScale(0.5, 0.34),
+	Size = UDim2.fromOffset(940, 588),
 	BackgroundTransparency = 1,
 	ZIndex = 5,
 	Parent = gui,
 })
 local logoScale = new("UIScale", { Parent = logoHolder })
-local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
-logoScale.Scale = math.min(1, vp.Y / 820, vp.X / 760)
+-- the screen size, read live (the camera's viewport is still 1 x 1 this early in ReplicatedFirst)
+local function screen(): Vector2
+	local s = gui.AbsoluteSize
+	return if s.X > 10 and s.Y > 10 then s else Vector2.new(1280, 720)
+end
+local vp = screen()
+logoScale.Scale = math.min(1, vp.Y / 900, vp.X / 1000)
 local logo = new("ImageLabel", {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundTransparency = 1,
@@ -225,7 +230,8 @@ local conn = RunService.RenderStepped:Connect(function(dt)
 		end
 		c.f.Position = UDim2.fromScale(x, c.f.Position.Y.Scale)
 	end
-	logoScale.Scale = math.min(1, vp.Y / 820, vp.X / 760) * (1 + 0.02 * math.sin(t * 2.4))
+	vp = screen()
+	logoScale.Scale = math.min(1, vp.Y / 900, vp.X / 1000) * (1 + 0.02 * math.sin(t * 2.4))
 	-- progress: the content queue draining, eased, never backwards; game.Loaded finishes it
 	local queue = ContentProvider.RequestQueueSize
 	local target = if game:IsLoaded() and queue == 0 then 1 else math.clamp(t / 6, 0, 0.9) * (1 / (1 + queue * 0.02))
