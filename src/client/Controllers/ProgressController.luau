@@ -8,9 +8,11 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Assets = require(ReplicatedStorage.Shared.Assets)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
@@ -46,6 +48,8 @@ local setXp: (number, boolean?) -> ()
 local xpLabel: TextLabel
 local flameHolder: Frame
 local flameImg: ImageLabel
+local flameGlow: ImageLabel
+local streakNow = 0 -- the Hot Streak level, for the flame's glow
 local multTag: Frame
 local multLabel: TextLabel
 local shown = true
@@ -168,7 +172,35 @@ local function build()
 		Visible = false,
 		Parent = corner,
 	})
+	-- a warm glow behind the flame that grows with the streak
+	flameGlow = new("ImageLabel", {
+		Name = "Glow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromScale(1.9, 1.9),
+		BackgroundTransparency = 1,
+		Image = Assets.Vfx.Flash,
+		ImageColor3 = Color3.fromRGB(255, 140, 40),
+		ImageTransparency = 0.6,
+		ZIndex = 3,
+		Parent = flameHolder,
+	})
 	flameImg = Widgets.icon(flameHolder, "Flame", 44, { Position = UDim2.fromOffset(0, 0), ZIndex = 4 })
+	-- the flame lives: a flicker (uneven squash-stretch), a sway, the glow breathing (Asset Bible §6.5 Hot Streak)
+	if not Widgets.reduced() then
+		local live = new("UIScale", { Name = "Live", Parent = flameImg.Parent })
+		RunService.RenderStepped:Connect(function()
+			if not flameHolder.Visible then
+				return
+			end
+			local t = os.clock()
+			local n = math.sin(t * 13) * 0.5 + math.sin(t * 21.7) * 0.3 + math.sin(t * 7.3) * 0.2
+			live.Scale = 1 + n * 0.06
+			local f = flameImg.Parent :: Frame
+			f.Rotation = math.sin(t * 3.1) * 6 + n * 3
+			flameGlow.ImageTransparency = 0.62 - math.clamp(streakNow, 0, 5) * 0.05 + math.sin(t * 9) * 0.06
+		end)
+	end
 	multTag = new("Frame", {
 		Name = "Tag",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -266,6 +298,7 @@ local function apply(s: { [string]: any })
 	if streak ~= lastStreak then
 		local grew = streak > lastStreak and lastStreak >= 0
 		lastStreak = streak
+		streakNow = streak
 		flameHolder.Visible = streak >= 1
 		local size = math.clamp(32 + streak * 4, 32, 48)
 		local f = flameImg.Parent :: Frame

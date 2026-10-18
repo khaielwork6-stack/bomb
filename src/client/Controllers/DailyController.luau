@@ -54,6 +54,7 @@ local modal: ScreenGui
 local dock: Frame
 local giftLabel: TextLabel
 local giftButton: GuiButton
+local setGiftRing: (number) -> () = function(_: number) end
 local stopGiftPulse: (() -> ())? = nil
 local questDot: Frame
 local calendarDot: Frame
@@ -651,6 +652,17 @@ local function buildDock()
 	giftButton = gt.button
 	giftLabel = gt.label
 	giftLabel.TextSize = 22
+	-- the progress ring round the gift: fills toward the next playtime gift
+	local ringBox = new("Frame", {
+		Name = "GiftRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromScale(0.86, 0.86),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = gt.icon.Parent and gt.icon.Parent.Parent or gt.button,
+	})
+	setGiftRing = Widgets.progressRing(ringBox, Color3.fromRGB(255, 226, 90), 5, 3)
 	local _, qd = dockButton("Quests", "Scroll", 3, function()
 		local s = Progress.get()
 		if s then
@@ -762,7 +774,7 @@ local function tickGift()
 		else D.GIFTS[#D.GIFTS].minutes + (idx - #D.GIFTS) * D.REPEAT_EVERY
 	local span = math.max(1, (thisMin - prevMin) * 60)
 	local frac = if ready then 1 else math.clamp(1 - left / span, 0, 1)
-	local _ = frac
+	setGiftRing(frac)
 	giftLabel.Text = if ready then S.Ui.GiftReady else Widgets.clock(left)
 	giftLabel.TextColor3 = if ready then P.Spark else P.Paper
 	if ready and not giftWasReady then

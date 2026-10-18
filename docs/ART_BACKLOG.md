@@ -27,7 +27,7 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
 - [x] **Level-up: what's still missing** (HOOKED · AB §7.3). A 3D turntable for level-track items and a choir hit.
   - **BLOCKED:** the firework others see over your head. **Request for partner:** a LevelUp broadcast.
 - [x] **Daily calendar polish** (HOOKED · AB §7.5). A corkboard with pins, and a big Day-7 card showing the Streak Bomb.
-- [ ] **Shop / Locker: what's still missing** (HOOKED · §17.3). Stars and Emotes tabs, explosion-on-dummy previews, the featured-rotation countdown, and "Preview in game".
+- [x] **Shop / Locker: what's still missing** *(fallenbomb 2026-10-18: Stars tab (shown once the products exist), featured countdown, PREVIEW on your own character instead of a dummy; icon tabs. The Emotes tab shows once emotes are equippable)* (HOOKED · §17.3). Stars and Emotes tabs, explosion-on-dummy previews, the featured-rotation countdown, and "Preview in game".
 - [ ] **Emote wheel** (BLOCKED · AB §8.5). Needs the 8 clips (§6).
   - **Request for partner:** add Emote to StoreService's equip slots, plus a lobby-only phase check.
 - [ ] **MEGA BOMB chip, lobby clock, Event Card** (BLOCKED · GDD §16, AB §7.6). The whole MEGA mode is P6 server work. The art (violet poster, Mega icon, chip) can be drawn ahead of it.
@@ -40,7 +40,7 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
 - [x] Defuse chevron: a real chevron shape and art; today it's a text pill.
 - [x] BUMP! arrow: chunky arrow art.
 - [x] Carrier vignette: a radial edge texture with a hazard-stripe hint.
-- [ ] Hot Streak flame: a 6-frame flipbook. Gift ring: a real progress ring (today it's dots).
+- [x] Hot Streak flame: animated (flicker, sway, glow that grows with the streak) instead of a flipbook. Gift ring: a real progress ring.
 - [x] UI sounds: add `UI.Hover` (with a MouseEnter hook) and `UI.Release`.
 
 ## 4. Icons (FREE · AB §6.4): 11 of ≈40 done, ≈24 to draw in `art/ui/make_icons.py`

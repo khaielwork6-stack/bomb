@@ -381,4 +381,65 @@ function Widgets.rays(parent: Instance, color: Color3, strong: boolean, position
 	return holder
 end
 
+-- A circular progress ring (a track and a fill that sweeps clockwise from 12 o'clock), filling `parent`. Returns a
+-- setter for the fill (0..1). Built from two clipped half-rings whose stroke gradients turn (no images needed).
+function Widgets.progressRing(parent: Instance, color: Color3, thickness: number, z: number?): (number) -> ()
+	local holder = new("Frame", {
+		Name = "Ring",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = z or 3,
+		Parent = parent,
+	})
+	local track = new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = z or 3,
+		Parent = holder,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = track })
+	new("UIStroke", { Color = P.Ink, Transparency = 0.55, Thickness = thickness, Parent = track })
+	local function half(right: boolean): UIGradient
+		local clip = new("Frame", {
+			Position = UDim2.fromScale(if right then 0.5 else 0, 0),
+			Size = UDim2.fromScale(0.5, 1),
+			BackgroundTransparency = 1,
+			ClipsDescendants = true,
+			ZIndex = (z or 3) + 1,
+			Parent = holder,
+		})
+		local ring = new("Frame", {
+			Position = UDim2.fromScale(if right then -1 else 0, 0),
+			Size = UDim2.fromScale(2, 1),
+			BackgroundTransparency = 1,
+			ZIndex = (z or 3) + 1,
+			Parent = clip,
+		})
+		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ring })
+		local stroke = new("UIStroke", { Color = color, Thickness = thickness, Parent = ring })
+		return new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.499, 0),
+				NumberSequenceKeypoint.new(0.5, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Parent = stroke,
+		})
+	end
+	local r, l = half(true), half(false)
+	return function(f: number)
+		f = math.clamp(f, 0, 1)
+		r.Rotation = math.min(f, 0.5) * 360
+		l.Rotation = 180 + math.max(f - 0.5, 0) * 360
+	end
+end
+
+-- 1200 → "1,200".
+function Widgets.commas(n: number): string
+	local s = tostring(math.floor(n))
+	local out = string.reverse((string.gsub(string.reverse(s), "(%d%d%d)", "%1,")))
+	return (string.gsub(out, "^,", ""))
+end
+
 return Widgets

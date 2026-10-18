@@ -6,6 +6,9 @@
 -- are restricted (F-STORE-09). Buying asks once; equipping is a tap. Only items whose art exists are ever listed.
 -- The Starter Bundle (F-STORE-11): a full-screen offer card once the 3rd round's results close (once ever, never
 -- twice a session; the server decides via `store.starter.popup`), then a "NEW PLAYER" shop tab with its countdown.
+-- The Featured tab counts down to the next rotation (`store.featuredIn`); a Stars tab sells the Star packs once their
+-- Robux products exist (Studio preview: FV_PreviewStars); explosion / trail / victory cards have a PREVIEW that closes
+-- the shop and plays the effect on your own character (viewports can't draw particles).
 -- Implements: F-STORE-03..09, F-STORE-11 (presentation), F-UI-04 (Shop, Locker).
 
 local Players = game:GetService("Players")
@@ -26,6 +29,8 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
 local OfferController = require(script.Parent.OfferController)
+local FxController = require(script.Parent.FxController)
+local VfxCosmetic = require(script.Parent.Parent.VfxCosmetic)
 
 local St = Config.Store
 local S = Config.Strings
@@ -55,6 +60,12 @@ local CATEGORY_ICON = {
 	Title = "Plate",
 	Emote = "Wave",
 }
+
+-- Categories whose look can be previewed on your own character, and how long a trail preview runs.
+local PREVIEWABLE = { Explosion = true, Trail = true, VictoryBoom = true }
+local TRAIL_PREVIEW = 4 -- seconds
+local BOOM_AHEAD = 10 -- studs in front of you
+local STAR_PACKS = { "Stars500", "Stars1200", "Stars3000", "Stars7000" }
 
 local screen = "" -- "Shop" | "Locker" | ""
 local tab = "Featured"
@@ -315,6 +326,41 @@ local function action(
 	end
 end
 
+-- Close the shop and play `item`'s look on your own character (an explosion in front of you, your trail for a few
+-- seconds, the victory boom over you).
+local function previewOnMe(item: { [string]: any })
+	DailyController.close()
+	task.delay(0.35, function()
+		local char = Players.LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not char or not root then
+			return
+		end
+		if item.category == "Explosion" then
+			FxController.boom(root.Position + root.CFrame.LookVector * BOOM_AHEAD, 1, false, item.id)
+		elseif item.category == "Trail" then
+			VfxCosmetic.trail(char, item.id, TRAIL_PREVIEW)
+		elseif item.category == "VictoryBoom" then
+			VfxCosmetic.victory(item.id, root.CFrame)
+		end
+	end)
+end
+
+local function previewButton(card: Instance, item: { [string]: any }, at: UDim2?)
+	if not PREVIEWABLE[item.category] or not Cosmetics.ready(item.id) then
+		return
+	end
+	local b = Widgets.button(card, "", "purple", UDim2.fromOffset(40, 40), function()
+		previewOnMe(item)
+	end, { Position = at or UDim2.fromOffset(8, 8), ZIndex = 8 })
+	b.Name = "Preview"
+	Widgets.icon(b, "Eye", 28, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 10,
+	})
+end
+
 -- A grid card (category tabs): the art fills the top, name + rarity at the bottom, the action under it.
 local function itemCard(parent: Instance, s: { [string]: any }, id: string, mode: string, order: number)
 	local item = St.ById[id]
@@ -331,6 +377,7 @@ local function itemCard(parent: Instance, s: { [string]: any }, id: string, mode
 		Parent = card,
 	})
 	preview(stage, item)
+	previewButton(card, item)
 	local _, deal = priceOf(s, id)
 	if deal and not owned(s, id) and mode == "Shop" then
 		tag(card, ("DEAL -%d%%"):format(math.floor(St.DEAL_OFF * 100)), P.Spark, 8)
@@ -373,6 +420,7 @@ local function featuredCard(parent: Instance, s: { [string]: any }, id: string, 
 		return
 	end
 	local card = cardBody(parent, id, UDim2.fromOffset(330, 214), item.rarity, order)
+	previewButton(card, item, UDim2.new(1, -52, 1, -52))
 	Widgets.label(card, {
 		Position = UDim2.fromOffset(16, 10),
 		Size = UDim2.new(0.62, 0, 0, 40),
@@ -630,6 +678,59 @@ local function starterCard(parent: Instance, s: { [string]: any })
 	starterBody(card, s, 420)
 end
 
+-- A Star pack card (the Stars tab): a pile of the 3D star, the amount, the Robux price on the green button.
+local function starsCard(parent: Instance, key: string, order: number)
+	local pack = St.PRODUCTS[key]
+	local card = cardBody(parent, key, UDim2.fromOffset(190, 240), "Legendary", order)
+	local stage = new("Frame", {
+		Position = UDim2.fromOffset(6, 10),
+		Size = UDim2.new(1, -12, 0, 120),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = card,
+	})
+	local pile = math.clamp(order, 1, 4) -- more stars in the picture for the bigger packs
+	for k = 1, pile do
+		Widgets.icon(stage, "Star", 86 - (pile - 1) * 6, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, (k - (pile + 1) / 2) * 30, 0.5, (k % 2) * 10 - 5),
+			Rotation = (k - (pile + 1) / 2) * 12,
+			ZIndex = 4 + k,
+		})
+	end
+	if pack.tag then
+		tag(card, S.Ui.BestValue, Color3.new(1, 1, 1), 9)
+	end
+	Widgets.label(card, {
+		Position = UDim2.fromOffset(6, 132),
+		Size = UDim2.new(1, -12, 0, 40),
+		TextSize = 38,
+		font = Theme.Font.Display,
+		stroke = 3,
+		Text = Widgets.commas(pack.stars),
+		ZIndex = 6,
+	})
+	Widgets.button(card, ("R$ %d"):format(pack.robux), "green", UDim2.new(1, -24, 0, 44), function()
+		if pack.id ~= 0 then
+			Net.send("StoreAction", { kind = "BuyProduct", product = key })
+		else
+			Sfx.play("UiDeny")
+		end
+	end, { Position = UDim2.new(0, 12, 1, -54), TextSize = 24, ZIndex = 6 })
+end
+
+local function starsForSale(): boolean
+	if RunService:IsStudio() and Players.LocalPlayer:GetAttribute("FV_PreviewStars") then
+		return true
+	end
+	for _, key in ipairs(STAR_PACKS) do
+		if St.PRODUCTS[key].id ~= 0 then
+			return true
+		end
+	end
+	return false
+end
+
 -- ── Screens ─────────────────────────────────────────────────────────────────────────────────────────────────────
 local render: (refresh: boolean?) -> ()
 
@@ -641,6 +742,9 @@ local function tabsFor(s: { [string]: any }, mode: string): { string }
 		end
 		if #(s.store and s.store.featured or {}) > 0 then
 			table.insert(out, "Featured")
+		end
+		if starsForSale() then
+			table.insert(out, "Stars")
 		end
 	end
 	for _, cat in ipairs(St.CATEGORIES) do
@@ -674,9 +778,13 @@ local TAB_PRESET = {
 	Emote = "pink",
 	Crates = "green",
 	Starter = "rainbow",
+	Stars = "gold",
 }
 
 local TAB_NAME = { Featured = "Featured", Crates = "Crates", BombSkin = "Skins", FuseSpark = "Sparks" }
+local TAB_ICON = { Featured = "Crown", Stars = "Star", Crates = "Crate", Starter = "Gift", BombSkin = "Bomb" }
+local TAB_ICON_W, TAB_GAP = 50, 8
+local FEATURED_HEADROOM = 20
 
 render = function(refresh: boolean?)
 	local s = Progress.get()
@@ -698,22 +806,43 @@ render = function(refresh: boolean?)
 	-- tabs in the header strip (the reference's coloured tab row)
 	local slot = DailyController.headerTabs()
 	if slot then
+		-- every tab is its 3D icon; the selected one also shows its name (nine categories still fit the header)
+		local total = 0
 		for i, t in ipairs(tabs) do
 			local label = TAB_NAME[t]
-				or (if t == "Starter" then S.Ui.StarterTab else nil)
+				or (if t == "Starter" then S.Ui.StarterTab elseif t == "Stars" then S.Ui.StarsTab else nil)
 				or (St.CATEGORY_NAME[t] and (string.sub(St.CATEGORY_NAME[t], 1, 1) .. string.lower(
 					string.sub(St.CATEGORY_NAME[t], 2)
 				)))
 				or t
-			local w = math.max(96, 16 * #label + 30)
-			local b = Widgets.button(slot, label, TAB_PRESET[t] or "cyan", UDim2.fromOffset(w, 46), function()
+			local selected = t == tab
+			local w = if selected then TAB_ICON_W + math.max(40, 14 * #label + 18) else TAB_ICON_W
+			total += w + TAB_GAP
+			local b = Widgets.button(slot, "", TAB_PRESET[t] or "cyan", UDim2.fromOffset(w, 46), function()
 				if tab ~= t then
 					Sfx.play("UiTab")
 				end
 				tab = t
 				render(true)
-			end, { TextSize = 24, LayoutOrder = i, ZIndex = 7 })
-			if t == tab then
+			end, { LayoutOrder = i, ZIndex = 7 })
+			b.Name = "Tab_" .. t
+			Widgets.icon(b, TAB_ICON[t] or CATEGORY_ICON[t] or "Star", 38, {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 4, 0.5, 0),
+				ZIndex = 10,
+			})
+			if selected then
+				Widgets.label(b, {
+					AnchorPoint = Vector2.new(0, 0.5),
+					Position = UDim2.new(0, TAB_ICON_W - 4, 0.5, 0),
+					Size = UDim2.new(1, -TAB_ICON_W, 1, 0),
+					TextSize = 22,
+					font = Theme.Font.Display,
+					stroke = 2.5,
+					align = Enum.TextXAlignment.Left,
+					Text = label,
+					ZIndex = 10,
+				})
 				local ring = new("UIStroke", {
 					Color = Color3.new(1, 1, 1),
 					Thickness = 3,
@@ -725,12 +854,30 @@ render = function(refresh: boolean?)
 				b.Size = UDim2.fromOffset(w, 42)
 			end
 		end
+		-- still too many for the strip (a small phone): shrink the row to fit
+		task.defer(function()
+			local fit = slot:FindFirstChild("Fit") :: UIScale? or new("UIScale", { Name = "Fit", Parent = slot })
+			local panelScale = 1 -- the panel's own fit-to-screen scale (its "Fit" UIScale up the tree)
+			local up = slot.Parent
+			while up and not up:IsA("ScreenGui") do
+				local u = up:FindFirstChild("Fit")
+				if u and u:IsA("UIScale") then
+					panelScale *= u.Scale
+				end
+				up = up.Parent
+			end
+			local room = slot.AbsoluteSize.X / math.max(0.01, panelScale)
+			if fit then
+				fit.Scale = math.min(1, room / math.max(1, total))
+			end
+		end)
 	end
 	-- the grid
+	local headroom = if tab == "Featured" then FEATURED_HEADROOM else 0 -- room for the rotation countdown
 	local grid = new("ScrollingFrame", {
 		Name = "Grid",
-		Position = UDim2.fromOffset(18, 44),
-		Size = UDim2.new(1, -36, 1, -58),
+		Position = UDim2.fromOffset(18, 44 + headroom),
+		Size = UDim2.new(1, -36, 1, -58 - headroom),
 		BackgroundTransparency = 1,
 		ScrollBarThickness = 8,
 		ScrollBarImageColor3 = Color3.fromRGB(150, 146, 170),
@@ -743,6 +890,7 @@ render = function(refresh: boolean?)
 	new("UIGridLayout", {
 		CellSize = if tab == "Starter"
 			then UDim2.fromOffset(420, 226)
+			elseif tab == "Stars" then UDim2.fromOffset(190, 240)
 			elseif tab == "Crates" then UDim2.fromOffset(406, 300)
 			elseif big then UDim2.fromOffset(406, 214)
 			else UDim2.fromOffset(158, 214),
@@ -764,9 +912,36 @@ render = function(refresh: boolean?)
 		if (s.store and s.store.crates and s.store.crates.GiftBox or 0) > 0 then
 			crateCard(grid, s, "GiftBox", 3)
 		end
+	elseif tab == "Stars" then
+		for i, key in ipairs(STAR_PACKS) do
+			starsCard(grid, key, i)
+		end
 	elseif tab == "Featured" then
 		for i, id in ipairs(s.store.featured) do
 			featuredCard(grid, s, id, screen, i)
+		end
+		-- the rotation's countdown, top-right over the grid
+		if (s.store.featuredIn or 0) - Progress.age() > 0 then
+			local clock = Widgets.label(face, {
+				Name = "NewIn",
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -20, 0, 30),
+				Size = UDim2.fromOffset(320, 28),
+				TextSize = 22,
+				font = Theme.Font.Display,
+				stroke = 2.5,
+				color = P.Spark,
+				align = Enum.TextXAlignment.Right,
+				Text = "",
+				ZIndex = 12,
+			})
+			task.spawn(function()
+				while clock.Parent do
+					local t = math.max(0, (s.store.featuredIn or 0) - Progress.age())
+					clock.Text = S.Ui.NewItemsIn:format(Widgets.clock(t))
+					task.wait(1)
+				end
+			end)
 		end
 	else
 		local order = 0
