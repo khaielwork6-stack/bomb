@@ -42,8 +42,8 @@ Checked continuously during `CROSSING`, in this order:
 | 2–7 | 1 | narrow (map variant) | With fewer than 4 Runners at the start, there is no Last Stand |
 | 8–15 | 1–2 | standard | |
 | 16 (bot fill) | 2 | standard | The default case |
-| 17–20 | 2 | standard | |
-| 24 (MAX_PLAYERS raised later) | 3 | standard | |
+| 17–23 | 2 | standard | |
+| 24–30 | 3 | standard | Bots stop filling at 16; above that every participant is a real player |
 
 Formula: `bombers = clamp(floor(n / BOMBERS_PER), 1, BOMBERS_MAX)`. The starting Bombers are chosen at random, but nobody starts as a Bomber two rounds in a row (`Config.Round.BOMBER_REPEAT_GUARD`).
 

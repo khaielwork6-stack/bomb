@@ -85,7 +85,7 @@ These were the open questions before writing this GDD. The user said "go" with t
 | # | Decision | Value | Config |
 |---|---|---|---|
 | D1 | Name | **FUSE VALLEY** (was the working title FUSE VALLEY; the user named the place on 2026-10-17) | `Config.Game.NAME` |
-| D2 | Max players per server | **20** | `Config.Game.MAX_PLAYERS` |
+| D2 | Max players per server | **30** (raised from 20 on 2026-10-18, the user's call) | `Config.Game.MAX_PLAYERS` |
 | D3 | Bots fill each round to | **16 participants** | `Config.Bots.FILL_TARGET` |
 | D4 | Starting Bombers | **1 per 8 participants** (min 1, max 3) → 2 in a 16-player round | `Config.Round.BOMBERS_PER` |
 | D5 | Bomb fuse | **4.0 s** | `Config.Bomb.FUSE` |
@@ -183,8 +183,8 @@ Checked continuously during `CROSSING`, in this order:
 | 2–7 | 1 | narrow (map variant) | With fewer than 4 Runners at the start, there is no Last Stand |
 | 8–15 | 1–2 | standard | |
 | 16 (bot fill) | 2 | standard | The default case |
-| 17–20 | 2 | standard | |
-| 24 (MAX_PLAYERS raised later) | 3 | standard | |
+| 17–23 | 2 | standard | |
+| 24–30 | 3 | standard | Bots stop filling at 16; above that every participant is a real player |
 
 Formula: `bombers = clamp(floor(n / BOMBERS_PER), 1, BOMBERS_MAX)`. The starting Bombers are chosen at random, but nobody starts as a Bomber two rounds in a row (`Config.Round.BOMBER_REPEAT_GUARD`).
 
@@ -975,7 +975,7 @@ Combat rules, Titan Hunt (as designed), abilities, modifiers, hazards, blocks, B
 | Simultaneous full explosions | 3. Beyond that, the "light" variant (40 % particles) plays |
 | Screen-space UI | ≤ 2 nested ViewportFrames visible at once (shop previews paginate) |
 | Map | ≤ 8,000 parts, `StreamingEnabled` off (small map, instant visibility matters for a tag game) |
-| Server | ≤ 4 ms per Heartbeat at 20 humans + bots (contact checks are ~120 distance checks) |
+| Server | ≤ 4 ms per Heartbeat at 30 participants (contact checks are ~270 distance checks) |
 
 ### 24.3 Data (F-DATA-01)
 The session-locked profile (transferred DataService) uses a fresh schema `v1`:
@@ -1073,7 +1073,7 @@ Built on Roblox `AnalyticsService`:
 ## Appendix A. Config index
 | Module | Key values (defaults in this document) |
 |---|---|
-| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 20` |
+| `Config.Game` | `NAME = "FUSE VALLEY"`, `MAX_PLAYERS = 30` |
 | `Config.Round` | `INTERMISSION = 12`, `INTRO = 4`, `READY = 2`, `RESOLVE = 1.5`, `RESULTS = 8`, `MAX_CROSSINGS = 8`, `FIELD_FUSE = {20,16,13,11,10,10,10,10}`, `LAST_STAND_FUSE = 12`, `LAST_STAND_SPEED = 1.08`, `LAST_STAND_MIN_RUNNERS = 4`, `BOMBERS_PER = 8`, `BOMBERS_MAX = 3`, `BOMBER_REPEAT_GUARD = true`, `IDLE_WARN = 5`, `FUSE_WARN = 5`, `FUSE_PULSE = 3` |
 | `Config.Bomb` | §7.8 |
 | `Config.Movement` | Transferred unchanged (§9.1); `Profiles.Bomber` |
