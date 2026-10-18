@@ -73,6 +73,19 @@ return function(ctx)
 		return Vector3.new(O.X + x, Y0 + y, O.Z + z)
 	end
 
+	-- A ProximityPrompt the client opens a screen from (StoreController / WheelController read FV_Open).
+	local function prompt(on: BasePart, action: string, object: string, open: string)
+		local pp = Instance.new("ProximityPrompt")
+		pp.ActionText = action
+		pp.ObjectText = object
+		pp.KeyboardKeyCode = Enum.KeyCode.E
+		pp.MaxActivationDistance = 12
+		pp.RequiresLineOfSight = false
+		pp:SetAttribute("FV_Open", open)
+		pp.Parent = on
+		return pp
+	end
+
 	local function stud(p: BasePart, faces)
 		for _, f in ipairs(faces or { Enum.NormalId.Top }) do
 			local tex = Instance.new("Texture")
@@ -317,7 +330,8 @@ return function(ctx)
 		C.Wood,
 		{ faces = { Enum.NormalId.Top, Enum.NormalId.Front, Enum.NormalId.Back } }
 	)
-	part(shop, "CounterTop", Vector3.new(17, 0.6, 3.6), at(sx, 4.7, sz + 2.5), C.Red)
+	local counterTop = part(shop, "CounterTop", Vector3.new(17, 0.6, 3.6), at(sx, 4.7, sz + 2.5), C.Red)
+	prompt(counterTop, "Shop", "Shop", "Shop")
 	for _, px in ipairs({ -8, 8 }) do
 		part(shop, "Post", Vector3.new(0.8, 10, 0.8), at(sx + px, 5.5, sz + 3.6), C.White, { studs = false })
 		part(shop, "PostBack", Vector3.new(0.8, 10, 0.8), at(sx + px, 5.5, sz - 4), C.White, { studs = false })
@@ -584,6 +598,7 @@ return function(ctx)
 			7
 		)
 		top:SetAttribute("CrateStand", kind)
+		prompt(top, "Open", labels[kind][1], "Crates")
 	end
 	-- the spin wheel by the shop
 	local wheel = Instance.new("Model")
@@ -616,7 +631,14 @@ return function(ctx)
 	cyl(wheel, "Rim", 0.8, 9.6, wheelCF, C.Gold, { studs = false })
 	cyl(wheel, "Hub", 1, 2, wheelCF * CFrame.new(0.2, 0, 0), C.White, { studs = false })
 	part(wheel, "Pointer", Vector3.new(0.8, 1.6, 1.2), wheelCF * CFrame.new(0, 5.2, 0), C.Gold, { studs = false })
-	billboard(wheel:FindFirstChild("Hub") :: BasePart, "SPIN THE WHEEL", "free spin every day", rgb(255, 214, 46), 8)
+	billboard(
+		wheel:FindFirstChild("Hub") :: BasePart,
+		"SPIN THE WHEEL",
+		"free spin every 12 hours",
+		rgb(255, 214, 46),
+		8
+	)
+	prompt(wheel:FindFirstChild("Stand") :: BasePart, "Spin", "Spin Wheel", "Wheel")
 
 	-- ── 8. Dressing: benches, palms already round the yard; a few flower beds and lamps ───────────────────────────
 	for k = 0, 5 do

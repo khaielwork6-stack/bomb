@@ -31,3 +31,4 @@ Log every ambiguity resolved during the build: date, question, decision, GDD sec
 | 2026-10-17 | Bomb | Keep the current mesh (the face rig and 17 skins fit it); improve materials, expressions and effects only | AB §3 |
 | 2026-10-17 | Code ownership | The art/UI side writes all client UI / VFX / audio code; the partner owns server and gameplay. Merges to main: the owner or partner | §2 D10 |
 | 2026-10-17 | Spark Crate | Sample approved by the owner (art/crate/build.py → upload → studio_import) | AB §7.4 |
+| 2026-10-18 | Spin wheel prizes, odds, free timer, products | **Pending the owner** (monetisation). Proposed in `Config.Wheel`: 8 segments (25–250 Stars, Spark Crate 8 %, Gift Box 4 %, 250 Stars 2 %), one free spin every 12 h, +1 spin 25 R$ / +5 spins 99 R$ (product ids 0 = buttons hidden). Odds always shown on the wheel (F-STORE-06 honesty rule) | §17, F-ECO-03 |

@@ -749,9 +749,9 @@ confirmBuy = function(id: string)
 	Widgets.springIn(holder)
 end
 
-function StoreController.open(which: string)
+function StoreController.open(which: string, startTab: string?)
 	screen = which
-	tab = if which == "Shop" then "Featured" else "BombSkin"
+	tab = startTab or (if which == "Shop" then "Featured" else "BombSkin")
 	render()
 end
 
@@ -766,6 +766,15 @@ function StoreController.start()
 		end, { color = "blue", key = Enum.KeyCode.N, label = "Items" })
 	end)
 	RunService.RenderStepped:Connect(spinPreviews)
+	-- the lobby's shop kiosk and crate stands (LobbyDepot puts FV_Open on their prompts)
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt, who)
+		local want = prompt:GetAttribute("FV_Open")
+		if who == Players.LocalPlayer and want == "Shop" then
+			StoreController.open("Shop")
+		elseif who == Players.LocalPlayer and want == "Crates" then
+			StoreController.open("Shop", "Crates")
+		end
+	end)
 	Progress.Changed:Connect(function()
 		-- live refresh while open (a purchase, an equip, a crate); forget the screen once something else replaced it
 		if screen ~= "" and DailyController.openName() ~= screen then
