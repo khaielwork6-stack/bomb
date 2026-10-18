@@ -68,7 +68,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 - [x] ~~Tag-ready hand glow on Bombers~~: superseded by the partner's slap-tag (P6-05): every ready Bomber now holds the hand bomb (SlapController), which is the tag-ready read.
 - [x] Bomber stun: spinning sparks and a soot face; reads `StunnedUntil` (HOOKED).
 - [x] Ragdoll soot overlay and smoke wisps (HOOKED).
-- [ ] Bomb HOT smoke wisps; CRITICAL seam sprays and heat shimmer (verify first, then HOOKED).
+- [x] Bomb HOT smoke wisps; CRITICAL seam sprays and heat shimmer *(BombController heat emitters; reduced-motion drops the sprays and haze)*.
 - [ ] MEGA giant bomb and the violet STOMP ring (BLOCKED, P6).
 
 ## 8. Maps & world
@@ -83,7 +83,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 ## 9. Audio (AB §9.2): missing registry keys
 The moment exists in game for all of these unless noted, so they can be added now:
 - [x] `Bomb.Ignite` · `Bomb.Critical` (whine) · `Boom.Far` · `Fuse.Snuff` · `Bomb.Release` · `Bomb.Drop` · `Clutch.Choir` · `Field.Detonate` · `Crowd.Chant` · `Crowd.Groan` · `Stinger.Bombers` · `Stinger.BombersWin` · `UI.Hover` · `UI.Release`
-- [ ] Replace these stand-ins with designed stacks:
+- [x] Replace these stand-ins with designed stacks *(done: all in-house now, art/audio/make_sfx.py + make_ui.py; licensed library sounds stay where the owner approved them)*:
   - Movement SFX from Chase Game (Dash, HardStop, Slide, Land, Footstep1-4)
   - Defuse and PassWhoosh (both the Dash whoosh repitched)
   - UiPress and CoinTick (bomb ticks pitched up)

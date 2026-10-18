@@ -38,6 +38,8 @@ local BombController = {}
 
 local RADIUS = 1.1
 local FUSE_SEGMENTS = 12
+local HEAT_SMOKE_HOT, HEAT_SMOKE_CRIT = 4, 9 -- wisps / s off a hot bomb
+local HEAT_SPRAY, HEAT_HAZE = 22, 6 -- seam sparks and haze puffs / s at CRITICAL
 local FUSE_LEN = 1.25
 local RING_SEGMENTS = 20
 -- Where the bomb hangs, in Torso space (R6 Torso: +Z is the back).
@@ -52,6 +54,7 @@ type Visual = {
 	segments: { BasePart },
 	lamps: { BasePart },
 	seams: { BasePart },
+	heat: { smoke: ParticleEmitter, spray: ParticleEmitter, haze: ParticleEmitter }?,
 	spark: ParticleEmitter,
 	sparkAtt: Attachment,
 	cosmetic: VfxCosmetic.SparkRig?, -- the Carrier's equipped fuse spark (nil: Classic)
@@ -422,6 +425,71 @@ local function attach(host: Instance): Visual?
 		Parent = sparkAtt,
 	})
 	local light = new("PointLight", { Color = P.Fuse, Range = 5, Brightness = 2, Parent = sparkAtt })
+	-- The bomb getting hot (Asset Bible §5.2): grey wisps curl off the body at HOT; at CRITICAL the weld seams spit
+	-- sparks and a heat haze wobbles over it. All off while LIT; the rates are set per frame by stage.
+	local heatAtt = new("Attachment", { Name = "FV_Heat", Parent = mount })
+	local heat = {
+		smoke = new("ParticleEmitter", {
+			Name = "HeatSmoke",
+			Texture = Assets.Vfx.Smoke,
+			FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4,
+			FlipbookMode = Enum.ParticleFlipbookMode.OneShot,
+			Color = ColorSequence.new(Color3.fromRGB(96, 90, 98), Color3.fromRGB(170, 164, 172)),
+			LightInfluence = 0.25,
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 2.4) }),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.2),
+				NumberSequenceKeypoint.new(0.6, 0.55),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Lifetime = NumberRange.new(0.8, 1.2),
+			Speed = NumberRange.new(1.5, 2.5),
+			SpreadAngle = Vector2.new(25, 25),
+			EmissionDirection = Enum.NormalId.Top,
+			Acceleration = Vector3.new(0, 1.5, 0),
+			Rotation = NumberRange.new(-40, 40),
+			RotSpeed = NumberRange.new(-40, 40),
+			Rate = 0,
+			Parent = heatAtt,
+		}) :: ParticleEmitter,
+		spray = new("ParticleEmitter", {
+			Name = "SeamSpray",
+			Texture = Assets.Vfx.Streak,
+			Orientation = Enum.ParticleOrientation.VelocityParallel,
+			Color = ColorSequence.new(Color3.fromRGB(255, 236, 160), P.Fuse),
+			LightEmission = 1,
+			LightInfluence = 0,
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.38), NumberSequenceKeypoint.new(1, 0) }),
+			Lifetime = NumberRange.new(0.15, 0.3),
+			Speed = NumberRange.new(6, 11),
+			SpreadAngle = Vector2.new(180, 30),
+			Acceleration = Vector3.new(0, -20, 0),
+			Rate = 0,
+			Parent = heatAtt,
+		}) :: ParticleEmitter,
+		haze = new("ParticleEmitter", {
+			Name = "HeatHaze",
+			Texture = Assets.Vfx.Smoke,
+			FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4,
+			FlipbookMode = Enum.ParticleFlipbookMode.Loop,
+			Color = ColorSequence.new(Color3.fromRGB(255, 190, 120)),
+			LightEmission = 0.3,
+			LightInfluence = 0,
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 2.2) }),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.86),
+				NumberSequenceKeypoint.new(0.5, 0.8),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Lifetime = NumberRange.new(0.5, 0.7),
+			Speed = NumberRange.new(2, 3),
+			EmissionDirection = Enum.NormalId.Top,
+			Rotation = NumberRange.new(0, 360),
+			RotSpeed = NumberRange.new(-120, 120),
+			Rate = 0,
+			Parent = heatAtt,
+		}) :: ParticleEmitter,
+	}
 	local cosmetic = VfxCosmetic.spark(host:GetAttribute("Eq_FuseSpark"), sparkAtt, mount, spark, core, light)
 	Sfx.loop("FuseHiss", sparkAtt) -- the burning cord, 3D on the Carrier's back (destroyed with the bomb)
 	model.Parent = char
@@ -436,6 +504,7 @@ local function attach(host: Instance): Visual?
 		segments = segments,
 		lamps = lamps,
 		seams = seams,
+		heat = heat,
 		spark = spark,
 		sparkAtt = sparkAtt,
 		cosmetic = cosmetic,
@@ -546,6 +615,13 @@ local function update(v: Visual, dt: number, t: number)
 	for _, seam in ipairs(v.seams) do
 		seam.Transparency = seamT
 		seam.Color = if stage == "CRITICAL" then P.Spark:Lerp(Color3.new(1, 1, 1), pulse) else P.Ember
+	end
+	local heat = v.heat
+	if heat then
+		local calm = Settings.get("reduceMotion") == true
+		heat.smoke.Rate = if stage == "CRITICAL" then HEAT_SMOKE_CRIT elseif stage == "HOT" then HEAT_SMOKE_HOT else 0
+		heat.spray.Rate = if stage == "CRITICAL" and not calm then HEAT_SPRAY else 0
+		heat.haze.Rate = if stage == "CRITICAL" and not calm then HEAT_HAZE else 0
 	end
 	v.light.Range = if stage == "CRITICAL" then 10 elseif cosmetic then cosmetic.range else 5
 	v.light.Color = if cosmetic then cosmetic.color else stageColor
