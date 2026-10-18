@@ -12,4 +12,5 @@ client already does and the smallest server change that makes it real. Tick when
 | 6 | Saved settings on join | Settings screen applies saved values | Send the saved settings back on join (e.g. in the first Progress snapshot) so `Settings.apply` runs | open |
 | 7 | Level-up firework others see | A firework over the player's head | Broadcast level-ups (a `LevelUp` kind on ActionFx / RoundFx with the player) | open |
 | 8 | Emotes | Emote wheel + the 8 clips | `Emote` in StoreService equip slots; optional lobby-only check | open |
-| 9 | Lobby spawn | The Depot plaza (`builders/LobbyDepot.luau`) has its kiosk / crate stand / wheel prompts | Spawn players between rounds at the Depot's `Spawn` part (attribute `LobbySpawn`) instead of the yard | open |
+| 9 | Lobby spawn | ~~Superseded~~: your `MapDepot` + `DepotService` spawn players on `Lobby.LobbySpawn`. Our old `LobbyDepot` is retired (backed up in ServerStorage.FV_Backup) | — | done |
+| 10 | Depot restyle | `builders/MapDepotToy.luau` restyles your Depot to the toy look **without renaming anything** (your names are the contract), swaps the dressing crates for modelled ones, adds the 3 crate stands + the spin wheel at the pier's front corners | After any `MapDepot` rebuild, also run `MapDepotToy` (README rebuild block). If you add parts, keep using names: the pass recolours by name | open |
