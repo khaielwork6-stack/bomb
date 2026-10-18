@@ -50,6 +50,9 @@ return {
 		"The last Runner standing gets the LAST STAND.",
 	},
 	Ui = {
+		BtnDash = "DASH",
+		BtnSlide = "SLIDE",
+		BtnStop = "STOP",
 		On = "ON",
 		Off = "OFF",
 		Spectating = "Spectating",

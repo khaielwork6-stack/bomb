@@ -20,6 +20,7 @@ local Config = {
 	Strings = require(script.Strings),
 	Store = require(script.Store),
 	Wheel = require(script.Wheel),
+	Mobile = require(script.Mobile),
 	Arena = require(script.Arena),
 	Maps = require(script.Maps),
 	Data = require(script.Data),

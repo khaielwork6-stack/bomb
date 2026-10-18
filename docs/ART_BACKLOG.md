@@ -12,7 +12,7 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
 ---
 
 ## 1. Must-fix first
-- [ ] **Mobile action buttons** (HOOKED · GDD §21.2, AB §6.6). DASH 110 px, SLIDE and STOP 78 px in an arc, with a cooldown drain ring and a ready ping. **Phones currently can't dash, slide or stop at all**: `InputController` binds with no touch buttons, and nothing calls `InputController.trigger`. Needs the Dash / Slide / Stop icons (§4).
+- [x] **Mobile action buttons** *(fallenbomb 2026-10-18: MobileController; tested in Studio with FV_SimTouch)* (HOOKED · GDD §21.2, AB §6.6). DASH 110 px, SLIDE and STOP 78 px in an arc, with a cooldown drain ring and a ready ping. **Phones currently can't dash, slide or stop at all**: `InputController` binds with no touch buttons, and nothing calls `InputController.trigger`. Needs the Dash / Slide / Stop icons (§4).
 - [ ] **Nametag + level badge** (HOOKED · GDD §12.3). The humanoid name display is off, so nobody has a name over their head. The `Level` attribute is already sent. Badge frames: bronze → silver → gold → platinum → obsidian, one per 10 levels.
 - [ ] **Title plate under the nametag** (HOOKED · AB §8.4, P5-06). A brass plate whose frame takes the title's rarity colour; reads `Eq_Title`.
 
