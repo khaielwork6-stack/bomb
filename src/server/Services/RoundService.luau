@@ -158,6 +158,16 @@ local function lockAll(locked: boolean, role: string?)
 	end
 end
 
+-- AFK (PARTNER_REQUESTS #4): the lobby toggle sends SetAfk; an AFK player sits out rounds (`present` skips them).
+-- It applies at once in the lobby, or at the end of the round for someone mid-round (never mid-crossing).
+local function applyAfk(p: Participant)
+	local wish = p.data.afkWish == true
+	if p.afk ~= wish then
+		p.afk = wish
+		p.attrs:SetAttribute("Afk", if wish then true else nil)
+	end
+end
+
 -- ── Round setup ─────────────────────────────────────────────────────────────────────────────────────────────────
 local function eligible(): { Participant }
 	local out = {}
@@ -404,6 +414,7 @@ local function resetToLobby()
 			Characters.applyGroup(p)
 			Characters.pivot(p, Characters.lobbyCFrame()) -- back to The Depot (GDD §19)
 		end
+		applyAfk(p) -- an AFK toggled mid-round takes effect now, back in the lobby
 	end
 	startSide = -1
 end
@@ -576,6 +587,16 @@ function RoundService.start()
 	if not Arena.load(Config.Maps.Order[1]) then
 		warn("[Round] no map loaded; rounds can't start")
 	end
+	Net.on("SetAfk", function(player: Player, on: any)
+		local p = Participants.fromPlayer(player)
+		if not p or type(on) ~= "boolean" then
+			return
+		end
+		p.data.afkWish = on
+		if p.role == R.None then
+			applyAfk(p)
+		end
+	end)
 	AdminService.register("skip", function()
 		skipFlag = true
 		return "skipping the current wait"

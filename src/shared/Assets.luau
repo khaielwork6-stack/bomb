@@ -166,6 +166,18 @@ Assets.Anim = {
 	EmoteSitSip = "rbxassetid://130206929426189",
 	-- the T taunt (tools/anim/Taunt.luau, baked offline by tools/anim/analyse.luau, art/out/Anim/Taunt)
 	Taunt = "rbxassetid://70986811548741",
+	-- The free emote page (the owner, 2026-10-18: good emotes for everyone, for now): Roblox's own R6 emotes from the
+	-- default Animate script. They're Roblox-owned, so any game may play them (third-party toolbox animations can't
+	-- play outside their owner's games). Checked on our R6 rig in Studio.
+	FreeEmotes = {
+		Wave = "rbxassetid://128777973",
+		Point = "rbxassetid://128853357",
+		Cheer = "rbxassetid://129423030",
+		Laugh = "rbxassetid://129423131",
+		Dance = "rbxassetid://182435998",
+		Dance2 = "rbxassetid://182436842",
+		Dance3 = "rbxassetid://182436935",
+	},
 	-- The slap (GDD F-BOMB-10), tools/anim/Slap + Stumble (in-house v1; uploaded by tools/upload.py, 2026-10-18).
 	Slap = "rbxassetid://81555655127047",
 	Stumble = "rbxassetid://95261557468863",

@@ -19,6 +19,7 @@ Net.ClientToServer = {
 	DailyAction = 4, -- { kind = ClaimLogin | ClaimGift | Reroll | ClaimDailyCrate | RulesSeen | Tip | Funnel, … } (P4)
 	StoreAction = 4, -- { kind = Buy | Equip | Unequip | OpenCrate | BuyRobux | BuyProduct | BuyPass, … } (P5)
 	Strike = 2, -- the Mole's STRIKE intent (GDD §6.4, F-MOD-04)
+	SetAfk = 2, -- the lobby AFK toggle (boolean): sit out the next rounds (PARTNER_REQUESTS #4)
 }
 
 Net.ServerToClient = {

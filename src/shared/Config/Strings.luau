@@ -52,6 +52,17 @@ return {
 	Ui = {
 		PickBomber = "BOMBER!",
 		Emotes = "Emotes",
+		EmotesFree = "FREE",
+		EmotesShop = "SHOP",
+		FreeEmoteNames = {
+			Wave = "Wave",
+			Point = "Point",
+			Cheer = "Cheer",
+			Laugh = "Laugh",
+			Dance = "Dance",
+			Dance2 = "Groove",
+			Dance3 = "Boogie",
+		},
 		Taunt = "Taunt",
 		StarsTab = "Gems",
 		Preview = "PREVIEW",
@@ -139,6 +150,8 @@ return {
 		NoChampions = "no champions yet this week",
 		Joining = "YOU'RE UP NEXT",
 		JoiningSub = "you drop in as a Bomber at the next crossing",
+		Afk = "YOU'RE AFK",
+		AfkSub = "you're sitting out — turn AFK off to play",
 		Boards = { Wins = "WEEKLY WINS", Clutches = "WEEKLY CLUTCHES", Booms = "WEEKLY BOOMS" },
 	},
 	Round = {

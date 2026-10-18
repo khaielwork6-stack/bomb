@@ -505,8 +505,12 @@ local function step()
 		ClientState.role() == Types.Role.None
 		and (phase == Ph.Ready or phase == Ph.Crossing or phase == Ph.Resolve or phase == Ph.LastStand)
 	then
-		-- D-LOBBY-01: joined mid-round, waiting in The Depot for the next READY
-		show(Config.Strings.Lobby.Joining, Config.Strings.Lobby.JoiningSub, P.Bomber)
+		-- D-LOBBY-01: joined mid-round, waiting in The Depot for the next READY (unless they chose AFK)
+		if player:GetAttribute("Afk") then
+			show(Config.Strings.Lobby.Afk, Config.Strings.Lobby.AfkSub, P.Paper)
+		else
+			show(Config.Strings.Lobby.Joining, Config.Strings.Lobby.JoiningSub, P.Bomber)
+		end
 	elseif carrying and phase ~= Ph.Results then -- (RESULTS belongs to the results card, ResultsController)
 		show("BUMP SOMEONE!", "or run to a safe side", P.Detonate)
 	else

@@ -40,6 +40,11 @@ local CANCEL_MOVE = 0.2 -- MoveDirection magnitude that cancels an emote
 local gui: ScreenGui
 local side: Frame
 local wheel: Frame? = nil
+-- the wheel's two pages: FREE (Roblox's own emotes, everyone has them) and SHOP (the store's emotes, owned or locked)
+type Page = "Free" | "Shop"
+type Entry = { name: string, anim: string, mine: boolean }
+local FREE_ORDER = { "Wave", "Point", "Cheer", "Laugh", "Dance", "Dance2", "Dance3" }
+local page: Page? = nil -- remembered for the session; first open picks FREE unless you own a shop emote
 local track: AnimationTrack? = nil
 local cache: { [string]: Animation } = {}
 
@@ -57,6 +62,33 @@ local function owns(id: string): boolean
 	local s = Progress.get()
 	for _, o in ipairs(s and s.store and s.store.owned or {}) do
 		if o == id then
+			return true
+		end
+	end
+	return false
+end
+
+local function entries(pg: Page): { Entry }
+	local out = {}
+	if pg == "Free" then
+		for _, key in ipairs(FREE_ORDER) do
+			local anim = Assets.Anim.FreeEmotes[key]
+			if anim then
+				table.insert(out, { name = S.Ui.FreeEmoteNames[key] or key, anim = anim, mine = true })
+			end
+		end
+	else
+		for _, id in ipairs(emoteIds()) do
+			local item = St.ById[id]
+			table.insert(out, { name = item and item.name or id, anim = Cosmetics.Emotes[id] or "", mine = owns(id) })
+		end
+	end
+	return out
+end
+
+local function ownsAnyShopEmote(): boolean
+	for _, id in ipairs(emoteIds()) do
+		if owns(id) then
 			return true
 		end
 	end
@@ -107,15 +139,10 @@ local function closeWheel()
 	end
 end
 
-local function openWheel()
-	if wheel then
-		closeWheel()
-		return
-	end
-	if not allowed() then
-		Sfx.play("UiDeny")
-		return
-	end
+local openWheel: () -> ()
+
+local function buildWheel()
+	local pg: Page = page or "Free"
 	Sfx.play("UiOpen")
 	local w = new("Frame", {
 		Name = "EmoteWheel",
@@ -141,7 +168,7 @@ local function openWheel()
 	new("UIStroke", { Color = Skin.Color.Accent, Thickness = 4, Parent = disc })
 	Widgets.label(w, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, -18),
 		Size = UDim2.fromOffset(160, 40),
 		TextSize = 30,
 		font = Theme.Font.Display,
@@ -149,19 +176,40 @@ local function openWheel()
 		Text = S.Ui.Emotes,
 		ZIndex = 12,
 	})
-	local ids = emoteIds()
-	for i, id in ipairs(ids) do
-		local item = St.ById[id]
-		local a = math.rad(-90 + (i - 1) * 360 / #ids)
-		local mine = owns(id)
+	-- the page toggle: shows the page you'd switch to
+	local other: Page = if pg == "Free" then "Shop" else "Free"
+	Widgets.button(
+		w,
+		if other == "Free" then S.Ui.EmotesFree else S.Ui.EmotesShop,
+		if other == "Free" then "green" else "gold",
+		UDim2.fromOffset(110, 40),
+		function()
+			page = other
+			local old = wheel
+			wheel = nil
+			if old then
+				old:Destroy()
+			end
+			buildWheel()
+		end,
+		{
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 24),
+			TextSize = 20,
+			ZIndex = 13,
+		}
+	)
+	local list = entries(pg)
+	for i, e in ipairs(list) do
+		local a = math.rad(-90 + (i - 1) * 360 / #list)
 		local slot = Widgets.button(
 			w,
 			"",
-			if mine then "cyan" else "dark",
+			if e.mine then (if pg == "Free" then "green" else "cyan") else "dark",
 			UDim2.fromOffset(SLOT_SIZE, SLOT_SIZE),
 			function()
-				if mine then
-					play(Cosmetics.Emotes[id])
+				if e.mine then
+					play(e.anim)
 					closeWheel()
 				else
 					Sfx.play("UiDeny")
@@ -174,7 +222,7 @@ local function openWheel()
 			}
 		)
 		slot.Name = "Slot" .. i
-		Widgets.icon(slot, if mine then "Wave" else "Lock", if mine then 46 else 36, {
+		Widgets.icon(slot, if e.mine then "Wave" else "Lock", if e.mine then 46 else 36, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.38),
 			ZIndex = 14,
@@ -186,7 +234,7 @@ local function openWheel()
 			TextSize = 16,
 			font = Theme.Font.Display,
 			stroke = 2,
-			Text = item and item.name or id,
+			Text = e.name,
 			ZIndex = 14,
 		})
 		nameL.TextScaled = true
@@ -205,6 +253,21 @@ local function openWheel()
 	Widgets.springIn(w, 0.3)
 end
 
+openWheel = function()
+	if wheel then
+		closeWheel()
+		return
+	end
+	if not allowed() then
+		Sfx.play("UiDeny")
+		return
+	end
+	if page == nil then
+		page = if ownsAnyShopEmote() then "Shop" else "Free"
+	end
+	buildWheel()
+end
+
 local function onKey(name: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
 	if state ~= Enum.UserInputState.Begin then
 		return Enum.ContextActionResult.Pass
@@ -216,12 +279,11 @@ local function onKey(name: string, state: Enum.UserInputState, input: InputObjec
 		play(Assets.Anim.Taunt)
 	elseif name == "FV_EmoteSlot" and wheel then
 		local n = input.KeyCode.Value - Enum.KeyCode.One.Value + 1
-		local ids = emoteIds()
-		local id = ids[n]
-		if id and owns(id) then
-			play(Cosmetics.Emotes[id])
+		local e = entries(page or "Free")[n]
+		if e and e.mine then
+			play(e.anim)
 			closeWheel()
-		elseif id then
+		elseif e then
 			Sfx.play("UiDeny")
 		end
 	else

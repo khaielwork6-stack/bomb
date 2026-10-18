@@ -69,6 +69,11 @@ local function lobbyPhase(): boolean
 	return ph == Ph.Intermission or ph == Ph.Results or ph == Ph.Boot or ph == ""
 end
 
+-- the dock shows between rounds, and all round for an AFK player (they sit in the lobby and need the AFK tile)
+local function dockWanted(): boolean
+	return lobbyPhase() or player:GetAttribute("Afk") == true
+end
+
 -- ── Panels (modal) ──────────────────────────────────────────────────────────────────────────────────────────────
 local function closePanel()
 	local p = openPanel
@@ -708,7 +713,7 @@ function DailyController.start()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	buildDock()
-	shown = lobbyPhase()
+	shown = dockWanted()
 	placeDock()
 	Screen.Changed:Connect(placeDock)
 	Progress.Changed:Connect(applyDock)
@@ -718,12 +723,17 @@ function DailyController.start()
 	end
 	Net.listen("Reward", onReward)
 	local gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
-	gs:GetAttributeChangedSignal("Phase"):Connect(function()
-		local on = lobbyPhase()
+	local function refreshShown()
+		local on = dockWanted()
 		if on ~= shown then
 			shown = on
 			placeDock()
 		end
+	end
+	player:GetAttributeChangedSignal("Afk"):Connect(refreshShown)
+	gs:GetAttributeChangedSignal("Phase"):Connect(function()
+		local on = dockWanted()
+		refreshShown()
 		-- §19.2: a menu open at round start closes gracefully
 		if not on and openPanel then
 			closePanel()
