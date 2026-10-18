@@ -300,6 +300,10 @@ function DailyService.start()
 	BombService.RunnerBoomed:Connect(function(boomed: Participant, _bomb: any, credit: Participant?)
 		if credit and boomed.attrs:GetAttribute("Crowned") then
 			count(credit, "Dethrone")
+			local d = DataService.get(credit)
+			if d then
+				d.stats.dethrones = (d.stats.dethrones or 0) + 1 -- toward Title_Dethroner (Config.Store.ACHIEVEMENTS)
+			end
 		end
 	end)
 	BombService.Tagged:Connect(function(_bomber: Participant, target: Participant)

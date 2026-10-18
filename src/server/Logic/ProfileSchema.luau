@@ -40,6 +40,7 @@ local function template(): { [string]: any }
 			booms = 0,
 			revenge = 0,
 			chains5 = 0,
+			dethrones = 0, -- crowned winners boomed by a bomb you started (Title_Dethroner)
 			crossings = 0,
 		},
 		-- Daily systems (§14). day = the UTC day number these belong to.
@@ -64,6 +65,7 @@ local function template(): { [string]: any }
 		settings = {}, -- key -> value (validated by PlayerService)
 		wheel = { lastFree = 0, spins = 0 }, -- the lobby spin wheel: last free spin (os.time) and bought spins
 		revives = 0, -- bought Revives not yet used (one applies at a boom, once per round)
+		pendingItem = "", -- the item a Robux item purchase is for, until its receipt grants it
 		flags = {
 			tutorial = false, -- the 4 rules card was closed
 			starterOffered = false,

@@ -180,6 +180,7 @@ Store.ACHIEVEMENTS = {
 	{ id = "Title_ChainReaction", stat = "chains5", at = 25 },
 	{ id = "Title_LastOneStanding", stat = "lastStandWins", at = 10 },
 	{ id = "Title_Unboomable", stat = "wins", at = 50 },
+	{ id = "Title_Dethroner", stat = "dethrones", at = 10 },
 }
 -- The monthly Streak Bomb: "YYYY-MM" → skin id (falls back to the newest one listed).
 Store.STREAK_BOMBS = { ["2026-10"] = "Skin_JackOFuse" } :: { [string]: string }

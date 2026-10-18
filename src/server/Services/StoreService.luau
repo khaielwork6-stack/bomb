@@ -401,6 +401,7 @@ local function onAction(player: Player, msg: any)
 			return deny(player, kind, "bad")
 		end
 		pendingItem[player] = id
+		d.pendingItem = id -- also on the profile: a receipt retried in a later session still knows the item
 		MarketplaceService:PromptProductPurchase(player, product.id)
 	elseif kind == "BuyProduct" then
 		local key = if type(msg.product) == "string" then msg.product else ""
@@ -494,8 +495,9 @@ local function receive(
 			openCrate(p, d, prod.crate, "Token")
 		end
 		if string.match(k, "^Item") then
-			local id = pendingItem[player]
+			local id = pendingItem[player] or (if d.pendingItem ~= "" then d.pendingItem else nil)
 			pendingItem[player] = nil
+			d.pendingItem = ""
 			if id and Cosmetics.sellable(id) then
 				d.inventory[id] = true
 				Net.fire(player, "Reward", { kind = "Bought", id = id })

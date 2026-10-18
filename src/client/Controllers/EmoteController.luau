@@ -27,6 +27,7 @@ local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local CameraController = require(script.Parent.CameraController)
+local InputController = require(script.Parent.InputController)
 
 local St = Config.Store
 local S = Config.Strings
@@ -454,6 +455,14 @@ function EmoteController.start()
 	place()
 	Screen.Changed:Connect(place)
 	Net.listen("TauntFx", showTaunt)
+	-- gamepad: Y opens the emote wheel (a slot is then picked with the controller's UI navigation)
+	InputController.on("View", function(state: Enum.UserInputState, input: InputObject): boolean
+		if input.KeyCode ~= Enum.KeyCode.ButtonY or state ~= Enum.UserInputState.Begin then
+			return false
+		end
+		openWheel()
+		return true
+	end)
 	ContextActionService:BindAction(
 		"FV_EmoteSlot",
 		onKey,
