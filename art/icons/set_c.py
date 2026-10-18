@@ -16,22 +16,21 @@ from mathutils.geometry import delaunay_2d_cdt
 
 # ── Palette (kept a touch darker than the reference swatches: the house key light is bright, so lit faces land on
 # the reference colour instead of clipping toward white) ──────────────────────────────────────────────────────────
-CYAN = srgb("#1AA0EA")
+CYAN = srgb("#16A8EE")
 CYAN_LT = srgb("#40BCF4")
 FIG_RED = srgb("#D8300E")
 RED = srgb("#C8121A")
 FLAME_RED = srgb("#DC340A")
-FLAME_ORANGE = srgb("#F07A0E")
+FLAME_ORANGE = srgb("#EE6A0C")
 FLAME_YELLOW = srgb("#F7C422")
-FLAME_CORE = srgb("#FFE48A")
-GREEN_LT = srgb("#1FA63C")
-GREEN_DK = srgb("#0E7A2A")
+FLAME_CORE = srgb("#FFE070")
+GREEN_LT = srgb("#138A2E")
+GREEN_DK = srgb("#0A6422")
 CREAM = srgb("#D9AE80")
 HAND = srgb("#E6C6A6")
 INK = srgb("#15121A")
 DUST = srgb("#D9B88C")
-DUST_DK = srgb("#BF9A68")
-BUTTON = srgb("#1E1C26")
+BUTTON = srgb("#2A2834")
 EYE_WHITE = srgb("#D8C8B4")
 IRIS_DK = srgb("#163FA8")
 IRIS = srgb("#2B78EE")
@@ -130,48 +129,6 @@ def mirror_half(right):
     return list(right) + left
 
 
-def offset_poly(pts, d):
-    """Inset a closed polygon by `d` (mitred; positive = inward)."""
-    area = sum(pts[i - 1][0] * pts[i][1] - pts[i][0] * pts[i - 1][1] for i in range(len(pts)))
-    sgn = 1.0 if area > 0 else -1.0
-    out = []
-    N = len(pts)
-    for i in range(N):
-        p, v, q = Vector(pts[i - 1]), Vector(pts[i]), Vector(pts[(i + 1) % N])
-        e1, e2 = (v - p).normalized(), (q - v).normalized()
-        n1 = Vector((-e1.y, e1.x)) * sgn
-        n2 = Vector((-e2.y, e2.x)) * sgn
-        n = (n1 + n2).normalized()
-        c = v + n * (d / max(0.35, n.dot(n1)))
-        out.append((c.x, c.y))
-    return out
-
-
-def clip_x(poly, positive=True):
-    """Sutherland-Hodgman clip of a closed polygon to the x >= 0 (or x <= 0) half-plane."""
-    s = 1.0 if positive else -1.0
-    out = []
-    N = len(poly)
-    for i in range(N):
-        a, b = poly[i - 1], poly[i]
-        ia, ib = a[0] * s > -1e-9, b[0] * s > -1e-9
-        if ib:
-            if not ia:
-                t = a[0] / (a[0] - b[0])
-                out.append((0.0, a[1] + (b[1] - a[1]) * t))
-            out.append(b)
-        elif ia:
-            t = a[0] / (a[0] - b[0])
-            out.append((0.0, a[1] + (b[1] - a[1]) * t))
-    clean = []
-    for c in out:  # drop repeats (a vertex lying exactly on x = 0 is emitted twice)
-        if not clean or (Vector(c) - Vector(clean[-1])).length > 1e-6:
-            clean.append(c)
-    if len(clean) > 1 and (Vector(clean[0]) - Vector(clean[-1])).length <= 1e-6:
-        clean.pop()
-    return clean
-
-
 def heart_pts(cx=0.5, cz=0.3, r=0.53, tip=-0.98, n=40):
     """A plump heart: two lobe circles joined by tangent lines to a softly rounded tip."""
     T = Vector((0.0, tip))
@@ -193,6 +150,61 @@ def heart_pts(cx=0.5, cz=0.3, r=0.53, tip=-0.98, n=40):
     radii[0] = 0.07
     radii[len(right) - 1] = 0.16
     return rounded(poly, radii, 8)
+
+
+def blob_outline(circles, k=0.06, res=0.02):
+    """The outline of a soft union of circles [(x, z, r)] (smooth-min fillets of size k) — a scalloped cloud/puff
+    silhouette, traced with marching squares; returns the longest closed loop."""
+    x0 = min(c[0] - c[2] for c in circles) - 3 * res
+    x1 = max(c[0] + c[2] for c in circles) + 3 * res
+    z0 = min(c[1] - c[2] for c in circles) - 3 * res
+    z1 = max(c[1] + c[2] for c in circles) + 3 * res
+    nx, nz = int((x1 - x0) / res) + 2, int((z1 - z0) / res) + 2
+
+    def field(x, z):
+        d = None
+        for cx, cz, r in circles:
+            e = math.hypot(x - cx, z - cz) - r
+            if d is None:
+                d = e
+            else:  # polynomial smooth-min
+                h = max(0.0, min(1.0, 0.5 + 0.5 * (e - d) / k))
+                d = e * (1 - h) + d * h - k * h * (1 - h)
+        return d
+
+    f = [[field(x0 + i * res, z0 + j * res) for j in range(nz)] for i in range(nx)]
+
+    def pt(key):
+        kind, i, j = key
+        a = f[i][j]
+        b = f[i + 1][j] if kind == "h" else f[i][j + 1]
+        t = a / (a - b)
+        return (x0 + (i + t) * res, z0 + j * res) if kind == "h" else (x0 + i * res, z0 + (j + t) * res)
+
+    adj = {}
+    for i in range(nx - 1):
+        for j in range(nz - 1):
+            corners = [f[i][j], f[i + 1][j], f[i + 1][j + 1], f[i][j + 1]]
+            edges = [("h", i, j), ("v", i + 1, j), ("h", i, j + 1), ("v", i, j)]
+            cut = [edges[e] for e in range(4) if (corners[e] < 0) != (corners[(e + 1) % 4] < 0)]
+            pairs = [(cut[0], cut[1])] if len(cut) == 2 else ([(cut[0], cut[1]), (cut[2], cut[3])] if len(cut) == 4 else [])
+            for a, b in pairs:
+                adj.setdefault(a, []).append(b)
+                adj.setdefault(b, []).append(a)
+    seen, loops = set(), []
+    for start in adj:
+        if start in seen:
+            continue
+        loop, prev, cur = [], None, start
+        while cur not in seen:
+            seen.add(cur)
+            loop.append(pt(cur))
+            nxt = [n for n in adj[cur] if n != prev and n not in seen]
+            if not nxt:
+                break
+            prev, cur = cur, nxt[0]
+        loops.append(loop)
+    return max(loops, key=len)
 
 
 # ── 3D helpers ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -300,14 +312,22 @@ def capsule(name, p1, p2, r, mat, outline=0.035, segs=32, r2=None):
     return lib.finish(lib._obj(name, bm, mat), 0, outline=outline)
 
 
+def ball(name, r, mat, loc=(0, 0, 0), segs=32, outline=0.035):
+    """A UV sphere with a chosen resolution (studs and limb ends don't need lib.sphere's 48x24)."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2, radius=r)
+    lib.xform(bm, loc)
+    return lib.finish(lib._obj(name, bm, mat), 0, outline=outline)
+
+
 def limb(name, pts, r, mat, y=0.0, outline=0.04):
     """A bent limb: a bezier tube through XZ points (at depth y) with ball ends."""
     vs = [Vector((x, y, z)) for x, z in pts]
     if len(vs) == 2:
         return capsule(name, vs[0], vs[1], r, mat, outline)
     tube(name, vs, r, mat, outline=outline, caps=False)
-    sphere(name + "_a", r, mat, loc=vs[0], outline=outline)
-    sphere(name + "_b", r, mat, loc=vs[-1], outline=outline)
+    ball(name + "_a", r, mat, loc=vs[0], outline=outline)
+    ball(name + "_b", r, mat, loc=vs[-1], outline=outline)
 
 
 def figure(prefix, mat, head, torso, limbs, ol=0.07):
@@ -320,8 +340,11 @@ def figure(prefix, mat, head, torso, limbs, ol=0.07):
 
 
 def spark(name, loc, size=0.3):
-    prism(name, star_pts(8, size, size * 0.42), 0.07, glossy("Spark", srgb("#FFD84A"), emit=5), loc=loc, bevel=0.012, outline=0.02)
-    sphere(name + "Core", size * 0.28, glossy("SparkCore", srgb("#FFF7D0"), emit=8), loc=(loc[0], loc[1] - 0.05, loc[2]), outline=0)
+    """A lit-fuse spark: a hot orange burst with a smaller yellow burst and a white-hot core."""
+    x, y, z = loc
+    prism(name, star_pts(8, size, size * 0.45), 0.06, glossy("SparkO", srgb("#FF7A12"), emit=3), loc=loc, bevel=0.012, outline=0.025)
+    prism(name + "In", star_pts(8, size * 0.62, size * 0.3, 112.5), 0.06, glossy("SparkY", srgb("#FFD23A"), emit=5), loc=(x, y - 0.04, z), bevel=0.01, outline=0)
+    sphere(name + "Core", size * 0.22, glossy("SparkCore", srgb("#FFF7D0"), emit=8), loc=(x, y - 0.08, z), outline=0)
 
 
 # ── Icons ───────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -333,12 +356,9 @@ def Flame():
         (0.43, 1.32), (0.5, 1.0), (0.74, 1.42), (0.88, 1.07), (0.97, 0.7), (0.88, 0.33), (0.57, 0.08),
     ]
     inflate("Outer", chaikin(outer, sharp=(6, 7, 9, 13, 14)), toy("FlameR", FLAME_RED, 0.25), front=0.42, back=0.3, sp=0.03, outline=0.04)
-    mid = [
-        (0.07, 0.16), (-0.42, 0.22), (-0.68, 0.48), (-0.7, 0.82), (-0.52, 1.1), (-0.25, 1.32),
-        (-0.12, 1.5), (0.04, 1.18), (0.2, 0.98), (0.42, 1.14), (0.6, 0.82), (0.64, 0.48), (0.46, 0.24),
-    ]
-    inflate("Mid", chaikin(mid, sharp=(6, 8, 9)), toy("FlameO", FLAME_ORANGE, 0.35), front=0.22, back=0.05, sp=0.03, loc=(0, -0.26, 0), outline=0)
-    core = [(-0.06, 1.16), (0.22, 0.84), (0.42, 0.56), (0.36, 0.3), (0.04, 0.22), (-0.3, 0.28), (-0.44, 0.54), (-0.3, 0.86)]
+    mid = [(x * 0.74, z * 0.7 + 0.15) for x, z in outer]
+    inflate("Mid", chaikin(mid, sharp=(6, 7, 9, 13, 14)), toy("FlameO", FLAME_ORANGE, 0.35), front=0.22, back=0.05, sp=0.03, loc=(0, -0.26, 0), outline=0)
+    core = [(-0.1, 1.3), (0.2, 0.96), (0.44, 0.62), (0.4, 0.34), (0.04, 0.24), (-0.34, 0.3), (-0.48, 0.6), (-0.34, 0.96)]
     inflate("Core", chaikin(core, sharp=(0,)), toy("FlameY", FLAME_YELLOW, 0.8), front=0.14, back=0.04, sp=0.025, loc=(0, -0.44, 0), outline=0)
     glow = [(-0.06, 0.78), (0.2, 0.56), (0.26, 0.4), (0.04, 0.32), (-0.22, 0.38), (-0.24, 0.56)]
     inflate("Glow", chaikin(glow, sharp=(0,)), toy("FlameW", FLAME_CORE, 0.4), front=0.06, back=0.02, sp=0.025, loc=(0, -0.55, 0), outline=0)
@@ -347,21 +367,23 @@ def Flame():
 
 @icon
 def Shield():
-    right = [(0.0, 1.06), (0.42, 0.97), (0.88, 0.78), (0.9, 0.3), (0.8, -0.3), (0.52, -0.78), (0.0, -1.18)]
+    right = [(0.0, 1.06), (0.46, 0.97), (0.96, 0.78), (0.98, 0.3), (0.87, -0.3), (0.56, -0.78), (0.0, -1.18)]
     full = chaikin(mirror_half(right), sharp=(2, 6, 10), iters=4)
     prism("Rim", full, 0.32, gold(), bevel=0.07, segs=4)
-    inner = offset_poly(full, 0.19)
-    prism("GreenR", clip_x(inner, True), 0.2, toy("GreenD", GREEN_DK), loc=(0, -0.2, 0), rot=[("Z", 5)], bevel=0.04, outline=0.02)
-    prism("GreenL", clip_x(inner, False), 0.2, toy("GreenL", GREEN_LT), loc=(0, -0.2, 0), rot=[("Z", -5)], bevel=0.04, outline=0.02)
-    for i, (x, z) in enumerate([(0, 0.95), (0.75, 0.7), (-0.75, 0.7), (0.79, 0.08), (-0.79, 0.08), (0.52, -0.58), (-0.52, -0.58), (0, -1.0)]):
-        sphere(f"Stud{i}", 0.065, gold("Stud"), loc=(x, -0.17, z), outline=0.015)
+    inner = [(0.0, 0.85), (0.36, 0.78), (0.76, 0.62), (0.77, 0.26), (0.68, -0.24), (0.44, -0.6), (0.0, -0.93)]
+    rhalf = chaikin(inner, sharp=(2,), iters=4, closed=False)
+    lhalf = [(-x, z) for x, z in reversed(rhalf)]
+    prism("GreenR", rhalf, 0.24, toy("GreenD", GREEN_DK), loc=(0, -0.26, 0), rot=[("Z", 8)], bevel=0.1, outline=0.02)
+    prism("GreenL", lhalf, 0.24, toy("GreenL", GREEN_LT), loc=(0, -0.26, 0), rot=[("Z", -8)], bevel=0.1, outline=0.02)
+    for i, (x, z) in enumerate([(0, 0.95), (0.83, 0.7), (-0.83, 0.7), (0.87, 0.08), (-0.87, 0.08), (0.57, -0.6), (-0.57, -0.6), (0, -1.02)]):
+        ball(f"Stud{i}", 0.065, gold("Stud"), loc=(x, -0.17, z), segs=20, outline=0.015)
     lib.group_tilt(-20, 8)
 
 
 @icon
 def Runner():
     mat = toy("Cyan", CYAN)
-    for i, (x0, x1, z) in enumerate([(-0.72, 0.22, 1.27), (-1.28, -0.38, 0.8), (-1.52, -0.42, 0.22), (-1.42, -0.58, -0.35)]):
+    for i, (x0, x1, z) in enumerate([(-0.72, 0.22, 1.3), (-1.3, -0.6, 0.88), (-1.55, -0.45, 0.2), (-1.42, -0.6, -0.36)]):
         capsule(f"Streak{i}", (x0, 0.45, z), (x1, 0.45, z), 0.15, toy("Streak", CYAN_LT), outline=0.06)
     figure(
         "R", mat,
@@ -396,7 +418,7 @@ def Bomber():
     cyl("Collar", 0.13, 0.13, gold(), loc=(bx + 0.05, by, bz + 0.44), rot=[("Y", 8)], outline=0.03)
     fuse = [Vector((bx + 0.06, by, bz + 0.5)), Vector((bx + 0.08, by, bz + 0.62)), Vector((bx + 0.12, by, bz + 0.72))]
     tube("Fuse", fuse, 0.05, glossy("Cord", srgb("#C99A5A"), 0.8, coat=0), outline=0.03)
-    spark("Spark", (bx + 0.12, by - 0.04, bz + 0.8), 0.3)
+    spark("Spark", (bx + 0.12, by - 0.04, bz + 0.82), 0.32)
     lib.group_tilt(-10, 6)
 
 
@@ -424,16 +446,16 @@ def Slide():
         ],
     )
     dust = glossy("Dust", DUST, 0.55, coat=0.15)
-    dust2 = glossy("DustDk", DUST_DK, 0.55, coat=0.15)
     puffs = [
         (-1.55, -0.1, 0.3), (-1.2, -0.3, 0.3), (-0.95, -0.6, 0.28), (-0.55, -0.45, 0.3), (-0.2, -0.62, 0.25),
         (0.1, -0.77, 0.2), (0.4, -0.86, 0.14), (-1.4, -0.6, 0.27), (-0.75, -0.8, 0.22), (-1.72, -0.42, 0.2),
         (-1.1, -0.05, 0.2),
     ]
-    for i, (x, z, r) in enumerate(puffs):
-        sphere(f"Puff{i}", r, dust if i % 4 else dust2, loc=(x, -0.25 - (i % 3) * 0.06, z), outline=0.05)
+    inflate("Cloud", blob_outline(puffs, k=0.07), dust, front=0.32, back=0.18, sp=0.03, loc=(0, -0.3, 0), outline=0.05)
+    for i, (x, z, r) in enumerate([(-1.45, -0.18, 0.17), (-0.6, -0.42, 0.18), (-1.05, -0.62, 0.15)]):
+        sphere(f"Lump{i}", r, dust, loc=(x, -0.48, z), scale=(1, 0.55, 1), outline=0.03)
     for i, (x, z, r) in enumerate([(-0.83, 0.02, 0.12), (-1.38, -0.92, 0.1)]):
-        sphere(f"Bit{i}", r, dust, loc=(x, -0.2, z), outline=0.04)
+        ball(f"Bit{i}", r, dust, loc=(x, -0.2, z), segs=24, outline=0.04)
     capsule("Ground", (-0.1, -0.1, -0.98), (1.45, -0.1, -0.98), 0.045, dust, outline=0.03)
     lib.group_tilt(-10, 6)
 
@@ -470,7 +492,7 @@ def Wheel():
         prism(f"Wedge{k}", pts, 0.08, toy(f"W{k}", srgb(c)), loc=(0, -0.15, 0), bevel=0.02, outline=0.012)
     for i in range(12):
         a = 2 * math.pi * i / 12 + math.pi / 12
-        sphere(f"Stud{i}", 0.06, gold("Stud"), loc=(math.cos(a) * 0.885, -0.14, math.sin(a) * 0.885), outline=0.012)
+        ball(f"Stud{i}", 0.06, gold("Stud"), loc=(math.cos(a) * 0.885, -0.14, math.sin(a) * 0.885), segs=20, outline=0.012)
     sphere("Hub", 0.15, g, loc=(0, -0.22, 0), scale=(1, 0.8, 1))
     torus("HubRing", 0.16, 0.045, g, rot=[("X", 90)], loc=(0, -0.2, 0))
     prism("Pointer", rounded([(-0.22, 1.12), (0.22, 1.12), (0.0, 0.6)], [0.06, 0.06, 0.05], 4), 0.16, g, loc=(0, -0.26, 0), bevel=0.04)
@@ -485,13 +507,13 @@ def Wheel():
 def Eye():
     b = box("Button", (2.0, 0.55, 2.0), toy("Button", BUTTON), bevel=0.32)
     b.modifiers["Bevel"].segments = 6
-    xs = [0.78 * math.cos(math.radians(a)) for a in range(180, -1, -6)]
-    up = [(x, 0.46 * (1 - (x / 0.78) ** 2) ** 0.75) for x in xs]
-    lo = [(x, -0.44 * (1 - (x / 0.78) ** 2) ** 0.75) for x in reversed(xs[1:-1])]
+    xs = [0.84 * math.cos(math.radians(a)) for a in range(180, -1, -6)]
+    up = [(x, 0.5 * (1 - (x / 0.84) ** 2) ** 0.75) for x in xs]
+    lo = [(x, -0.47 * (1 - (x / 0.84) ** 2) ** 0.75) for x in reversed(xs[1:-1])]
     inflate("White", up + lo, toy("EyeW", EYE_WHITE), front=0.1, back=0.02, sp=0.025, loc=(0, -0.27, 0), outline=0.035)
-    sphere("Iris", 0.38, toy("IrisD", IRIS_DK), loc=(0, -0.345, 0), scale=(1, 0.22, 1), outline=0.015)
-    sphere("IrisIn", 0.29, toy("Iris", IRIS), loc=(0, -0.375, 0), scale=(1, 0.2, 1), outline=0)
-    sphere("Pupil", 0.16, toy("Pupil", INK), loc=(0, -0.41, 0), scale=(1, 0.2, 1), outline=0)
+    sphere("Iris", 0.41, toy("IrisD", IRIS_DK), loc=(0, -0.345, 0), scale=(1, 0.22, 1), outline=0.015)
+    sphere("IrisIn", 0.31, toy("Iris", IRIS), loc=(0, -0.375, 0), scale=(1, 0.2, 1), outline=0)
+    sphere("Pupil", 0.18, toy("Pupil", INK), loc=(0, -0.41, 0), scale=(1, 0.2, 1), outline=0)
     sphere("Glint", 0.075, glossy("Glint", srgb("#FFFFFF"), 0.2, emit=1.5), loc=(-0.12, -0.45, 0.12), scale=(1, 0.4, 1), outline=0)
     lib.group_tilt(-20, 10)
 

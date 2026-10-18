@@ -133,19 +133,54 @@ Assets.Vfx = {
 	Ember = "rbxassetid://135076496021372",
 }
 
--- The custom icon set (Asset Bible §6.4), drawn in code by art/ui/make_icons.py (Skin.icon). Person and Badge are
--- grey: tint them (team colours, badge tiers) with ImageColor3.
+-- The 3D icon set (Asset Bible §6.4; DECISIONS 2026-10-17): every icon modelled and rendered in headless Blender
+-- (art/icons/set_*.py, after the style sheets in art/ref/icons — references only), glossy and outlined like the
+-- owner's reference video. Person and Badge are the older code-drawn grey masks, kept because they're tinted
+-- (team colours, level-badge tiers) with ImageColor3.
 Assets.Icon = {
-	Star = "rbxassetid://86093237979583",
-	Gift = "rbxassetid://121335451303695",
-	Scroll = "rbxassetid://71911946865623",
-	Calendar = "rbxassetid://89162593444268",
-	Flame = "rbxassetid://96666900794298",
-	Crate = "rbxassetid://121054222520468",
-	Check = "rbxassetid://133209889740447",
-	Bomb = "rbxassetid://134063506701775",
+	Arrow = "rbxassetid://117821840125144",
+	Bomb = "rbxassetid://133060197792626",
+	Bomber = "rbxassetid://115912790787909",
+	Calendar = "rbxassetid://119147142908840",
+	Camera = "rbxassetid://95897549537511",
+	Check = "rbxassetid://111909409752577",
+	Crate = "rbxassetid://95736964594049",
+	CrateInferno = "rbxassetid://126599454962777",
+	Crown = "rbxassetid://73831516682897",
+	Dash = "rbxassetid://109987124485536",
+	Explosion = "rbxassetid://133798276626021",
+	Eye = "rbxassetid://113477464817207",
+	Firework = "rbxassetid://120178461771701",
+	Flame = "rbxassetid://73075984975402",
+	Fuse = "rbxassetid://133620617581489",
+	Gear = "rbxassetid://94166283617853",
+	Gift = "rbxassetid://119214784967147",
+	GiftBox = "rbxassetid://87537234097896",
+	Heart = "rbxassetid://112003856822992",
+	Items = "rbxassetid://71574508886078",
+	LevelBadge = "rbxassetid://85443510497395",
+	Lock = "rbxassetid://75991450465135",
+	Mega = "rbxassetid://108548366590411",
+	Palette = "rbxassetid://128000908560093",
+	Plate = "rbxassetid://73991703226036",
+	Plus = "rbxassetid://126591425858560",
+	Runner = "rbxassetid://127025768832183",
+	Scroll = "rbxassetid://133086287758831",
+	Shield = "rbxassetid://94788379271562",
+	Shop = "rbxassetid://79037630864503",
+	Sleep = "rbxassetid://83997006799839",
+	Slide = "rbxassetid://87424803891906",
+	Sparkler = "rbxassetid://91909837127058",
+	Star = "rbxassetid://76421262472403",
+	Stop = "rbxassetid://71458032136579",
+	Ticket = "rbxassetid://81430764809824",
+	Trail = "rbxassetid://72488857407891",
+	Trophy = "rbxassetid://78299309985766",
+	Wave = "rbxassetid://110302433371344",
+	Wheel = "rbxassetid://119584458283744",
+	XP = "rbxassetid://123617985400792",
+	-- code-drawn grey masks (tinted in game)
 	Person = "rbxassetid://101797418040884",
-	Shield = "rbxassetid://80516751356640",
 	Badge = "rbxassetid://75057395762995",
 } :: { [string]: string }
 
