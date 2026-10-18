@@ -55,6 +55,14 @@ local C = {
 }
 
 local SMOKE = "rbxassetid://98967284678053" -- art/vfx/make_vfx.py (Assets.Vfx.Smoke), the waterfall's mist
+local EMBER = "rbxassetid://135076496021372" -- art/vfx/make_vfx.py (Assets.Vfx.Ember): the spray droplets, tinted
+-- art/vfx/make_water.py (art/out/Water): the flowing water, scrolled by Beams
+local WATER = {
+	Body = "rbxassetid://112397119042285", -- the falling sheet (greyscale, tinted blue)
+	Streaks = "rbxassetid://108614212981784", -- white foam streaks running down it
+	Foam = "rbxassetid://120738064245514", -- foam blobs (landings, the pool)
+	Ripple = "rbxassetid://116371811165463", -- foam ripple lines (streams, the pool)
+}
 
 local M = Enum.Material
 
@@ -710,80 +718,271 @@ return function(ctx, parent)
 	-- ── Far side (−Z): the stepped cliffs and everything on them ─────────────────────────────────────────────
 	local far = U.folder(map, "FarSide")
 	local TERRACE = { { h = 9, z = FZ - 4 }, { h = 20, z = FZ - 16 }, { h = 32, z = FZ - 30 }, { h = 46, z = FZ - 46 } }
-	for _, t in ipairs(TERRACE) do
-		rockWall(far, Vector3.new(-WALL - 40, 0, t.z), Vector3.new(WALL + 40, 0, t.z), t.h, t.h, 14, { 7, 14 })
+	local wx = -38 -- the waterfall's line (left of centre)
+	local GAP = { 13, 8, 8, 8 } -- half-width of each terrace's flat channel round the water (the pool on terrace 1)
+	for k, t in ipairs(TERRACE) do
+		rockWall(far, Vector3.new(-WALL - 40, 0, t.z), Vector3.new(wx - GAP[k], 0, t.z), t.h, t.h, 14, { 7, 14 })
+		rockWall(far, Vector3.new(wx + GAP[k], 0, t.z), Vector3.new(WALL + 40, 0, t.z), t.h, t.h, 14, { 7, 14 })
 	end
 	local function ledge(k: number, x: number): Vector3 -- a point on top of terrace k, near its front
 		local t = TERRACE[k]
 		return Vector3.new(x, TOP + t.h - 0.5, t.z + rng:NextNumber(-3, 1))
 	end
-	-- the waterfall (left of centre): falls from the top terrace into a pool on the first, foam, mist, splash rocks
-	local wx = -38
-	local wtop = TOP + TERRACE[4].h - 1
-	local wbot = TOP + TERRACE[1].h - 0.5
-	for k, w in ipairs({ 10, 8.6, 7 }) do
+	-- ── The waterfall: real flowing water, a three-step cascade (the owner, 2026-10-18: "actual real water that
+	-- flows down from the top"). A spring on the top terrace feeds a stream that runs to each lip and falls to the
+	-- next step, then into the pool on the first. Every sheet is a Beam scrolling the in-house water textures
+	-- (art/vfx/make_water.py), so it streams on its own; splash spray and mist where each fall lands; flowing
+	-- ripples and foam on the pool. Each terrace gets a flat channel with banks so the water sits exactly on it.
+	local water = U.folder(far, "Waterfall")
+	local holder =
+		smooth(water, "WaterAnchor", Vector3.one * 0.2, Vector3.new(wx, TOP, TERRACE[1].z), C.Water, { t = 1 })
+	local function waterBeam(name, p0: Vector3, p1: Vector3, axis: Vector3, across: Vector3, o)
+		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+		a0.Name, a1.Name = name .. "0", name .. "1"
+		a0.Parent, a1.Parent = holder, holder -- parent first: WorldCFrame is relative to the parent
+		-- a non-facing Beam spreads its width along the attachments' Y axis (`across`) and curves along X (`axis`)
+		a0.WorldCFrame = CFrame.fromMatrix(p0, axis, across)
+		a1.WorldCFrame = CFrame.fromMatrix(p1, axis, across)
+		local b = Instance.new("Beam")
+		b.Name = name
+		b.Attachment0, b.Attachment1 = a0, a1
+		b.Texture = o.tex
+		b.TextureMode = Enum.TextureMode.Static
+		b.TextureLength = o.len
+		b.TextureSpeed = o.speed
+		b.Width0, b.Width1 = o.w0, o.w1 or o.w0
+		b.CurveSize0, b.CurveSize1 = o.curve or 0, 0
+		b.FaceCamera = false
+		b.Segments = o.segments or 10
+		b.Color = ColorSequence.new(o.c0, o.c1 or o.c0)
+		b.Transparency = o.t or NumberSequence.new(0)
+		b.LightEmission = o.emission or 0
+		b.LightInfluence = 0.7
+		b.ZOffset = o.z or 0
+		b.Parent = holder
+		return b
+	end
+	local function emitter(at: Vector3, o)
+		local p = smooth(water, o.name, Vector3.one * 0.2, at, C.Foam, { t = 1 })
+		local att = Instance.new("Attachment")
+		att.Parent = p
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = o.tex
+		e.Color = ColorSequence.new(o.color)
+		e.Size = o.size
+		e.Transparency = o.trans
+		e.Lifetime = o.life
+		e.Rate = o.rate
+		e.Speed = o.speed
+		e.SpreadAngle = o.spread
+		e.Acceleration = o.accel or Vector3.zero
+		e.EmissionDirection = Enum.NormalId.Top
+		e.LightEmission = o.emission or 0.2
+		e.Rotation = NumberRange.new(0, 360)
+		e.Parent = att
+	end
+	local function splash(at: Vector3, big: boolean)
+		-- droplets thrown up and falling back, and a soft mist cloud
+		emitter(at, {
+			name = "Spray",
+			tex = EMBER,
+			color = C.Foam,
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, if big then 0.7 else 0.5),
+				NumberSequenceKeypoint.new(1, 0.15),
+			}),
+			trans = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.8) }),
+			life = NumberRange.new(0.5, 0.9),
+			rate = if big then 60 else 30,
+			speed = NumberRange.new(5, if big then 11 else 8),
+			spread = Vector2.new(55, 35),
+			accel = Vector3.new(0, -30, 0),
+			emission = 0.4,
+		})
+		emitter(at + Vector3.new(0, 0.6, 0), {
+			name = "Mist",
+			tex = SMOKE,
+			color = C.Foam,
+			size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, if big then 3 else 2),
+				NumberSequenceKeypoint.new(1, if big then 8 else 5),
+			}),
+			trans = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 1) }),
+			life = NumberRange.new(1.4, 2.4),
+			rate = if big then 14 else 7,
+			speed = NumberRange.new(1.5, 3.5),
+			spread = Vector2.new(70, 25),
+		})
+	end
+	local ACROSS = Vector3.new(1, 0, 0)
+	local FORWARD = Vector3.new(0, 0, 1)
+	local function topOf(k: number): number
+		return TOP + TERRACE[k].h - 0.5
+	end
+	-- the channel on each terrace: a flat rock block at the exact height with a bank on each side
+	for k, t in ipairs(TERRACE) do
+		local g = GAP[k]
+		block(far, "Channel", Vector3.new(g * 2, t.h, 14), Vector3.new(wx, TOP + t.h / 2 - 0.5, t.z), C.Terracotta)
 		smooth(
 			far,
-			"Waterfall",
-			Vector3.new(w, wtop - wbot, 1.2),
-			Vector3.new(wx + (k - 2) * 0.6, (wtop + wbot) / 2, TERRACE[1].z - 2.5 - k * 0.3),
-			C.Water:Lerp(C.Foam, (k - 1) * 0.25),
+			"ChannelStrata",
+			Vector3.new(g * 2 + 0.2, 1.1, 14.2),
+			Vector3.new(wx, TOP + t.h * 0.32, t.z),
+			C.Cream
+		)
+		for _, sx in ipairs({ -1, 1 }) do
+			local bank = Vector3.new(wx + sx * (g - 1.6), topOf(k) + 1.2, t.z)
+			block(far, "Bank", Vector3.new(3.2, 2.4, 14), bank, C.RedRock)
+			block(
+				far,
+				"BankStone",
+				Vector3.new(2, 1.4, 3),
+				bank + Vector3.new(0, 1.6, rng:NextNumber(-4, 4)),
+				C.Terracotta
+			)
+		end
+	end
+	-- the spring at the back of the top terrace: a rock mouth the water pours out of
+	local spring = Vector3.new(wx, topOf(4), TERRACE[4].z - 5)
+	block(far, "SpringRock", Vector3.new(12, 6, 4), spring + Vector3.new(0, 3, -2.4), C.RedRock)
+	smooth(far, "SpringMouth", Vector3.new(7, 2.6, 0.4), spring + Vector3.new(0, 1.5, -0.3), C.Ink)
+	-- streams across terraces 4, 3 and 2 (flat sheets with ripples), each falling over its lip to the step below
+	local WATER_C0, WATER_C1 = Color3.fromRGB(100, 214, 255), Color3.fromRGB(46, 162, 232)
+	for k = 4, 2, -1 do
+		local t = TERRACE[k]
+		local y = topOf(k) + 0.12
+		local back = if k == 4 then spring.Z else t.z - 7
+		local lip = t.z + 7
+		local w = if k == 4 then 7 else 9
+		smooth(
+			far,
+			"StreamBed",
+			Vector3.new(w + 0.6, 0.1, lip - back),
+			Vector3.new(wx, y - 0.08, (back + lip) / 2),
+			C.WaterDeep,
 			{
 				material = M.Glass,
-				t = 0.1 + k * 0.1,
+				t = 0.05,
 			}
 		)
+		waterBeam("Stream", Vector3.new(wx, y, back), Vector3.new(wx, y, lip), Vector3.yAxis, ACROSS, {
+			tex = WATER.Ripple,
+			len = 6,
+			speed = 1.2,
+			w0 = w,
+			c0 = Color3.new(1, 1, 1),
+			t = NumberSequence.new(0.15),
+			emission = 0.3,
+		})
+		-- the fall: from this lip (bulging forward over it) down to the next step
+		local fallTop = Vector3.new(wx, y, lip + 0.3)
+		local fallBot = Vector3.new(wx, if k == 2 then topOf(1) + 0.3 else topOf(k - 1) + 0.1, lip + 1.4)
+		local fw = w + 0.6
+		waterBeam("FallBack", fallTop - Vector3.new(0, 0, 0.25), fallBot - Vector3.new(0, 0, 0.25), FORWARD, ACROSS, {
+			tex = WATER.Body,
+			len = 16,
+			speed = 1.1,
+			w0 = fw - 0.6,
+			w1 = fw + 0.4,
+			curve = 1.6,
+			c0 = Color3.fromRGB(40, 140, 210),
+			t = NumberSequence.new(0.1),
+			z = -1,
+		})
+		waterBeam("Fall", fallTop, fallBot, FORWARD, ACROSS, {
+			tex = WATER.Body,
+			len = 12,
+			speed = 1.8,
+			w0 = fw,
+			w1 = fw + 1.2,
+			curve = 2,
+			c0 = WATER_C0,
+			c1 = WATER_C1,
+			t = NumberSequence.new(0.05),
+			emission = 0.15,
+		})
+		waterBeam("FallStreaks", fallTop + Vector3.new(0, 0, 0.1), fallBot + Vector3.new(0, 0, 0.1), FORWARD, ACROSS, {
+			tex = WATER.Streaks,
+			len = 9,
+			speed = 2.8,
+			w0 = fw,
+			w1 = fw + 1.2,
+			curve = 2,
+			c0 = Color3.new(1, 1, 1),
+			t = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5),
+				NumberSequenceKeypoint.new(0.3, 0.15),
+				NumberSequenceKeypoint.new(1, 0.05),
+			}),
+			emission = 0.5,
+			z = 1,
+		})
+		-- the lip's white edge and the splash where it lands
+		smooth(far, "LipFoam", Vector3.new(fw, 0.3, 0.8), Vector3.new(wx, y + 0.05, lip - 0.2), C.Foam)
+		splash(fallBot + Vector3.new(0, 0.2, 0.6), k == 2)
 	end
-	for k = 1, 3 do -- white water streaks
-		smooth(
-			far,
-			"Streak",
-			Vector3.new(0.6, wtop - wbot, 0.2),
-			Vector3.new(wx - 3 + k * 1.6, (wtop + wbot) / 2, TERRACE[1].z - 1.6),
-			C.Foam,
-			{
-				material = M.Neon,
-				t = 0.3,
-			}
-		)
-	end
-	local pool = smooth(far, "Pool", Vector3.new(30, 0.6, 12), Vector3.new(wx, wbot + 0.2, TERRACE[1].z + 2), C.Water, {
+	-- the pool on the first terrace: a stone rim, deep water, ripples flowing out from the landing, foam at the fall
+	local py = topOf(1) + 0.2
+	local pz0, pz1 = TERRACE[1].z - 6.5, TERRACE[1].z + 5.5
+	local pcz = (pz0 + pz1) / 2
+	smooth(far, "Pool", Vector3.new(GAP[1] * 2 - 4, 0.4, pz1 - pz0), Vector3.new(wx, py - 0.1, pcz), C.Water, {
 		material = M.Glass,
 		t = 0.05,
 	})
 	smooth(
 		far,
 		"PoolDeep",
-		Vector3.new(20, 0.5, 7),
-		Vector3.new(wx, wbot + 0.15, TERRACE[1].z + 2),
+		Vector3.new(GAP[1] * 2 - 10, 0.35, pz1 - pz0 - 5),
+		Vector3.new(wx, py - 0.06, pcz),
 		C.WaterDeep,
-		{ material = M.Glass }
+		{
+			material = M.Glass,
+		}
 	)
-	local foam = smooth(far, "Foam", Vector3.new(12, 0.8, 5), Vector3.new(wx, wbot + 0.5, TERRACE[1].z - 0.5), C.Foam)
-	local att = Instance.new("Attachment")
-	att.Parent = foam
-	local mist = Instance.new("ParticleEmitter")
-	mist.Texture = SMOKE
-	mist.Color = ColorSequence.new(C.Foam)
-	mist.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 6) })
-	mist.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
-	mist.Lifetime = NumberRange.new(1.5, 2.5)
-	mist.Rate = 12
-	mist.Speed = NumberRange.new(2, 4)
-	mist.SpreadAngle = Vector2.new(60, 20)
-	mist.EmissionDirection = Enum.NormalId.Top
-	mist.LightEmission = 0.2
-	mist.Parent = att
-	for _ = 1, 8 do
-		local a = rng:NextNumber(0, math.pi * 2)
+	block(far, "PoolRim", Vector3.new(GAP[1] * 2 - 2, 1.2, 1.4), Vector3.new(wx, py + 0.3, pz1 + 0.7), C.Cream)
+	for _ = 1, 7 do
 		block(
 			far,
-			"SplashRock",
-			Vector3.new(rng:NextNumber(1.5, 3), rng:NextNumber(1, 2), rng:NextNumber(1.5, 3)),
-			Vector3.new(wx + math.cos(a) * 14, wbot + 0.6, pool.Position.Z + math.sin(a) * 5.5),
+			"RimStone",
+			Vector3.new(rng:NextNumber(1.4, 2.6), rng:NextNumber(0.8, 1.6), rng:NextNumber(1.2, 2)),
+			Vector3.new(wx + rng:NextNumber(-GAP[1] + 2, GAP[1] - 2), py + 0.6, pz1 + rng:NextNumber(-0.2, 1.2)),
 			C.RedRock
 		)
 	end
+	waterBeam(
+		"PoolRipples",
+		Vector3.new(wx, py + 0.12, pz0 + 1),
+		Vector3.new(wx, py + 0.12, pz1),
+		Vector3.yAxis,
+		ACROSS,
+		{
+			tex = WATER.Ripple,
+			len = 5,
+			speed = 0.7,
+			w0 = 12,
+			w1 = GAP[1] * 2 - 5,
+			c0 = Color3.new(1, 1, 1),
+			t = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.7) }),
+			emission = 0.3,
+		}
+	)
+	waterBeam(
+		"PoolFoam",
+		Vector3.new(wx, py + 0.16, pz0),
+		Vector3.new(wx, py + 0.16, pz0 + 4.5),
+		Vector3.yAxis,
+		ACROSS,
+		{
+			tex = WATER.Foam,
+			len = 4,
+			speed = 0.9,
+			w0 = 11,
+			w1 = 13,
+			c0 = Color3.new(1, 1, 1),
+			t = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.6) }),
+			emission = 0.3,
+		}
+	)
 	-- the ore head-frame (right of centre) on the second terrace, its chute down to a hopper on the first
 	local hx = 42
 	local hcf = CFrame.lookAt(ledge(2, hx), ledge(2, hx) + Vector3.new(0, 0, 1))
@@ -964,7 +1163,7 @@ return function(ctx, parent)
 	for i = 1, 46 do
 		local k = (i % 4) + 1
 		local x = rng:NextNumber(-WALL - 30, WALL + 30)
-		if math.abs(x - wx) > 9 and math.abs(x - hx) > 8 and math.abs(x) > 18 then
+		if math.abs(x - wx) > GAP[1] + 3 and math.abs(x - hx) > 8 and math.abs(x) > 18 then
 			local at = CFrame.new(ledge(k, x)) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 			local r = rng:NextNumber()
 			if r < 0.18 then
