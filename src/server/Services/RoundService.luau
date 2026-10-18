@@ -1,7 +1,8 @@
 --!strict
 -- The round (GDD §5, §6, §8): INTERMISSION → INTRO → (READY → CROSSING → RESOLVE) × up to 8 → LAST STAND → RESULTS.
 -- Owns roles, teleports, locks, the Field Fuse and every ending condition; BombService owns the bombs.
--- Until the lobby ("The Depot", P6) exists, intermission waits on the start Safe Strip (docs/DECISIONS.md).
+-- Between rounds everyone is in the lobby, The Depot (GDD §19; Characters.lobbyCFrame falls back to the start strip
+-- when a place has no lobby).
 -- MomentService picks the round's best moment; it goes out with the results (F-FEEL-06).
 -- Implements: F-FLOW-01..10, F-CROSS-01..04, F-FUSE-01..05, F-LAST-01..03, F-WIN-01..03, §5.4 sizing, F-FEEL-06 (hooks).
 
@@ -396,7 +397,7 @@ local function resetToLobby()
 			Participants.setRole(p, R.None)
 			Participants.setState(p, S.Lobby)
 			Characters.applyGroup(p)
-			Characters.pivot(p, strip(-1))
+			Characters.pivot(p, Characters.lobbyCFrame()) -- back to The Depot (GDD §19)
 		end
 	end
 	startSide = -1

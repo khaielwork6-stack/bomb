@@ -44,7 +44,7 @@ The order matters:
 - [ ] **PARTNER**: Whitebox the island, reachable end to end in under 6 s of running.
   - Name these parts: `SpawnPlaza`, `ClockTower`, `ShopKiosk`, `QuestBoard`, `LeaderboardWall` (3 boards + 3 statue
     plinths), `FuseRange`, `VipLounge`.
-- [ ] **CODE**: The lobby flow.
+- [x] **CODE**: The lobby flow. (P6-03, code done; a first-pass Depot is built by `builders/MapDepot`)
   - Spawn in the Depot, and spend intermission there.
   - Teleport to the Yard at INTRO, and back to the Depot at RESULTS.
   - Menus close gracefully at round start (§19.2).

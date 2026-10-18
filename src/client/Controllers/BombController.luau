@@ -478,6 +478,15 @@ local function hosts(): { Instance }
 			table.insert(out, m)
 		end
 	end
+	-- The Depot's Fuse Range dummies hold practice bombs (DepotController sets their attributes locally)
+	local lobby = workspace:FindFirstChild("Lobby")
+	local range = lobby and lobby:FindFirstChild("FuseRange")
+	local dummies = range and range:FindFirstChild("Dummies")
+	if dummies then
+		for _, m in ipairs(dummies:GetChildren()) do
+			table.insert(out, m)
+		end
+	end
 	return out
 end
 
