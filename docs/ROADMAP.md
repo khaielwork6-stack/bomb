@@ -41,7 +41,7 @@ The order matters:
 2. **CODE wires** against those names.
 3. **PARTNER** does the art pass on top.
 
-- [x] **CODE** built the whitebox instead (`builders/MapDepot`, P6-03), so the partner can go straight to the art pass. ~~**PARTNER**: Whitebox the island, reachable end to end in under 6 s of running.
+- [x] **CODE** built the whitebox instead (`builders/MapDepot`, P6-03), so the partner can go straight to the art pass. The partner skips the whitebox step.
   - Name these parts: `SpawnPlaza`, `ClockTower`, `ShopKiosk`, `QuestBoard`, `LeaderboardWall` (3 boards + 3 statue
     plinths), `FuseRange`, `VipLounge`.
 - [x] **CODE**: The lobby flow. (P6-03, code done; a first-pass Depot is built by `builders/MapDepot`)
