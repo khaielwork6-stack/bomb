@@ -136,6 +136,9 @@ return {
 		FirstCarry = "BUMP SOMEONE, OR RUN TO A SAFE SIDE!",
 		FirstBomber = "TOUCH RUNNERS TO STICK BOMBS!",
 		FirstFieldWarn = "GET ACROSS BEFORE IT BLOWS!",
+		-- The Hand-Off (GDD §7.4b): the Lunge on your second carry, the Reject the first time a pass lands on you
+		Lunge = "DASH INTO SOMEONE TO SLAM IT ON THEM!",
+		Reject = "HARD STOP AS IT HITS YOU TO REJECT IT!",
 		QuestsIntro = "Daily quests: earn Stars!",
 	},
 	-- The four rules (GDD §7.1): this is the whole on-screen tutorial.

@@ -106,6 +106,11 @@ local function readParams()
 	local role = ClientState.role()
 	params.lobby = role == Types.Role.None
 	params.speedMult = player:GetAttribute("SpeedMult") or 1
+	-- a short server slow (a whiffed lunge's stumble, a rejected pass's stagger; GDD §7.4b)
+	local slowUntil = player:GetAttribute("SlowUntil")
+	if type(slowUntil) == "number" and workspace:GetServerTimeNow() < slowUntil then
+		params.speedMult *= player:GetAttribute("SlowMult") or 1
+	end
 	params.accelMult = player:GetAttribute("MoveAccelMult") or 1
 	params.decelMult = player:GetAttribute("MoveDecelMult") or 1
 	params.turnMult = player:GetAttribute("MoveTurnMult") or 1

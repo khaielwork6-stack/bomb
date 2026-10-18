@@ -494,6 +494,12 @@ local function hosts(): { Instance }
 	return out
 end
 
+-- The Chain Song (F-BOMB-14): a bomb that's been through N Carriers glows hotter at the seams from ×2.
+local chainHeat: { [Instance]: number } = {}
+function BombController.setChain(host: Instance, n: number?)
+	chainHeat[host] = if n and n >= 2 then n else nil
+end
+
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function update(v: Visual, dt: number, t: number)
 	local at = v.explodeAt
@@ -531,6 +537,10 @@ local function update(v: Visual, dt: number, t: number)
 		then 0.15 - pulse * 0.15
 		elseif stage == "HOT" then 0.75 - (1 - remaining / B.STAGE_HOT) * 0.45
 		else 1
+	local heat = chainHeat[v.host]
+	if heat then
+		seamT = math.min(seamT, 0.82 - 0.1 * math.min(heat - 2, 5)) -- hotter with every Carrier it's been through
+	end
 	for _, seam in ipairs(v.seams) do
 		seam.Transparency = seamT
 		seam.Color = if stage == "CRITICAL" then P.Spark:Lerp(Color3.new(1, 1, 1), pulse) else P.Ember

@@ -13,6 +13,8 @@ return {
 	Callouts = {
 		Tagged = { xp = 5, stars = 0 },
 		Pass = { xp = 5, stars = 1 },
+		SlamPass = { xp = 5, stars = 1 }, -- pays as a pass (GDD §7.4b: no new Stars)
+		Rejected = { xp = 15, stars = 0 }, -- XP only
 		CloseOne = { xp = 15, stars = 1 },
 		Defused = { xp = 15, stars = 1 },
 		ClutchDefuse = { xp = 40, stars = 3 },
@@ -41,7 +43,7 @@ return {
 	-- Anti-farm (F-CALL-02, F-SEC-05)
 	PASS_PAID_PER_ROUND = 4, -- PASS rewards stop paying after this many in a round
 	BOT_CREDIT_MULT = 0.5, -- TAGGED / PASS / BOOM credit on a bot pays half
-	BOT_HALVED = { Tagged = true, Pass = true, Boom = true } :: { [string]: boolean },
+	BOT_HALVED = { Tagged = true, Pass = true, SlamPass = true, Boom = true } :: { [string]: boolean },
 	PRIVATE_SMALL_HUMANS = 4, -- private servers with fewer humans than this…
 	PRIVATE_SMALL_MULT = 0.5, -- …pay callout Stars at this rate
 

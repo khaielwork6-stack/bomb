@@ -36,6 +36,12 @@ function MoveService.recordTech(p: Participant, kind: string)
 	local t = now()
 	p.data.lastTech = kind
 	p.data.lastTechAt = t
+	-- the Hand-Off reads these (GDD §7.4b): a Carrier's dash is a lunge, a Hard Stop can reject a pass
+	if kind == "Dash" then
+		p.data.dashTechAt = t
+	elseif kind == "HardStop" then
+		p.data.stopTechAt = t
+	end
 	if kind == "Slide" then
 		p.data.slideUntil = t + M.SLIDE_TIME
 	end

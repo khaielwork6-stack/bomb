@@ -25,6 +25,7 @@ export type MatchStats = {
 	booms: number, -- Bomber credit (bombs you started that boomed on a Runner)
 	bestChain: number,
 	dodges: number,
+	rejects: number, -- F-BOMB-13: passes this player bounced back
 	survivalStart: number,
 	survival: number,
 	inputSeconds: number,
@@ -82,6 +83,7 @@ function Participants.newStats(): MatchStats
 		booms = 0,
 		bestChain = 0,
 		dodges = 0,
+		rejects = 0, -- F-BOMB-13
 		survivalStart = 0,
 		survival = 0,
 		inputSeconds = 0,

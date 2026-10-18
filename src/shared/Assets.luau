@@ -64,6 +64,9 @@ Assets.SFX = {
 		alt = { "rbxassetid://9114772607", "rbxassetid://9114773010", "rbxassetid://9114773206" },
 	}),
 	SlapSwing = s(9126229255, 0.32, "PSE", { pitch = { 1.75, 1.95 } }),
+	-- The Chain Song (GDD F-BOMB-14): one in-house mallet note tuned to C5 (art/audio/make_chain_note.py →
+	-- chain_note.wav), pitched by semitones up a major scale. "" until uploaded: the in-house tick plays the scale.
+	ChainNote = s("", 0.7, "FV"),
 	BoomHit = s(1843023322, 0.9, "APM"), -- cinematic hit: the boom's punch
 	BoomBody = s(9113470802, 0.75, "PSE"), -- a giant thud: the body of the boom
 	BoomDebris = s(9113218938, 0.45, "PSE", { region = { 0, 2.2 } }), -- rock crumble: debris + tail (first 2.2 s of a 16 s file)
@@ -138,6 +141,7 @@ Assets.Vfx = {
 	Scorch = "rbxassetid://78443805189538",
 	Ember = "rbxassetid://135076496021372",
 	Smack = "rbxassetid://95072891972199", -- art/vfx/make_smack.py: the slap's comic burst (4×4 flipbook, OneShot)
+	DangerRing = "rbxassetid://70459732327420", -- art/vfx/make_danger_ring.py: the Carrier's pass reach (GDD F-BOMB-11)
 }
 
 -- The custom icon set (Asset Bible §6.4), drawn in code by art/ui/make_icons.py (Skin.icon). Person and Badge are

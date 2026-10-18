@@ -360,9 +360,20 @@ function OnboardingController.start()
 		onProgress(s)
 	end
 	-- tips
+	local carries = 0
 	player:GetAttributeChangedSignal("BombId"):Connect(function()
 		if player:GetAttribute("BombId") ~= nil then
+			carries += 1
 			tip("FirstCarry", S.Tips.FirstCarry)
+			if carries >= 2 then
+				tip("Lunge", S.Tips.Lunge) -- the Hand-Off's attack (GDD §7.4b)
+			end
+		end
+	end)
+	-- …and its counter, taught the first time a pass lands on you
+	Net.listen("BombFx", function(p)
+		if type(p) == "table" and p.kind == "Pass" and p.who == ClientState.myId() then
+			tip("Reject", S.Tips.Reject)
 		end
 	end)
 	player:GetAttributeChangedSignal("Role"):Connect(function()

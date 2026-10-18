@@ -6,7 +6,11 @@
 -- Round modifiers (GDD §6.4): READ THE FACE bombs get a random fuse and keep their boom time off the Carrier
 -- (`BombMasked`) until they turn HOT; the Mole's armed STRIKE (p.data.strikeUntil, set by ModifierService) tags.
 -- The slap (F-BOMB-10): a tag shoves the tagged Runner forward, away from the Bomber; a pass bumps both bodies apart.
--- Implements: F-BOMB-01..10, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
+-- The Hand-Off (GDD §7.4b): the pass reach grows with the fuse stage (F-BOMB-11); a Carrier's dash is a lunge that
+-- reaches further forward and makes a SLAM PASS, and a lunge at someone that misses stumbles the Carrier (F-BOMB-12);
+-- a receiver's timed Hard Stop rejects the pass and staggers the giver (F-BOMB-13). Slows go through the SlowMult /
+-- SlowUntil attributes, never SpeedMult (the Last Stand and MEGA own that one).
+-- Implements: F-BOMB-01..13, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -28,6 +32,7 @@ type Bomb = BombRules.Bomb
 type Body = BombRules.Body
 
 local B = Config.Bomb
+local M = Config.Movement
 local MOD = Config.Modifiers
 local fuseRng = Random.new()
 local R, S = Types.Role, Types.State
@@ -48,6 +53,10 @@ local BombService = {
 	Fed = Signal.new(),
 	-- (p) a boomed Runner is back on their feet as a Bomber.
 	BecameBomber = Signal.new(),
+	-- F-BOMB-13: (rejecter, giver, bomb) a timed Hard Stop bounced a pass back.
+	Rejected = Signal.new(),
+	-- F-BOMB-12: (carrier, target?) a lunge at somebody missed (the target dodged it).
+	Whiffed = Signal.new(),
 }
 
 -- Live only while RoundService runs a crossing / the Last Stand run.
@@ -98,6 +107,22 @@ function BombService.count(): number
 end
 
 -- ── Snapshots ────────────────────────────────────────────────────────────────────────────────────────────────────
+local function flatDir(root: BasePart): Vector3
+	local v = root.AssemblyLinearVelocity * Vector3.new(1, 0, 1)
+	if v.Magnitude > 4 then
+		return v.Unit
+	end
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	return if look.Magnitude > 1e-3 then look.Unit else Vector3.new(0, 0, -1)
+end
+
+-- A short slow (a whiff's stumble, a reject's stagger): clients and bots multiply their speed by SlowMult until
+-- SlowUntil (server time). Separate from SpeedMult, which the Last Stand and MEGA own.
+local function slow(p: Participant, mult: number, seconds: number)
+	p.attrs:SetAttribute("SlowMult", mult)
+	p.attrs:SetAttribute("SlowUntil", now() + seconds)
+end
+
 local function bodyOf(p: Participant, t: number): Body?
 	local root = p.root
 	if not root or root.Parent == nil or (p.role ~= R.Runner and p.role ~= R.Bomber) then
@@ -116,6 +141,14 @@ local function bodyOf(p: Participant, t: number): Body?
 		mega = p.data.mega == true,
 		-- F-MOD-04: the Mole's STRIKE is armed (never while they carry a bomb themselves)
 		striker = p.role == R.Runner and (p.data.strikeUntil or 0) > t and byCarrier[p.id] == nil,
+		-- F-BOMB-12: a Carrier mid-dash lunges, in the direction it's moving (or facing, if it barely moves)
+		lungeDir = if byCarrier[p.id] and t - (p.data.dashTechAt or -math.huge) <= M.DASH_TIME
+			then flatDir(root)
+			else nil,
+		-- F-BOMB-13: a Hard Stop just now, off cooldown, and not carrying
+		rejectReady = byCarrier[p.id] == nil
+			and t - (p.data.stopTechAt or -math.huge) <= B.REJECT_WINDOW
+			and t >= (p.data.rejectReadyAt or 0),
 	}
 end
 
@@ -278,7 +311,7 @@ local function tag(bomber: Participant, target: Participant, bBody: Body, tBody:
 	BombService.Tagged:Fire(bomber, target, bomb)
 end
 
-local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body, tBody: Body, t: number)
+local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body, tBody: Body, t: number, slam: boolean)
 	if tBody.mega then
 		-- F-MEGA-06: fed to the giant. The bomb is gone (MegaService staggers it and burns its fuse).
 		local remaining = BombRules.remaining(bomb, t)
@@ -294,10 +327,11 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 	byCarrier[to.id] = bomb
 	setCarrierAttrs(to, bomb)
 	from.stats.passes += 1
-	-- the bump (F-BOMB-03): both bodies knock apart
+	-- the bump (F-BOMB-03): both bodies knock apart; a SLAM PASS knocks the receiver further (F-BOMB-12)
 	local apart = tBody.pos - fBody.pos
-	Characters.push(to, apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	Characters.push(to, apart, if slam then B.SLAM_KNOCK else B.PASS_BUMP, B.PASS_BUMP_TIME)
 	Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	from.data.lungeAim = nil -- the lunge connected: no whiff
 	local remaining = BombRules.remaining(bomb, t)
 	Net.fireAll("BombFx", {
 		kind = "Pass",
@@ -306,9 +340,52 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 		who = to.id,
 		remaining = if bomb.masked and not bomb.shown then nil else remaining, -- F-MOD-02: no time while LIT
 		chain = BombRules.chainLength(bomb),
+		slam = slam or nil,
 		at = t,
 	})
-	BombService.Passed:Fire(from, to, bomb, remaining)
+	BombService.Passed:Fire(from, to, bomb, remaining, slam)
+end
+
+-- F-BOMB-13: the receiver's timed Hard Stop bounces the pass back. The giver keeps the bomb (inside the no-pass-back
+-- second too), is staggered and knocked back; the rejecter can't reject this bomb again, and waits out a cooldown.
+local function reject(bomb: Bomb, giver: Participant, rejecter: Participant, gBody: Body, rBody: Body, t: number)
+	local by = bomb.rejectedBy or {}
+	by[rejecter.id] = true
+	bomb.rejectedBy = by
+	bomb.receivedAt = t -- the receive grace again: no same-frame re-pass
+	rejecter.data.rejectReadyAt = t + B.REJECT_COOLDOWN
+	rejecter.data.stopTechAt = nil
+	giver.data.lungeAim = nil
+	local apart = rBody.pos - gBody.pos
+	Characters.push(giver, -apart, B.REJECT_KNOCK, B.PASS_BUMP_TIME)
+	slow(giver, B.REJECT_SPEED, B.REJECT_STAGGER)
+	rejecter.stats.rejects += 1
+	Net.fireAll("BombFx", { kind = "Reject", bomb = bomb.id, from = giver.id, who = rejecter.id, at = t })
+	BombService.Rejected:Fire(rejecter, giver, bomb)
+end
+
+-- F-BOMB-12: lunges. When a Carrier's dash starts and somebody is in the stretched cone, the lunge is aimed at them;
+-- if the dash ends with the bomb still on the Carrier (no pass), it's a whiff: a stumble, and a DODGE! for them.
+local function lunges(bodies: { Body }, byId: { [string]: Body }, t: number)
+	for _, bomb in pairs(bombs) do
+		local b = byId[bomb.carrier]
+		local p = Participants.get(bomb.carrier)
+		if b and p then
+			local dashAt = p.data.dashTechAt or -math.huge
+			local aim = p.data.lungeAim
+			if b.lungeDir and (not aim or aim.dashAt ~= dashAt) and not bomb.locked then
+				local target = BombRules.lungeTarget(bomb, b, bodies, t)
+				p.data.lungeAim = if target then { dashAt = dashAt, target = target.id } else { dashAt = dashAt }
+			elseif aim and t - aim.dashAt > M.DASH_TIME then
+				p.data.lungeAim = nil
+				if aim.target then
+					slow(p, B.WHIFF_SPEED, B.WHIFF_TIME)
+					Net.fireAll("BombFx", { kind = "Whiff", bomb = bomb.id, who = p.id, from = aim.target, at = t })
+					BombService.Whiffed:Fire(p, Participants.get(aim.target))
+				end
+			end
+		end
+	end
 end
 
 -- DODGE! tracking: "runner|bomber" -> when the near miss began; runner -> last dodge (cooldown).
@@ -397,11 +474,14 @@ local function step()
 	for _, bomb in pairs(bombs) do
 		local from = byId[bomb.carrier]
 		if from then
-			local to = BombRules.pickReceiver(bomb, from, bodies, t)
+			local to, slam = BombRules.pickReceiver(bomb, from, bodies, t)
 			if to then
 				local fp, tp = Participants.get(from.id), Participants.get(to.id)
-				if fp and tp then
-					pass(bomb, fp, tp, from, to, t)
+				if fp and tp and BombRules.rejects(bomb, to) then
+					reject(bomb, fp, tp, from, to, t) -- F-BOMB-13: bounced back; the giver keeps it
+					to.rejectReady = false
+				elseif fp and tp then
+					pass(bomb, fp, tp, from, to, t, slam)
 					from.carrying = false
 					to.carrying = true
 				end
@@ -422,6 +502,7 @@ local function step()
 			end
 		end
 	end
+	lunges(bodies, byId, t)
 	dodges(bodies, byId, t)
 end
 

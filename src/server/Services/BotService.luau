@@ -38,7 +38,7 @@ local FLAT = Vector3.new(1, 0, 1)
 
 local BotService = {}
 
-type Tier = { reaction: number, error: number, dash: number, pace: number }
+type Tier = { reaction: number, error: number, dash: number, pace: number, reject: number }
 
 type Brain = {
 	tier: Tier,
@@ -55,6 +55,7 @@ type Brain = {
 	targetId: string?,
 	lobbyGoal: Vector3?, -- between rounds: the Depot station it's strolling to
 	lobbyNext: number?,
+	rejectRoll: number?, -- when it last rolled for a Reject (GDD §7.4b)
 }
 
 local brains: { [string]: Brain } = {}
@@ -450,6 +451,34 @@ local function runnerDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 	end
 end
 
+-- F-BOMB-13: a Carrier closing in → maybe a timed Hard Stop to reject the pass (skill-tier odds, one roll per
+-- approach). Too early and the window is gone when they arrive: the same skill a player needs.
+local function maybeReject(p: Participant, brain: Brain, root: BasePart, seen: { Seen })
+	local t = os.clock()
+	if t - (brain.rejectRoll or -math.huge) < BC.REJECT_RETRY then
+		return
+	end
+	local pos = root.Position
+	for _, s in ipairs(seen) do
+		if s.carrying and s.active and not s.safe and s.p.role == R.Runner then
+			local away = (pos - s.pos) * FLAT
+			local d = away.Magnitude
+			local speed = (s.vel * FLAT).Magnitude
+			local reach = Config.Bomb.PASS_RANGE
+				+ Config.Bomb.LAG_SLACK
+				+ (if speed > Config.Movement.MAX_SPEED * 1.4 then Config.Bomb.LUNGE_REACH else 0)
+			local closing = if d > 1e-3 then (s.vel * FLAT):Dot(away.Unit) else 0
+			if d <= reach + BC.REJECT_LOOK and closing >= BC.REJECT_CLOSING then
+				brain.rejectRoll = t
+				if rng:NextNumber() < brain.tier.reject then
+					technique(p, brain, "HardStop", Vector3.zero)
+				end
+				return
+			end
+		end
+	end
+end
+
 -- F-MOD-04: a bot Mole blends in as a Runner, then, some time after GO, strikes a Runner close by on the field and
 -- runs it down while the strike is armed. Returns true when it took over this decision.
 local function moleDecide(p: Participant, brain: Brain, root: BasePart, seen: { Seen }): boolean
@@ -514,7 +543,8 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 			end
 		end
 	end
-	local choice = BombBrain.carrierChoice(remaining, dist, 22 * brain.tier.pace, target ~= nil)
+	local choice =
+		BombBrain.carrierChoice(remaining, dist, 22 * brain.tier.pace, target ~= nil, if target then best else nil)
 	if rng:NextNumber() < brain.tier.error then
 		choice = if choice == "defuse" and target then "pass" else choice -- a panicky misjudgement
 	end
@@ -681,10 +711,12 @@ local function decide(p: Participant, brain: Brain)
 	if p.role == R.Runner and carrying and p.state == S.Active then
 		carrierDecide(p, brain, root, seen)
 	elseif p.role == R.Runner then
+		maybeReject(p, brain, root, seen)
 		if not moleDecide(p, brain, root, seen) then
 			runnerDecide(p, brain, root, seen)
 		end
 	elseif p.role == R.Bomber and p.state == S.Active then
+		maybeReject(p, brain, root, seen) -- a revenge pass can be rejected too
 		bomberDecide(p, brain, root, seen)
 	else
 		brain.desired = Vector3.zero
@@ -712,6 +744,10 @@ local function steer(p: Participant, brain: Brain, dt: number)
 	local params = brain.params
 	params.lobby = p.role == R.None
 	params.speedMult = (p.attrs:GetAttribute("SpeedMult") or 1) * brain.tier.pace
+	local slowUntil = p.attrs:GetAttribute("SlowUntil")
+	if type(slowUntil) == "number" and now() < slowUntil then -- a whiff's stumble / a reject's stagger (§7.4b)
+		params.speedMult *= p.attrs:GetAttribute("SlowMult") or 1
+	end
 	params.accelMult, params.decelMult, params.turnMult, params.dashMult = 1, 1, 1, 1
 	MovementCore.applyProfile(params, p.role)
 	if busy then

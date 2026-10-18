@@ -98,6 +98,11 @@ local function play(model: Model, name: string, from: number)
 	tr.TimePosition = from
 end
 
+-- Play one of the slap's clips on a body (the Hand-Off's whiff and reject stagger reuse Stumble).
+function SlapController.playClip(model: Model, name: string, from: number)
+	play(model, name, from)
+end
+
 -- ── The hand bomb ───────────────────────────────────────────────────────────────────────────────────────────────
 type Hand = {
 	model: Model,

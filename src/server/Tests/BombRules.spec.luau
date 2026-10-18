@@ -60,6 +60,47 @@ return function(t)
 		t.expect(target and target.id).toBe("R1")
 	end)
 
+	t.it("the Danger Ring: the pass reach grows LIT → HOT → CRITICAL (F-BOMB-11)", function()
+		local bomb = BombRules.newBomb(1, body("B1", "Bomber", 50), body("A", "Runner", 0), NOW)
+		t.expect(BombRules.passRange(bomb, NOW)).near(B.PASS_RANGE_STAGE.LIT)
+		t.expect(BombRules.passRange(bomb, NOW + B.FUSE - B.STAGE_HOT + 0.01)).near(B.PASS_RANGE_STAGE.HOT)
+		t.expect(BombRules.passRange(bomb, NOW + B.FUSE - B.STAGE_CRITICAL + 0.01)).near(B.PASS_RANGE_STAGE.CRITICAL)
+		-- a body just past the LIT reach is out of reach at LIT and in reach at CRITICAL
+		local a = body("A", "Runner", 0)
+		local far = body("C", "Runner", B.PASS_RANGE_STAGE.LIT + B.LAG_SLACK + 0.3)
+		local late = NOW + B.FUSE - B.STAGE_CRITICAL + 0.01
+		t.expect(BombRules.pickReceiver(bomb, a, { a, far }, NOW + 0.5)).toBe(nil)
+		t.expect((BombRules.pickReceiver(bomb, a, { a, far }, late))).toBe(far)
+	end)
+
+	t.it("the Lunge reaches further only in front, and makes a SLAM PASS (F-BOMB-12)", function()
+		local bomb = BombRules.newBomb(1, body("B1", "Bomber", 50), body("A", "Runner", 0), NOW)
+		local later = NOW + 0.5
+		local d = B.PASS_RANGE_STAGE.LIT + B.LAG_SLACK + B.LUNGE_REACH * 0.8 -- past normal reach, inside the lunge
+		local carrier = body("A", "Runner", 0, { lungeDir = Vector3.new(1, 0, 0) })
+		local ahead, behind = body("F", "Runner", d), body("R", "Runner", -d)
+		local to, slam = BombRules.pickReceiver(bomb, carrier, { carrier, ahead, behind }, later)
+		t.expect(to).toBe(ahead)
+		t.expect(slam).truthy()
+		local still = body("A", "Runner", 0)
+		local to2, slam2 = BombRules.pickReceiver(bomb, still, { still, ahead, behind }, later)
+		t.expect(to2).toBe(nil)
+		t.expect(slam2).falsy()
+		-- only a lunge at somebody can whiff: the target in the cone, nobody behind
+		t.expect(BombRules.lungeTarget(bomb, carrier, { carrier, behind }, later)).toBe(nil)
+		t.expect(BombRules.lungeTarget(bomb, carrier, { carrier, ahead }, later)).toBe(ahead)
+	end)
+
+	t.it("the Reject: a timed Hard Stop bounces it back, once per bomb per player (F-BOMB-13)", function()
+		local bomb = BombRules.newBomb(1, body("B1", "Bomber", 50), body("A", "Runner", 0), NOW)
+		local ready = body("C", "Runner", 2, { rejectReady = true })
+		t.expect(BombRules.rejects(bomb, ready)).truthy()
+		t.expect(BombRules.rejects(bomb, body("D", "Runner", 2))).falsy()
+		bomb.rejectedBy = { C = true }
+		t.expect(BombRules.rejects(bomb, ready)).falsy()
+		t.expect(BombRules.rejects(bomb, body("M", "Bomber", 2, { rejectReady = true, mega = true }))).falsy()
+	end)
+
 	t.it("a pass keeps the remaining time (the fuse never resets)", function()
 		local bomber, a, b = body("B1", "Bomber", 50), body("A", "Runner", 1), body("C", "Runner", 3)
 		local bomb = BombRules.newBomb(1, bomber, a, NOW)

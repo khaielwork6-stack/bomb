@@ -2,7 +2,8 @@
 -- The bomb's rules as pure functions over plain data (GDD §7). BombService feeds it snapshots of the participants
 -- ("bodies") and applies the decisions; the specs in Tests/BombRules.spec cover every rule and §7.7 edge case.
 -- Implements: F-BOMB-02 (tag), F-BOMB-03..05 (pass), F-BOMB-06/07 (who it blows on), F-BOMB-09 (clutch),
--- F-FLOW-09/§5.4 (starting Bombers), F-FUSE-01 (field fuse lengths), F-MOD-04 (the Mole's strike is a tag).
+-- F-FLOW-09/§5.4 (starting Bombers), F-FUSE-01 (field fuse lengths), F-MOD-04 (the Mole's strike is a tag),
+-- F-BOMB-11..13 (the Hand-Off: the stage reach, the lunge, the reject).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -22,6 +23,7 @@ export type Bomb = {
 	locked: boolean, -- on a Bomber: can't be passed on (F-BOMB-07)
 	masked: boolean?, -- READ THE FACE (F-MOD-02): clients don't get the boom time while it's LIT
 	shown: boolean?, -- …and it has turned HOT, so they do
+	rejectedBy: { [string]: boolean }?, -- F-BOMB-13: who already rejected this bomb (once each)
 }
 
 -- A participant as the rules see it, snapshotted each step.
@@ -36,6 +38,8 @@ export type Body = {
 	reach: number?, -- extra contact reach (the MEGA BOMBER's size, GDD §16): its tags, and passes onto it
 	mega: boolean?, -- the MEGA BOMBER
 	striker: boolean?, -- a Runner whose touch tags right now: the Mole's armed STRIKE (F-MOD-04)
+	lungeDir: Vector3?, -- F-BOMB-12: a Carrier mid-dash, its flat dash direction (unit)
+	rejectReady: boolean?, -- F-BOMB-13: a Hard Stop inside the reject window, off cooldown
 }
 
 local BombRules = {}
@@ -113,13 +117,76 @@ local function closest(from: Vector3, bodies: { Body }, range: number, ok: (Body
 	return best
 end
 
-function BombRules.pickReceiver(bomb: Bomb, carrier: Body, bodies: { Body }, now: number): Body?
+-- F-BOMB-11: the pass reach for this bomb right now (it grows with the fuse stage; the Danger Ring draws it).
+function BombRules.passRange(bomb: Bomb, now: number): number
+	return (B.PASS_RANGE_STAGE :: any)[BombRules.stage(BombRules.remaining(bomb, now))] or B.PASS_RANGE
+end
+
+-- F-BOMB-12: is `pos` inside a lunging Carrier's stretched reach (in the cone, within base + LUNGE_REACH)?
+function BombRules.inLunge(carrier: Body, pos: Vector3, base: number, extra: number?): boolean
+	local dir = carrier.lungeDir
+	if not dir or math.abs(pos.Y - carrier.pos.Y) > B.VERTICAL_REACH then
+		return false
+	end
+	local d = (pos - carrier.pos) * Vector3.new(1, 0, 1)
+	if d.Magnitude < 1e-3 then
+		return true
+	end
+	return d.Unit:Dot(dir) >= math.cos(math.rad(B.LUNGE_CONE))
+		and d.Magnitude <= base + B.LUNGE_REACH + (extra or 0) + B.LAG_SLACK
+end
+
+-- The receiver of a pass right now (the closest eligible body in reach), and whether it's a SLAM PASS (made
+-- lunging, F-BOMB-12).
+function BombRules.pickReceiver(bomb: Bomb, carrier: Body, bodies: { Body }, now: number): (Body?, boolean)
 	if not BombRules.canPass(bomb, carrier, now) then
+		return nil, false
+	end
+	local range = BombRules.passRange(bomb, now)
+	local best, bestD = nil, math.huge
+	for _, b in ipairs(bodies) do
+		if BombRules.canReceive(bomb, b, now) then
+			local reach = range + (b.reach or 0)
+			if BombRules.inReach(carrier.pos, b.pos, reach) or BombRules.inLunge(carrier, b.pos, reach) then
+				local d = flatDist(carrier.pos, b.pos)
+				if d < bestD then
+					best, bestD = b, d
+				end
+			end
+		end
+	end
+	return best, best ~= nil and carrier.lungeDir ~= nil
+end
+
+-- F-BOMB-13: does this receiver bounce the bomb back (a Hard Stop just before it landed, off cooldown, and they
+-- haven't rejected this bomb yet)? A MEGA BOMBER never rejects a feed.
+function BombRules.rejects(bomb: Bomb, receiver: Body): boolean
+	return receiver.rejectReady == true and not receiver.mega and not (bomb.rejectedBy and bomb.rejectedBy[receiver.id])
+end
+
+-- F-BOMB-12: a lunge that's going for someone: an eligible body in the cone within the stretched reach + WHIFF_AIM
+-- (the closest one is the target a whiff "dodged"). A dash with nobody in front is an escape, never a whiff.
+function BombRules.lungeTarget(bomb: Bomb, carrier: Body, bodies: { Body }, now: number): Body?
+	if not carrier.lungeDir then
 		return nil
 	end
-	return closest(carrier.pos, bodies, B.PASS_RANGE, function(b)
-		return BombRules.canReceive(bomb, b, now)
-	end)
+	local range = BombRules.passRange(bomb, now)
+	local best, bestD = nil, math.huge
+	for _, b in ipairs(bodies) do
+		if
+			b.id ~= carrier.id
+			and b.active
+			and not b.safe
+			and not b.carrying
+			and BombRules.inLunge(carrier, b.pos, range + (b.reach or 0), B.WHIFF_AIM)
+		then
+			local d = flatDist(carrier.pos, b.pos)
+			if d < bestD then
+				best, bestD = b, d
+			end
+		end
+	end
+	return best
 end
 
 -- DODGE! geometry (GDD §11.1): just outside the Bomber's reach — within DODGE_MARGIN of it.
