@@ -28,7 +28,7 @@ Everything players see or hear that is still to build, from the Asset Bible (AB)
   - **BLOCKED:** the firework others see over your head. **Request for partner:** a LevelUp broadcast.
 - [x] **Daily calendar polish** (HOOKED · AB §7.5). A corkboard with pins, and a big Day-7 card showing the Streak Bomb.
 - [x] **Shop / Locker: what's still missing** *(fallenbomb 2026-10-18: Stars tab (shown once the products exist), featured countdown, PREVIEW on your own character instead of a dummy; icon tabs. The Emotes tab shows once emotes are equippable)* (HOOKED · §17.3). Stars and Emotes tabs, explosion-on-dummy previews, the featured-rotation countdown, and "Preview in game".
-- [ ] **Emote wheel** (BLOCKED · AB §8.5). Needs the 8 clips (§6).
+- [x] **Emote wheel** (AB §8.5) *(EmoteController: G wheel of owned emotes, T taunt; plays on your character, replicates)*.
   - **Request for partner:** add Emote to StoreService's equip slots, plus a lobby-only phase check.
 - [x] **MEGA BOMB chip, lobby clock, Event Card** *(fallenbomb 2026-10-18: the partner shipped MEGA; the chip is restyled violet with the Mega icon and pulses in the last minute; the clock tower is in the restyled Depot; his intro flash is the event card)* (BLOCKED · GDD §16, AB §7.6). The whole MEGA mode is P6 server work. The art (violet poster, Mega icon, chip) can be drawn ahead of it.
 - [ ] **Moment of the Round card** (BLOCKED · GDD §10.5). **Request for partner:** a highlight buffer plus a replay payload.
@@ -72,7 +72,7 @@ The store already lists these but hides them until their art exists (`Cosmetics.
 - [ ] MEGA giant bomb and the violet STOMP ring (BLOCKED, P6).
 
 ## 8. Maps & world
-- [ ] **Fireworks Yard: Blender hero props** (FREE · AB §4.4, P3-08). Every prop is built from parts today (0 MeshParts). Priority: firework crates (3 sizes) → hand-truck → floodlight → rocket bundle → sandbags → shutter → dock bumper. Then bunting sway. *(fallenbomb 2026-10-18: firework crate, hand-truck, pallet, gas bottle, floodlight, rocket bundle modelled and swapped in by builders/MapYardProps; sandbags, shutter, dock bumper still part-built)*
+- [ ] **Fireworks Yard: Blender hero props** (FREE · AB §4.4, P3-08). Every prop is built from parts today (0 MeshParts). Priority: firework crates (3 sizes) → hand-truck → floodlight → rocket bundle → sandbags → shutter → dock bumper. Then bunting sway. *(fallenbomb 2026-10-18: firework crate, hand-truck, pallet, gas bottle, floodlight, rocket bundle, sandbags, shutter, dock bumper modelled and swapped in by builders/MapYardProps)*
 - [x] Yard lighting: settled on the video's sunny midday (ClockTime 13.6, MapYardToy) per the owner's direction; the preset now lives in `Config.Lighting.ToyMidday`.
 - [x] **The Depot lobby** (static art is FREE · AB §4.3, needs hero sign-off): spawn plaza, clock tower, shop kiosk, quest board, leaderboard wall + statue plinths, Fuse Range, VIP balcony. There's no lobby builder yet. *(fallenbomb 2026-10-18: builders/LobbyDepot, with the modelled crate stands + spin wheel)*
   - **Request for partner:** lobby spawn and teleport (`Characters.lobbyReady` only checks for `workspace.Lobby`), the leaderboard boards' data (`LeaderboardService.top()` exists), the Fuse Range dummies, and the clock tower timer once MEGA exists.

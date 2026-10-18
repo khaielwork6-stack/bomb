@@ -51,6 +51,8 @@ return {
 	},
 	Ui = {
 		PickBomber = "BOMBER!",
+		Emotes = "Emotes",
+		Taunt = "Taunt",
 		StarsTab = "Stars",
 		Preview = "PREVIEW",
 		NewItemsIn = "NEW ITEMS IN %s",

@@ -110,6 +110,7 @@ Key: **CLIENT** = the art/UI side can build it now · **PARTNER** = needs server
 - §4 juke intensity: **done** (HypeController.juke, art/vfx/make_juke.py).
 - §6 takedown / reward to the body: **done** (HypeController.reward; the callout word stays CalloutController's).
 - §2 pick camera: **done** (PickController; fits the current 4 s INTRO, Studio preview FV_PreviewPick).
+- §8 emotes + taunt: **done** (EmoteController; tools/anim/Taunt.luau baked offline and published).
 
 ## Order of work (CLIENT now)
 1. Juke intensity (4).

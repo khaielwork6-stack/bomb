@@ -63,6 +63,7 @@ local ORDER: { string } = {
 	"NametagController",
 	"HypeController",
 	"PickController",
+	"EmoteController",
 	"DepotController",
 }
 

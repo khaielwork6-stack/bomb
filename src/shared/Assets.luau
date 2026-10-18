@@ -161,6 +161,8 @@ Assets.Anim = {
 	EmoteVictory = "rbxassetid://93590265471803",
 	EmoteKaboom = "rbxassetid://71279048772759",
 	EmoteSitSip = "rbxassetid://130206929426189",
+	-- the T taunt (tools/anim/Taunt.luau, baked offline by tools/anim/analyse.luau, art/out/Anim/Taunt)
+	Taunt = "rbxassetid://70986811548741",
 	-- The slap (GDD F-BOMB-10), tools/anim/Slap + Stumble. "" until uploaded: Studio plays the baked
 	-- ReplicatedStorage.FV_AnimDev copies (SlapController), live servers skip the clip.
 	Slap = "",
