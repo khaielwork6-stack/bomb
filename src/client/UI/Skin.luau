@@ -1,9 +1,10 @@
 --!strict
--- Skin: the premium UI kit, by the partner (Chase Game, 2026-10-17: chamfered neon frames, halftone dots, glossy 3D
--- buttons, rarity-lit cards, a red octagon close, a slanted header ribbon). Ported to FUSE VALLEY on 2026-10-17 with
--- its palette and button presets recoloured to the Asset Bible §2.3 tokens (fuse-orange neon, ink-plum panels,
--- brass / gold) — every texture is a white mask tinted here, so the shapes stay the partner's and the colours are
--- FUSE VALLEY's. Textures come from Chase Game's tools/ui/make_ui_kit.py (assets/ui/kit).
+-- Skin: the UI kit every screen is built from (panels, cards, pills, arcade buttons, the close button, header tabs).
+-- 2026-10-17: restyled to the owner's reference video (DECISIONS: "the video wins for UI") — flat rounded bodies with a
+-- soft vertical gradient and a gloss band, a coloured border ring and a thick ink outline; bright arcade buttons with a
+-- darker lip; round Fredoka One type with an ink stroke. Everything is native UI (UICorner / UIStroke / UIGradient), so
+-- it stays crisp at any size; the API is the partner's original one (Chase Game), so every screen picks it up as is.
+-- Implements: F-UI-01, Asset Bible §6.1–§6.3.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -14,71 +15,28 @@ local Skin = {}
 local rgb = Color3.fromRGB
 
 Skin.Tex = {
-	ChipBevel = "rbxassetid://92761400127102",
-	ChipBorder = "rbxassetid://71768609535408",
-	ChipFill = "rbxassetid://83154864308086",
-	ChipGlow = "rbxassetid://108065671396055",
 	Dots = "rbxassetid://115567285498813",
 	DotsCorner = "rbxassetid://90163096415671",
-	FrameBevel = "rbxassetid://87152881396277",
-	FrameBorder = "rbxassetid://80001872474946",
-	FrameFill = "rbxassetid://88909266187470",
-	FrameGlow = "rbxassetid://111224733267606",
-	Gloss = "rbxassetid://118968224977154",
-	HexBorder = "rbxassetid://82000527664573",
-	HexFill = "rbxassetid://118491756875680",
-	OctagonBorder = "rbxassetid://78348984125012",
-	OctagonFill = "rbxassetid://100837119325457",
 	Radial = "rbxassetid://91508420435421",
 	Sparkle = "rbxassetid://134511066576307",
 	Stripes = "rbxassetid://89702410961873",
-	TabBorder = "rbxassetid://135332906809482",
-	TabFill = "rbxassetid://117127511703937",
 	Robux = "rbxasset://textures/ui/common/robux_small@3x.png", -- Roblox's own Robux mark (white: tint it)
 }
 local T = Skin.Tex
 
--- Slice data from assets/ui/kit/slices.json (image px): the 9-slice centre, the cut size and the glow margin.
-local SHAPE = {
-	Frame = {
-		fill = T.FrameFill,
-		border = T.FrameBorder,
-		bevel = T.FrameBevel,
-		glow = T.FrameGlow,
-		size = 160,
-		inset = 39,
-		cut = 30,
-		glowSize = 224,
-		glowInset = 70,
-		pad = 32,
-	},
-	Chip = {
-		fill = T.ChipFill,
-		border = T.ChipBorder,
-		bevel = T.ChipBevel,
-		glow = T.ChipGlow,
-		size = 96,
-		inset = 22,
-		cut = 14,
-		glowSize = 160,
-		glowInset = 54,
-		pad = 32,
-	},
-}
-
 Skin.Color = {
-	Ink = rgb(22, 18, 28), -- Theme Ink
-	PanelTop = rgb(46, 36, 58),
-	PanelBottom = rgb(18, 14, 24),
-	CardTop = rgb(44, 34, 56),
-	CardBottom = rgb(20, 16, 27),
-	Well = rgb(30, 24, 40),
-	Accent = rgb(255, 106, 31), -- Fuse: the neon edge
-	AccentSoft = rgb(92, 56, 40),
+	Ink = rgb(17, 15, 22), -- the outline on everything
+	PanelTop = rgb(48, 43, 70),
+	PanelBottom = rgb(29, 26, 44),
+	CardTop = rgb(58, 52, 84),
+	CardBottom = rgb(36, 32, 54),
+	Well = rgb(24, 21, 36),
+	Accent = rgb(255, 198, 44), -- the gold border ring on panels
+	AccentSoft = rgb(120, 92, 30),
 	Text = rgb(255, 255, 255),
-	TextSoft = rgb(255, 232, 205),
-	TextDim = rgb(140, 132, 152), -- Ash
-	Cash = rgb(255, 216, 74), -- Spark: Stars
+	TextSoft = rgb(255, 240, 214),
+	TextDim = rgb(170, 164, 190),
+	Cash = rgb(255, 216, 74), -- Stars
 	Robux = rgb(109, 255, 176),
 	Rarity = {
 		Default = rgb(150, 160, 178),
@@ -91,28 +49,29 @@ Skin.Color = {
 }
 local C = Skin.Color
 
--- Button presets: face top / bottom, the dark edge (border + 3D lip) and the glow.
+-- Button presets: face top / face / lip (the reference's tab and price-button colours).
 Skin.Preset = {
-	-- FUSE VALLEY additions first: the brand button (Fuse), and the two team colours.
-	fuse = { rgb(255, 170, 96), rgb(255, 106, 31), rgb(110, 36, 4) },
-	runner = { rgb(130, 236, 255), rgb(47, 211, 255), rgb(6, 70, 96) },
-	bomber = { rgb(255, 138, 110), rgb(255, 74, 46), rgb(102, 18, 8) },
-	brass = { rgb(255, 222, 150), rgb(201, 151, 63), rgb(92, 60, 14) },
-	gold = { rgb(255, 228, 112), rgb(255, 160, 16), rgb(122, 64, 0) },
-	green = { rgb(125, 255, 184), rgb(59, 228, 140), rgb(5, 82, 43) },
-	red = { rgb(255, 112, 100), rgb(232, 50, 43), rgb(92, 6, 12) },
-	cyan = { rgb(110, 242, 255), rgb(22, 160, 217), rgb(6, 62, 92) },
-	pink = { rgb(255, 128, 186), rgb(214, 28, 92), rgb(92, 10, 38) },
-	purple = { rgb(196, 148, 255), rgb(176, 76, 255), rgb(44, 16, 96) },
-	dark = { rgb(64, 52, 82), rgb(36, 29, 46), rgb(82, 66, 104) },
-	grey = { rgb(140, 132, 152), rgb(92, 86, 104), rgb(40, 36, 48) },
+	fuse = { rgb(255, 176, 92), rgb(255, 112, 30), rgb(150, 50, 6) },
+	runner = { rgb(140, 238, 255), rgb(47, 211, 255), rgb(10, 100, 140) },
+	bomber = { rgb(255, 150, 120), rgb(255, 74, 46), rgb(140, 24, 10) },
+	brass = { rgb(255, 228, 150), rgb(214, 160, 58), rgb(120, 78, 16) },
+	gold = { rgb(255, 236, 120), rgb(255, 196, 30), rgb(170, 108, 0) },
+	green = { rgb(140, 246, 80), rgb(56, 204, 32), rgb(24, 112, 12) },
+	red = { rgb(255, 128, 92), rgb(236, 56, 30), rgb(132, 20, 8) },
+	cyan = { rgb(120, 214, 255), rgb(36, 152, 240), rgb(14, 78, 150) },
+	pink = { rgb(255, 150, 236), rgb(232, 76, 206), rgb(128, 22, 110) },
+	purple = { rgb(196, 150, 255), rgb(146, 78, 246), rgb(70, 26, 150) },
+	orange = { rgb(255, 170, 110), rgb(250, 108, 46), rgb(150, 50, 10) },
+	dark = { rgb(76, 70, 102), rgb(46, 41, 66), rgb(22, 19, 34) },
+	grey = { rgb(150, 146, 162), rgb(104, 100, 118), rgb(52, 49, 62) },
 }
 
+-- Fredoka One everywhere (the reference's round arcade face); Builder Sans stays for long body copy.
 Skin.Font = {
-	Display = Font.new("rbxasset://fonts/families/LuckiestGuy.json"),
+	Display = Font.new("rbxasset://fonts/families/FredokaOne.json"),
 	Round = Font.new("rbxasset://fonts/families/FredokaOne.json"),
 	Body = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
-	Heavy = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.ExtraBold),
+	Heavy = Font.new("rbxasset://fonts/families/FredokaOne.json"),
 }
 
 local function new(className: string, props: { [string]: any }): any
@@ -138,28 +97,6 @@ local function vgrad(parent: Instance, top: Color3, bottom: Color3): UIGradient
 	})
 end
 
-local function slice(
-	parent: Instance,
-	name: string,
-	image: string,
-	inset: number,
-	size: number,
-	scale: number,
-	z: number
-): ImageLabel
-	return new("ImageLabel", {
-		Name = name,
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Image = image,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(inset, inset, size - inset, size - inset),
-		SliceScale = scale,
-		ZIndex = z,
-		Parent = parent,
-	})
-end
-
 -- All of a skin's layers live in a Folder: they still draw on the target (under its content, by their negative
 -- ZIndex), but UIListLayout / UIGridLayout and AutomaticSize ignore whatever is inside a Folder. As plain children
 -- they were laid out like content and made auto-sized pills swell (one ran across the whole screen).
@@ -179,9 +116,45 @@ local function clearSkin(target: Instance)
 	end
 end
 
+-- A full-size layer: a plain Frame with the shape's rounded corners.
+local function layer(parent: Instance, name: string, radius: number, z: number, props: { [string]: any }?): Frame
+	local f = new("Frame", {
+		Name = name,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = z,
+		Parent = parent,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, radius), Parent = f })
+	if props then
+		for k, v in pairs(props) do
+			(f :: any)[k] = v
+		end
+	end
+	return f
+end
+
+-- A stroke drawn just outside a layer's edge (UIStroke grows outward from the bounds).
+local function ring(parent: Instance, color: Color3, thickness: number, transparency: number?): UIStroke
+	return new("UIStroke", {
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Color = color,
+		Thickness = thickness,
+		Transparency = transparency or 0,
+		Parent = parent,
+	})
+end
+
+local function tag(host: Instance)
+	for _, x in ipairs(host:GetDescendants()) do
+		x:SetAttribute("Skin", true)
+	end
+end
+
 export type FrameOpts = {
 	kind: string?, -- "Frame" (panels, cards) | "Chip" (buttons, pills, rows)
-	scale: number?, -- SliceScale: the corner cut on screen = cut × scale
+	scale: number?, -- outline weight: 0.5 = the standard 3 px colour ring + ink outline
 	fill: Color3?,
 	fill2: Color3?, -- bottom of the vertical fill gradient
 	fillT: number?,
@@ -199,10 +172,11 @@ export type FrameOpts = {
 }
 
 -- Skin a frame in place (panel, card, pill, well). Returns its layers so callers can recolour them (selection).
-function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: ImageLabel }
+function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: GuiObject }
 	local o: FrameOpts = opts or {}
-	local s = SHAPE[o.kind or "Frame"]
-	local scale = o.scale or 0.5
+	local chip = (o.kind or "Frame") == "Chip"
+	local weight = (o.scale or 0.5) * 2
+	local radius = if chip then 8 else 12
 	clearSkin(target)
 	local host = makeRoot(target)
 	if target:IsA("GuiObject") then
@@ -212,34 +186,21 @@ function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: ImageLabel
 			stroke.Enabled = false
 		end
 	end
-	local L: { [string]: ImageLabel } = {}
-	if o.glow then
-		local pad = s.pad * scale
-		local g = new("ImageLabel", {
-			Name = "SkinGlow",
-			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(-pad, -pad),
-			Size = UDim2.new(1, 2 * pad, 1, 2 * pad),
-			Image = s.glow,
-			ImageColor3 = o.glow,
-			ImageTransparency = o.glowT or 0.35,
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(s.glowInset, s.glowInset, s.glowSize - s.glowInset, s.glowSize - s.glowInset),
-			SliceScale = scale,
-			ZIndex = -9,
-			Parent = host,
-		})
-		g:SetAttribute("Skin", true)
-		L.glow = g
-	end
-	local fill = slice(host, "SkinFill", s.fill, s.inset, s.size, scale, -8)
-	fill.ImageTransparency = o.fillT or 0.03
+	local L: { [string]: GuiObject } = {}
+	local glow = layer(host, "SkinGlow", radius, -10)
+	ring(glow, o.glow or C.Accent, 10 * weight, o.glowT or 0.55)
+	glow.Visible = o.glow ~= nil
+	L.glow = glow
+	local outline = layer(host, "SkinOutline", radius, -9)
+	ring(outline, C.Ink, 5.5 * weight)
+	local fill = layer(host, "SkinFill", radius, -8, {
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = o.fillT or 0,
+	})
 	vgrad(fill, o.fill or C.PanelTop, o.fill2 or o.fill or C.PanelBottom)
 	L.fill = fill
-	local cut = s.cut * scale
 	if o.tint then
-		local t = slice(host, "SkinTint", s.fill, s.inset, s.size, scale, -7)
-		t.ImageColor3 = o.tint
+		local t = layer(host, "SkinTint", radius, -7, { BackgroundColor3 = o.tint, BackgroundTransparency = 0 })
 		new("UIGradient", {
 			Rotation = 90,
 			Transparency = NumberSequence.new({
@@ -252,16 +213,7 @@ function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: ImageLabel
 		L.tint = t
 	end
 	if o.dots then
-		-- tiles can't follow the cut corners, so the wash stays inside them
-		local clip = new("Frame", {
-			Name = "SkinDots",
-			BackgroundTransparency = 1,
-			ClipsDescendants = true,
-			Position = UDim2.fromOffset(cut, 2),
-			Size = UDim2.new(1, -2 * cut, 1, -4),
-			ZIndex = -7,
-			Parent = host,
-		})
+		local clip = layer(host, "SkinDots", radius, -7, { ClipsDescendants = true })
 		local d = new("ImageLabel", {
 			BackgroundTransparency = 1,
 			Size = UDim2.fromScale(1, 1),
@@ -273,12 +225,7 @@ function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: ImageLabel
 			ZIndex = -7,
 			Parent = clip,
 		})
-		new("UIGradient", {
-			Rotation = 90,
-			Transparency = NumberSequence.new(0, 1),
-			Parent = d,
-		})
-		clip:SetAttribute("Skin", true)
+		new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(0, 1), Parent = d })
 	end
 	if o.corner then
 		for i, at in ipairs({ Vector2.new(0, 0), Vector2.new(1, 1) }) do
@@ -296,25 +243,34 @@ function Skin.frame(target: GuiObject, opts: FrameOpts?): { [string]: ImageLabel
 				Parent = host,
 			})
 			new("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = c })
-			c:SetAttribute("Skin", true)
 		end
 	end
-	local bevel = slice(host, "SkinBevel", s.bevel, s.inset, s.size, scale, -6)
-	bevel.ImageTransparency = o.bevelT or 0.65
+	-- Gloss: a white band over the top 45 %, fading out (the "lit from above" read of the reference cards).
+	local bevel = layer(host, "SkinBevel", radius, -6, {
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0,
+	})
+	new("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1 - (1 - (o.bevelT or 0.65)) * 0.3),
+			NumberSequenceKeypoint.new(0.45, 1),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Parent = bevel,
+	})
 	L.bevel = bevel
-	local border = slice(host, "SkinBorder", s.border, s.inset, s.size, scale, -5)
-	border.ImageColor3 = Color3.new(1, 1, 1)
-	vgrad(border, o.border or C.Accent, o.border2 or o.border or C.Accent)
+	local border = layer(host, "SkinBorder", radius, -5)
+	local bs = ring(border, Color3.new(1, 1, 1), 3 * weight)
+	vgrad(bs, o.border or C.Accent, o.border2 or o.border or C.Accent)
 	L.border = border
-	for _, l in pairs(L) do
-		l:SetAttribute("Skin", true)
-	end
+	tag(host)
 	return L
 end
 
 -- Recolour an already-skinned frame (selection, hover) without rebuilding it.
 function Skin.recolor(
-	layers: { [string]: ImageLabel },
+	layers: { [string]: GuiObject },
 	o: {
 		border: Color3?,
 		border2: Color3?,
@@ -325,7 +281,8 @@ function Skin.recolor(
 	}
 )
 	if o.border and layers.border then
-		local g = layers.border:FindFirstChildOfClass("UIGradient")
+		local st = layers.border:FindFirstChildOfClass("UIStroke")
+		local g = st and st:FindFirstChildOfClass("UIGradient")
 		if g then
 			g.Color = ColorSequence.new(o.border, o.border2 or o.border)
 		end
@@ -338,14 +295,15 @@ function Skin.recolor(
 	end
 	if layers.glow then
 		layers.glow.Visible = o.glow ~= nil
-		if o.glow then
-			layers.glow.ImageColor3 = o.glow
-			layers.glow.ImageTransparency = o.glowT or 0.35
+		local st = layers.glow:FindFirstChildOfClass("UIStroke")
+		if o.glow and st then
+			st.Color = o.glow
+			st.Transparency = o.glowT or 0.55
 		end
 	end
 end
 
--- Display text: Luckiest Guy (or Fredoka) with a dark outline, like the references' chunky labels.
+-- Display text: the round arcade face with a dark outline, like the reference's chunky labels.
 function Skin.text(
 	label: TextLabel | TextButton,
 	opts: { font: string?, stroke: number?, color: Color3?, ink: Color3? }?
@@ -370,17 +328,18 @@ function Skin.text(
 	s:SetAttribute("Keep", true)
 end
 
--- A glossy 3D button face on any GuiButton (or Frame): lip, gradient face, stripes, gloss, border, catch-light.
--- A preset from any base colour (face = the colour lit from above, edge = it in shadow).
+-- A preset from any base colour (face top = the colour lit from above, face = the colour, lip = it in shadow).
 function Skin.presetOf(color: Color3, deep: Color3?): { Color3 }
 	local h, sat, v = color:ToHSV()
 	local top = Color3.fromHSV(h, sat * 0.7, math.min(1, v * 1.08 + 0.08))
 	local edge = if deep
 		then deep:Lerp(Color3.new(0, 0, 0), 0.35)
-		else Color3.fromHSV(h, math.min(1, sat * 1.1), v * 0.38)
+		else Color3.fromHSV(h, math.min(1, sat * 1.1), v * 0.45)
 	return { top, color, edge }
 end
 
+-- The reference's arcade button: a bright rounded face with a lighter top, a darker lip under it, a gloss band, and a
+-- thick ink outline round face + lip; white text with an ink stroke.
 function Skin.button(
 	target: GuiObject,
 	preset: (string | { Color3 })?,
@@ -390,8 +349,7 @@ function Skin.button(
 	local p: { Color3 } = if type(preset) == "table"
 		then preset
 		else Skin.Preset[(preset :: string?) or "fuse"] or Skin.Preset.fuse
-	local s = SHAPE.Chip
-	local scale = o.scale or 0.6
+	local weight = (o.scale or 0.6) / 0.6
 	clearSkin(target)
 	local host = makeRoot(target)
 	target.BackgroundTransparency = 1
@@ -404,97 +362,68 @@ function Skin.button(
 		stroke.Enabled = false
 	end
 	local lip = o.lip or 4
-	local parts: { Instance } = {}
+	local radius = 8
 	if o.glow then
-		local pad = s.pad * scale
-		table.insert(
-			parts,
-			new("ImageLabel", {
-				Name = "SkinGlow",
-				BackgroundTransparency = 1,
-				Position = UDim2.fromOffset(-pad, -pad),
-				Size = UDim2.new(1, 2 * pad, 1, 2 * pad),
-				Image = s.glow,
-				ImageColor3 = o.glow,
-				ImageTransparency = 0.4,
-				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(s.glowInset, s.glowInset, s.glowSize - s.glowInset, s.glowSize - s.glowInset),
-				SliceScale = scale,
-				ZIndex = -9,
-				Parent = host,
-			})
-		)
+		local g = layer(host, "SkinGlow", radius, -10)
+		ring(g, o.glow, 8 * weight, 0.5)
 	end
-	local under = slice(host, "SkinLip", s.fill, s.inset, s.size, scale, -9)
-	under.Position = UDim2.fromOffset(0, lip)
-	under.ImageColor3 = p[3]
-	table.insert(parts, under)
-	local face = slice(host, "SkinFace", s.fill, s.inset, s.size, scale, -8)
+	local base = layer(host, "SkinLip", radius, -9, {
+		BackgroundColor3 = p[3],
+		BackgroundTransparency = 0,
+		Size = UDim2.new(1, 0, 1, lip),
+	})
+	ring(base, C.Ink, 3 * weight)
+	local face = layer(host, "SkinFace", radius, -8, {
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0,
+	})
 	vgrad(face, p[1], p[2])
-	table.insert(parts, face)
 	if o.stripes ~= false then
-		local cut = s.cut * scale
-		local clip = new("Frame", {
-			Name = "SkinStripes",
-			BackgroundTransparency = 1,
-			ClipsDescendants = true,
-			Position = UDim2.fromOffset(cut, 0),
-			Size = UDim2.new(1, -2 * cut, 1, 0),
-			ZIndex = -7,
-			Parent = host,
-		})
+		local clip = layer(host, "SkinStripes", radius, -7, { ClipsDescendants = true })
 		new("ImageLabel", {
 			BackgroundTransparency = 1,
 			Size = UDim2.fromScale(1, 1),
 			Image = T.Stripes,
-			ImageTransparency = 0.9,
+			ImageTransparency = 0.93,
 			ScaleType = Enum.ScaleType.Tile,
 			TileSize = UDim2.fromOffset(24, 24),
 			ZIndex = -7,
 			Parent = clip,
 		})
-		table.insert(parts, clip)
 	end
-	local gloss = slice(host, "SkinGloss", s.fill, s.inset, s.size, scale, -6)
+	local gloss = layer(host, "SkinGloss", radius, -6, {
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0,
+	})
 	new("UIGradient", {
 		Rotation = 90,
 		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(0, 0.6),
+			NumberSequenceKeypoint.new(0.46, 0.85),
 			NumberSequenceKeypoint.new(0.5, 1),
 			NumberSequenceKeypoint.new(1, 1),
 		}),
 		Parent = gloss,
 	})
-	table.insert(parts, gloss)
-	local border = slice(host, "SkinBorder", s.border, s.inset, s.size, scale, -5)
-	border.ImageColor3 = p[3]
-	table.insert(parts, border)
-	local bevel = slice(host, "SkinBevel", s.bevel, s.inset, s.size, scale, -4)
-	bevel.ImageTransparency = 0.5
-	table.insert(parts, bevel)
-	for _, x in ipairs(parts) do
-		x:SetAttribute("Skin", true)
-	end
+	tag(host)
 	if target:IsA("TextButton") or target:IsA("TextLabel") then
 		local t: any = target
-		Skin.text(t, { stroke = 2, ink = p[3] })
+		Skin.text(t, { stroke = 2, ink = C.Ink })
 		t.TextColor3 = C.Text
 	end
 end
 
--- A light sweep across a skinned button (Kit.shine clips the whole button, which would cut its glow and lip): the
--- band runs inside a clip inset by the chamfer. Returns the play function.
+-- A light sweep across a skinned button. Returns the play function.
 function Skin.shine(target: GuiObject, transparency: number?): () -> ()
-	local cut = SHAPE.Chip.cut * 0.6
 	local clip = new("Frame", {
 		Name = "SkinShine",
 		BackgroundTransparency = 1,
 		ClipsDescendants = true,
-		Position = UDim2.fromOffset(cut * 0.5, 2),
-		Size = UDim2.new(1, -cut, 1, -4),
+		Size = UDim2.fromScale(1, 1),
 		ZIndex = -3,
 		Parent = target,
 	})
+	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = clip })
 	clip:SetAttribute("SkinKeep", true)
 	local band = new("Frame", {
 		Size = UDim2.new(0.45, 0, 1, 0),
@@ -521,42 +450,33 @@ function Skin.shine(target: GuiObject, transparency: number?): () -> ()
 	end
 end
 
--- The red octagon close button (Otarplayz reference), an ImageButton with an X.
+-- The reference's close button: a red-orange rounded square with a bold white X, outlined in ink.
 function Skin.close(parent: Instance, size: number?, props: { [string]: any }?): ImageButton
 	local s = size or 44
 	local b = new("ImageButton", {
 		Name = "Close",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromOffset(s, s),
-		Image = T.OctagonFill,
+		Image = "",
 		AutoButtonColor = false,
 		Parent = parent,
 	})
-	vgrad(b, rgb(255, 104, 92), rgb(200, 24, 28))
-	new("ImageLabel", {
-		Name = "Edge",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Image = T.OctagonBorder,
-		ImageColor3 = rgb(74, 6, 8),
-		Parent = b,
-	})
+	Skin.button(b, "red", { stripes = false, lip = 4 })
 	local x = new("TextLabel", {
 		Name = "X",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
-		Position = UDim2.fromScale(0, 0.04),
 		Text = "X",
 		TextScaled = true,
 		TextColor3 = C.Text,
 		Parent = b,
 	})
 	new("UIPadding", {
-		PaddingTop = UDim.new(0.2, 0),
-		PaddingBottom = UDim.new(0.2, 0),
+		PaddingTop = UDim.new(0.16, 0),
+		PaddingBottom = UDim.new(0.16, 0),
 		Parent = x,
 	})
-	Skin.text(x, { stroke = 2, ink = rgb(74, 6, 8) })
+	Skin.text(x, { stroke = 2.5, ink = C.Ink })
 	if props then
 		for k, v in pairs(props) do
 			(b :: any)[k] = v
@@ -565,59 +485,34 @@ function Skin.close(parent: Instance, size: number?, props: { [string]: any }?):
 	return b
 end
 
--- The slanted header ribbon ("STORE" tab in the references) that sits over a panel's top-left edge.
+-- A header tab ("SHOP", "TRAIL CHEST" plates in the reference): a bright rounded plate in `color`, outlined in ink,
+-- with the title in white Fredoka.
 function Skin.ribbon(parent: Instance, text: string, color: Color3?, props: { [string]: any }?): Frame
 	local col = color or C.Accent
-	local h, s = 0.6, 0
-	h, s = col:ToHSV()
 	local r = new("Frame", {
 		Name = "Ribbon",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromOffset(200, 50),
 		Parent = parent,
 	})
-	local fill = new("ImageLabel", {
-		Name = "Fill",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Image = T.TabFill,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(28, 0, 192, 64),
-		SliceScale = 0.8,
-		ZIndex = -2,
-		Parent = r,
-	})
-	vgrad(fill, Color3.fromHSV(h, s * 0.75, 1), Color3.fromHSV(h, math.min(1, s * 1.05), 0.82))
-	new("ImageLabel", {
-		Name = "Edge",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Image = T.TabBorder,
-		ImageColor3 = Color3.fromHSV(h, s, 0.32),
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(28, 0, 192, 64),
-		SliceScale = 0.8,
-		ZIndex = -1,
-		Parent = r,
-	})
+	Skin.button(r, Skin.presetOf(col), { stripes = false, lip = 5 })
 	local t = new("TextLabel", {
 		Name = "Title",
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
-		Position = UDim2.fromScale(0, 0.05),
 		Text = string.upper(text),
 		TextScaled = true,
 		TextColor3 = C.Text,
 		Parent = r,
 	})
 	new("UIPadding", {
-		PaddingTop = UDim.new(0.2, 0),
-		PaddingBottom = UDim.new(0.18, 0),
-		PaddingLeft = UDim.new(0.16, 0),
-		PaddingRight = UDim.new(0.16, 0),
+		PaddingTop = UDim.new(0.18, 0),
+		PaddingBottom = UDim.new(0.16, 0),
+		PaddingLeft = UDim.new(0.1, 0),
+		PaddingRight = UDim.new(0.1, 0),
 		Parent = t,
 	})
-	Skin.text(t, { stroke = 2.5, ink = Color3.fromHSV(h, s, 0.3) })
+	Skin.text(t, { stroke = 2.5, ink = C.Ink })
 	if props then
 		for k, v in pairs(props) do
 			(r :: any)[k] = v
@@ -626,8 +521,8 @@ function Skin.ribbon(parent: Instance, text: string, color: Color3?, props: { [s
 	return r
 end
 
--- Skin a frame whose state colour lives on a UIStroke (selection, ready / cooldown): the chamfered edge (and its
--- glow, with `glowOn`) follows the stroke's colour, so the old state code keeps working unchanged.
+-- Skin a frame whose state colour lives on a UIStroke (selection, ready / cooldown): the border ring (and its glow,
+-- with `glowOn`) follows the stroke's colour, so the old state code keeps working unchanged.
 function Skin.follow(target: GuiObject, stroke: UIStroke, opts: FrameOpts?, glowOn: ((Color3) -> boolean)?)
 	local o: FrameOpts = table.clone(opts or {})
 	o.border = stroke.Color
@@ -665,7 +560,7 @@ function Skin.fitLine(label: TextLabel, max: number, min: number?)
 	task.defer(fit)
 end
 
--- A premium icon image (assets/ui/icons via Assets.Icon), or nil when it isn't uploaded yet.
+-- A premium icon image (Assets.Icon), or nil when it isn't uploaded yet.
 function Skin.icon(parent: Instance, name: string, props: { [string]: any }?): ImageLabel?
 	local id = (Assets.Icon :: any)[name]
 	if type(id) ~= "string" or id == "" then

@@ -13,7 +13,7 @@ Theme.Palette = {
 	Ink2 = hex("#241D2E"),
 	Smoke = hex("#3B3447"),
 	Ash = hex("#8C8498"),
-	Paper = hex("#FFF3E2"),
+	Paper = hex("#FFFFFF"),
 	Fuse = hex("#FF6A1F"),
 	Ember = hex("#FF9442"),
 	Spark = hex("#FFD84A"),
@@ -29,10 +29,12 @@ Theme.Palette = {
 }
 
 Theme.Font = {
-	-- Display / callouts: Luckiest Guy. UI headings and numbers: Builder Sans Heavy. Body: Builder Sans Bold.
-	Display = Font.new("rbxasset://fonts/families/LuckiestGuy.json"),
-	Heavy = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Heavy),
-	Bold = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+	-- The reference video's round arcade face everywhere (DECISIONS 2026-10-17): Fredoka One for display, numbers and
+	-- labels; Builder Sans Bold only for long body copy.
+	Display = Font.new("rbxasset://fonts/families/FredokaOne.json"),
+	Heavy = Font.new("rbxasset://fonts/families/FredokaOne.json"),
+	Bold = Font.new("rbxasset://fonts/families/FredokaOne.json"),
+	Body = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
 }
 
 -- Team colour for a role.
@@ -69,9 +71,9 @@ local function new(class: string, props: { [string]: any }): any
 end
 Theme.new = new
 
--- Panels are the partner's premium Skin kit (UI/Skin: chamfered frame, neon edge, bevel, optional glow and halftone),
+-- Panels are the Skin kit (UI/Skin: rounded body, gloss, gold border ring, ink outline, optional glow and halftone),
 -- tinted with these tokens. Pills (radius 999) use the kit's Chip shape, everything else its Frame.
-local layersOf: { [Instance]: { [string]: ImageLabel } } = setmetatable({}, { __mode = "k" }) :: any
+local layersOf: { [Instance]: { [string]: GuiObject } } = setmetatable({}, { __mode = "k" }) :: any
 
 function Theme.panel(parent: Instance, props: { [string]: any }): Frame
 	local holder = new("Frame", {
@@ -98,8 +100,8 @@ function Theme.panel(parent: Instance, props: { [string]: any }): Frame
 		fill = base,
 		fill2 = props.color2 or base:Lerp(Skin.Color.PanelBottom, 0.6),
 		fillT = props.transparency,
-		border = props.border or Theme.Palette.Fuse,
-		border2 = props.border2 or Theme.Palette.Ember,
+		border = props.border or Skin.Color.Accent,
+		border2 = props.border2 or (props.border or Skin.Color.Accent):Lerp(Color3.new(0, 0, 0), 0.18),
 		glow = props.glow,
 		glowT = props.glowT,
 		dots = props.dots,
@@ -109,7 +111,7 @@ function Theme.panel(parent: Instance, props: { [string]: any }): Frame
 end
 
 -- The skin layers of a panel made by Theme.panel (for Skin.recolor: warnings, selection, team colours).
-function Theme.layers(face: Instance): { [string]: ImageLabel }?
+function Theme.layers(face: Instance): { [string]: GuiObject }?
 	return layersOf[face]
 end
 
