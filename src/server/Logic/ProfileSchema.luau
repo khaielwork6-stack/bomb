@@ -62,12 +62,15 @@ local function template(): { [string]: any }
 		-- weekly leaderboards: the week number and each counter's value at the first round that week
 		weekly = { week = 0, base = {} },
 		settings = {}, -- key -> value (validated by PlayerService)
+		wheel = { lastFree = 0, spins = 0 }, -- the lobby spin wheel: last free spin (os.time) and bought spins
+		revives = 0, -- bought Revives not yet used (one applies at a boom, once per round)
 		flags = {
 			tutorial = false, -- the 4 rules card was closed
 			starterOffered = false,
 			starterAt = 0, -- when the Starter Bundle offer began (its 48 h countdown)
 			starterBought = false,
 			groupPerk = false,
+			leadBomber = false, -- bought "Become Lead Bomber": starts the next round they play as a Bomber
 			questsIntro = false,
 			tips = {}, -- contextual tip id -> true (shown once)
 			funnel = {}, -- onboarding funnel step -> true (logged once)

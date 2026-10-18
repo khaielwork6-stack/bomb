@@ -61,6 +61,8 @@ local BombService = {
 
 -- Live only while RoundService runs a crossing / the Last Stand run.
 BombService.live = false
+-- Revive (PerkService): set by PerkService; at a boom it says whether a kept Revive turns this Runner back.
+BombService.autoRevive = nil :: ((Participant) -> boolean)?
 
 local bombs: { [number]: Bomb } = {}
 local byCarrier: { [string]: Bomb } = {}
@@ -184,6 +186,14 @@ local function standUpAsBomber(p: Participant)
 	if p.model == nil or p.role == R.None then
 		return
 	end
+	if p.data.reviveNow then
+		-- a Revive (PerkService): back on their feet as a Runner, where they lie
+		p.data.reviveNow = nil
+		Characters.unragdoll(p)
+		Participants.setState(p, S.Active)
+		Characters.applyGroup(p)
+		return
+	end
 	Characters.unragdoll(p)
 	Participants.setRole(p, R.Bomber)
 	Participants.setState(p, S.Active)
@@ -209,6 +219,12 @@ end
 -- Turn a Runner into a Bomber through a boom (bomb or field detonation): fling, then get up as a Bomber.
 local function boomRunner(p: Participant)
 	fling(p, 1)
+	p.data.boomedAt = now()
+	p.attrs:SetAttribute("BoomedAt", workspace:GetServerTimeNow())
+	if not p.data.revived and BombService.autoRevive and BombService.autoRevive(p) then
+		p.data.reviveNow = true
+		p.data.revived = true
+	end
 	local token = (p.data.boomToken or 0) + 1
 	p.data.boomToken = token
 	task.delay(Config.Round.BOOM_GETUP, function()
@@ -539,6 +555,28 @@ function BombService.clear()
 	end
 	table.clear(bombs)
 	table.clear(byCarrier)
+end
+
+-- A Revive bought right now (PerkService): during the tumble it makes the get-up a Runner's; within REVIVE_GRACE after
+-- getting up as a Bomber (in a live run) it turns them back into a Runner on the spot. Once per round. False when it
+-- can't apply (PerkService keeps it for the next boom).
+function BombService.revive(p: Participant): boolean
+	if p.data.revived or p.model == nil then
+		return false
+	end
+	if p.role == R.Runner and p.state == S.Tumbled then
+		p.data.reviveNow = true
+		p.data.revived = true
+		return true
+	end
+	local since = now() - (p.data.boomedAt or -math.huge)
+	if BombService.live and p.role == R.Bomber and p.state == S.Active and since <= Config.Round.REVIVE_GRACE then
+		p.data.revived = true
+		Participants.setRole(p, R.Runner)
+		Characters.applyGroup(p)
+		return true
+	end
+	return false
 end
 
 -- Finish every pending get-up now (READY / RESOLVE): boomed Runners stand up as Bombers at once.

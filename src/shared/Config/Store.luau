@@ -216,6 +216,14 @@ Store.PRODUCTS = {
 	CrateSpark = { id = 0, robux = 49, crate = "Spark" },
 	CrateInferno = { id = 0, robux = 129, crate = "Inferno" },
 	SummonMega = { id = 0, robux = 99 },
+	-- The owner's calls, 2026-10-18 ("decide the prices… reasonable, we could change this later"; DECISIONS):
+	Spin1 = { id = 0, robux = 25, spins = 1 }, -- the lobby wheel
+	Spin5 = { id = 0, robux = 99, spins = 5 },
+	LeadBomber = { id = 0, robux = 25, lead = true }, -- start the next round as a Bomber
+	Revive = { id = 0, robux = 20, revive = true }, -- get up as a Runner after a boom (once per round)
+	-- the pack card during the pick (the reference's was R$ 112 for 2 items + 50 Gems): 2 Epic cosmetics + 500 Gems
+	BomberPack = { id = 0, robux = 99, stars = 500, items = { "Boom_Frost", "Emote_Kaboom" } },
+	RunnerPack = { id = 0, robux = 99, stars = 500, items = { "Trail_Comet", "Emote_FuseDance" } },
 } :: { [string]: any }
 Store.PASSES = {
 	VIP = {

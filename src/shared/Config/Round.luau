@@ -3,7 +3,8 @@
 
 return {
 	INTERMISSION = 12,
-	INTRO = 4,
+	INTRO = 8, -- the owner, 2026-10-18: room for the full pick camera (was 4)
+	REVIVE_GRACE = 8, -- seconds after a boom when a bought Revive still turns the new Bomber back into a Runner
 	READY = 2,
 	READY_LATER = 1.5, -- from crossing 2 the countdown is "2, 1, GO" (§5.2; D-PACE-02)
 	RESOLVE = 1.5, -- after a field detonation (its sweep and booms need the time)

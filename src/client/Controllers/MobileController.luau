@@ -24,6 +24,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local InputController = require(script.Parent.InputController)
 local MovementController = require(script.Parent.MovementController)
+local Settings = require(script.Parent.Parent.Settings)
 
 local MC = Config.Mobile
 local MV = Config.Movement
@@ -265,7 +266,9 @@ end
 
 local function place()
 	local v = Screen.size()
-	fit.Scale = math.clamp(v.Y / MC.REF_HEIGHT, MC.SCALE_MIN, MC.SCALE_MAX)
+	-- the Settings "Button Size" (S / M / L) scales the action buttons on top of the screen fit
+	local size = MC.BUTTON_SIZE[Settings.get("mobileButtonSize")] or 1
+	fit.Scale = math.clamp(v.Y / MC.REF_HEIGHT, MC.SCALE_MIN, MC.SCALE_MAX) * size
 	local safe = Screen.safe()
 	root.Position = UDim2.new(1, -(MC.MARGIN_RIGHT + safe.right), 1, -(MC.MARGIN_BOTTOM + safe.bottom))
 end
@@ -337,6 +340,11 @@ function MobileController.start()
 	end
 	place()
 	Screen.Changed:Connect(place)
+	Settings.Changed:Connect(function(key)
+		if key == "mobileButtonSize" then
+			place()
+		end
+	end)
 	RunService.RenderStepped:Connect(step)
 end
 

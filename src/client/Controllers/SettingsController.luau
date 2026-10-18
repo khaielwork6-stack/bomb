@@ -313,6 +313,17 @@ function SettingsController.start()
 	end
 	Progress.Changed:Connect(applySaved)
 	applySaved(Progress.get())
+	-- Camera Speed: scales mouse look (the camera reads UserInputService's mouse delta)
+	local UIS = game:GetService("UserInputService")
+	local function applyCamera()
+		UIS.MouseDeltaSensitivity = Settings.get("cameraSensitivity") or 1
+	end
+	applyCamera()
+	Settings.Changed:Connect(function(key)
+		if key == "cameraSensitivity" then
+			applyCamera()
+		end
+	end)
 	local gui = new("ScreenGui", {
 		Name = "FV_Menu",
 		IgnoreGuiInset = true,

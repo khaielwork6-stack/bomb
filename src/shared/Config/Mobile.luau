@@ -12,6 +12,7 @@ return {
 	REF_HEIGHT = 720,
 	SCALE_MIN = 0.78,
 	SCALE_MAX = 1.25,
+	BUTTON_SIZE = { S = 0.82, M = 1, L = 1.2 }, -- the Settings "Button Size" choice, × the screen fit
 	RING_WIDTH = 6, -- the cooldown drain ring, px
 	PRESS_SCALE = 0.9,
 }

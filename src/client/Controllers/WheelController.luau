@@ -392,13 +392,13 @@ function WheelController.open()
 	local function buy(key: string)
 		local net = ReplicatedStorage:FindFirstChild("Net")
 		local remote = net and net:FindFirstChild("StoreAction")
-		if remote and (W.PRODUCTS :: any)[key].id ~= 0 then
+		if remote and (Config.Store.PRODUCTS :: any)[key].id ~= 0 then
 			Net.send("StoreAction", { kind = "BuyProduct", product = key })
 		else
 			Sfx.play("UiDeny")
 		end
 	end
-	if W.PRODUCTS.Spin1.id ~= 0 or preview then
+	if Config.Store.PRODUCTS.Spin1.id ~= 0 or preview then
 		Widgets.button(row, S.Ui.SpinOne, "purple", UDim2.fromOffset(130, 46), function()
 			buy("Spin1")
 		end, { TextSize = 22, LayoutOrder = 1, ZIndex = 7 })
@@ -413,7 +413,7 @@ function WheelController.open()
 		Text = S.Ui.Spin,
 		ZIndex = 9,
 	})
-	if W.PRODUCTS.Spin5.id ~= 0 or preview then
+	if Config.Store.PRODUCTS.Spin5.id ~= 0 or preview then
 		Widgets.button(row, S.Ui.SpinFive, "purple", UDim2.fromOffset(130, 46), function()
 			buy("Spin5")
 		end, { TextSize = 22, LayoutOrder = 3, ZIndex = 7 })

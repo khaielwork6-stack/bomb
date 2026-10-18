@@ -31,7 +31,10 @@ type Participant = Participants.Participant
 local St = Config.Store
 local SLOTS = { "BombSkin", "Explosion", "FuseSpark", "Trail", "VictoryBoom", "Title" }
 
+local Signal = require(ReplicatedStorage.Shared.Util.Signal)
+
 local StoreService = {}
+StoreService.ProductGranted = Signal.new() -- (participant, product key) after a Robux product is granted
 
 local rng = Random.new()
 local restricted: { [Player]: boolean } = {}
@@ -473,6 +476,19 @@ local function receive(
 		if k == "StarterBundle" then
 			d.flags.starterBought = true
 		end
+		-- the perks (PerkService applies them: the wheel's spins, the next round's Lead Bomber, a Revive)
+		if prod.spins then
+			d.wheel.spins = (d.wheel.spins or 0) + prod.spins
+		end
+		if prod.lead then
+			d.flags.leadBomber = true
+		end
+		if prod.revive then
+			d.revives = (d.revives or 0) + 1
+		end
+		task.defer(function()
+			StoreService.ProductGranted:Fire(p, k)
+		end)
 		if prod.crate then
 			d.crates[prod.crate] = (d.crates[prod.crate] or 0) + 1
 			openCrate(p, d, prod.crate, "Token")

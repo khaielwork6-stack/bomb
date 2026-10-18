@@ -200,6 +200,10 @@ local function pickBombers(list: { Participant }, count: number): { [Participant
 		if not p.isBot and lifetime < 2 then
 			score += 20
 		end
+		-- Become Lead Bomber (PerkService, a Robux product): bought players go first (more than `count` carry over)
+		if profile and profile.flags.leadBomber then
+			score -= 100
+		end
 		table.insert(scored, { p = p, score = score })
 	end
 	table.sort(scored, function(a, b)
@@ -207,7 +211,12 @@ local function pickBombers(list: { Participant }, count: number): { [Participant
 	end)
 	local picked = {}
 	for i = 1, math.min(count, #scored - 1) do
-		picked[scored[i].p] = true
+		local p = scored[i].p
+		picked[p] = true
+		local profile = if p.isBot then nil else DataService.get(p)
+		if profile and profile.flags.leadBomber then
+			profile.flags.leadBomber = false -- used
+		end
 	end
 	return picked
 end
@@ -415,6 +424,7 @@ local function resetToLobby()
 			Characters.pivot(p, Characters.lobbyCFrame()) -- back to The Depot (GDD §19)
 		end
 		applyAfk(p) -- an AFK toggled mid-round takes effect now, back in the lobby
+		p.data.revived, p.data.reviveNow = nil, nil -- a Revive is once per round
 	end
 	startSide = -1
 end
