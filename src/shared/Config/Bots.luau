@@ -3,6 +3,7 @@
 
 return {
 	FILL_TARGET = 16, -- D3: bots fill each round to this many participants (at INTERMISSION)
+	LOOK_UPGRADE_EVERY = 2, -- seconds: how often a bot still in the generated stand-in look checks for a real avatar
 	DECIDE_HZ = 10, -- brain decisions per second (steering is every frame)
 	-- Skill tiers (F-BOT-05): reaction = seconds before a bot acts on what it sees; error = chance a decision is off;
 	-- dash = how readily it uses techniques.

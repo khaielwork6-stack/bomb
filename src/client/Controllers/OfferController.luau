@@ -25,6 +25,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local St = Config.Store
+local S = Config.Strings
 local P = Theme.Palette
 local new = Theme.new
 local player = Players.LocalPlayer
@@ -102,7 +103,7 @@ local function show(endsIn: number, preview: boolean?)
 	local fit = math.min(1, (workspace.CurrentCamera.ViewportSize.Y - 60) / 400)
 	new("UIScale", { Name = "Fit", Scale = fit, Parent = holder })
 	-- header: title plate across the top
-	Skin.ribbon(holder, "STARTER PACK", Color3.fromRGB(255, 120, 60), {
+	Skin.ribbon(holder, S.Ui.StarterPack, Color3.fromRGB(255, 120, 60), {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 2),
 		Size = UDim2.fromOffset(360, 64),
@@ -116,7 +117,7 @@ local function show(endsIn: number, preview: boolean?)
 		font = Theme.Font.Display,
 		stroke = 2.5,
 		color = Color3.fromRGB(255, 70, 60),
-		Text = "OFFER ENDS IN " .. clock(endsIn),
+		Text = string.format(S.Ui.OfferEnds, clock(endsIn)),
 		ZIndex = 8,
 	})
 	-- the x3 VALUE burst
@@ -141,7 +142,7 @@ local function show(endsIn: number, preview: boolean?)
 		TextSize = 24,
 		font = Theme.Font.Display,
 		stroke = 3,
-		Text = "x3\nVALUE",
+		Text = S.Ui.ValueX3,
 		ZIndex = 11,
 	})
 	-- contents
@@ -324,7 +325,7 @@ local function show(endsIn: number, preview: boolean?)
 		font = Theme.Font.Display,
 		stroke = 3,
 		align = Enum.TextXAlignment.Left,
-		Text = "MEGA\nDEAL",
+		Text = S.Ui.MegaDeal,
 		ZIndex = 8,
 	})
 	local x = Skin.close(holder, 52, {
@@ -342,7 +343,7 @@ local function show(endsIn: number, preview: boolean?)
 	task.spawn(function()
 		local t0 = os.clock()
 		while open and timer.Parent do
-			timer.Text = "OFFER ENDS IN " .. clock(endsIn - (os.clock() - t0))
+			timer.Text = string.format(S.Ui.OfferEnds, clock(endsIn - (os.clock() - t0)))
 			task.wait(0.5)
 		end
 	end)

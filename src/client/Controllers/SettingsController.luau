@@ -16,7 +16,9 @@ local Settings = require(script.Parent.Parent.Settings)
 local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Motion = require(script.Parent.Parent.UI.Motion)
+local Dock = require(script.Parent.Parent.UI.Dock)
 local Screen = require(script.Parent.Parent.UI.Screen)
+local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
@@ -264,7 +266,8 @@ local function segmented(face: Frame, key: string, options: { string })
 end
 
 local function open()
-	local face = DailyController.panel("Settings", "SETTINGS", Vector2.new(600, 590), Color3.fromRGB(150, 110, 255))
+	local face =
+		DailyController.panel("Settings", S.Ui.SettingsTitle, Vector2.new(600, 590), Color3.fromRGB(150, 110, 255))
 	local list = new("ScrollingFrame", {
 		Name = "List",
 		Position = UDim2.fromOffset(20, 46),
@@ -356,11 +359,33 @@ function SettingsController.start()
 		AutoButtonColor = false,
 		Parent = gui,
 	})
-	Widgets.icon(gear, "Gear", 44, {
+	-- a small tile in the dock's own skin (glossy chip, white rim), so the menu reads as part of the same set
+	local face = new("Frame", {
+		Name = "Face",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+		Parent = gear,
+	})
+	local colors = Dock.Colors.slate
+	local layers = Skin.frame(face, {
+		kind = "Chip",
+		fill = colors[1],
+		fill2 = colors[2],
+		border = Color3.new(1, 1, 1),
+		border2 = Color3.fromRGB(220, 226, 240),
+		scale = 0.3,
+		bevelT = 0.4,
+	})
+	local g = layers.fill:FindFirstChildOfClass("UIGradient")
+	if g then
+		g.Rotation = 90
+	end
+	Widgets.icon(face, "Gear", 44, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 3,
+		Size = UDim2.fromScale(0.78, 0.78),
+		ZIndex = 4,
 	})
 	Motion.button(gear) -- the house hover / press feel, with the hover sound (UI/Motion)
 	gear.Activated:Connect(function()

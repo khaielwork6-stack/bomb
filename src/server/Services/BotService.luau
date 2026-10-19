@@ -148,9 +148,9 @@ local function uniqueName(): string
 	return BotNames.generate(rng, taken)
 end
 
-local function spawnBot(prefer: number?): Participant?
+local function spawnBot(prefer: number?, keepName: string?): Participant?
 	nextBotId += 1
-	local name = uniqueName()
+	local name = keepName or uniqueName()
 	local model: Model? = nil
 	local okPool, rig, _, avatarId, owner = pcall(AvatarPool.takeRig, prefer)
 	if okPool and rig then
@@ -202,6 +202,21 @@ local function despawn(p: Participant)
 	Participants.remove(p)
 	if p.model then
 		p.model:Destroy()
+	end
+end
+
+-- Bots that spawned before any real look was built (the server's first seconds) wear the generated stand-in: each is
+-- swapped for a built avatar as soon as the pool has one, under the same name. Only between rounds (in The Depot).
+local function upgradeGenerated()
+	if GameState.get("Phase") ~= Ph.Intermission then
+		return
+	end
+	for _, b in ipairs(Participants.bots()) do
+		if b.data.avatarId == nil and AvatarPool.readyCount() > 0 then
+			local name = b.name
+			despawn(b)
+			spawnBot(nil, name)
+		end
 	end
 end
 
@@ -267,6 +282,7 @@ function BotService.balanceLooks()
 			end
 		end
 	end
+	upgradeGenerated()
 end
 
 -- F-BOT-01: at INTERMISSION, fill to FILL_TARGET (or trim bots when humans need the room); re-roll tiers so a new
@@ -798,6 +814,13 @@ function BotService.start()
 		end
 	end)
 	task.defer(BotService.fill)
+	-- the pool builds real looks in the background: keep upgrading stand-ins while the intermission lasts
+	task.spawn(function()
+		while true do
+			task.wait(BC.LOOK_UPGRADE_EVERY)
+			upgradeGenerated()
+		end
+	end)
 	AdminService.register("bots", function(args)
 		-- bots <n>: set the fill target (Studio tuning); "bots 0" removes them at the next intermission.
 		local n = tonumber(args[1])

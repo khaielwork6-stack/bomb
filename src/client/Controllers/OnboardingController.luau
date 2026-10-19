@@ -261,7 +261,7 @@ local function questIntro()
 		Text = S.Tips.QuestsIntro,
 		ZIndex = 5,
 	})
-	Widgets.button(toast, "VIEW", "gold", UDim2.fromOffset(80, 38), function()
+	Widgets.button(toast, S.Ui.View, "gold", UDim2.fromOffset(80, 38), function()
 		DailyController.open("Quests")
 		holder:Destroy()
 	end, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), TextSize = 18, ZIndex = 6 })

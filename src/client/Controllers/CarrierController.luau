@@ -11,10 +11,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
+local Config = require(ReplicatedStorage.Shared.Config)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local P = Theme.Palette
+local S = Config.Strings
 local new = Theme.new
 local player = Players.LocalPlayer
 
@@ -80,7 +82,7 @@ local function build()
 		})
 	else
 		Theme.display(arrow, {
-			Text = "BUMP!",
+			Text = S.Ui.BumpWord,
 			TextSize = 26,
 			color = P.Spark,
 			Position = UDim2.new(0.5, 0, 0, 14),
@@ -239,7 +241,7 @@ local function step()
 	local eta = dist / speed
 	local goal = (frame * CFrame.new(l.X, 0, -side * (halfLen + 3))).Position
 	local ok = eta <= remaining
-	chevronLabel.Text = if ok then string.format("SAFE  %.1fs", eta) else "TOO FAR"
+	chevronLabel.Text = if ok then string.format(S.Ui.SafeIn, eta) else S.Ui.TooFar
 	chevronLabel.TextColor3 = if masked then P.Paper elseif ok then P.Safe else P.Detonate
 	-- Place it on the screen edge in the strip's direction (or over the strip when it's on screen).
 	local vp = cam.ViewportSize

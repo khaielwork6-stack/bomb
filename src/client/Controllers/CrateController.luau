@@ -25,6 +25,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local St = Config.Store
+local S = Config.Strings
 local P = Theme.Palette
 local new = Theme.new
 local player = Players.LocalPlayer
@@ -235,7 +236,7 @@ local function open(r: { [string]: any })
 		font = Theme.Font.Display,
 		color = Color3.fromRGB(200, 196, 220),
 		stroke = 2.5,
-		Text = "Tap to open",
+		Text = S.Ui.TapToOpen,
 		ZIndex = 5,
 	})
 	local title = Widgets.label(root, {

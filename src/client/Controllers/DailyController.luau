@@ -560,7 +560,7 @@ local function buildDock()
 		if s then
 			buildCalendar(s)
 		end
-	end, { color = "orange", label = "Daily" })
+	end, { color = "orange", label = S.Ui.DailyTile })
 	calButton, calendarDot = cb, cd
 end
 

@@ -37,6 +37,7 @@ Dock.Colors = {
 	purple = { Color3.fromRGB(190, 140, 255), Color3.fromRGB(110, 54, 220) },
 	red = { Color3.fromRGB(255, 108, 92), Color3.fromRGB(196, 28, 28) },
 	gold = { Color3.fromRGB(255, 230, 120), Color3.fromRGB(236, 150, 20) },
+	slate = { Color3.fromRGB(92, 104, 140), Color3.fromRGB(40, 44, 70) }, -- the menu gear: present, never louder than the dock
 }
 
 export type TileOpts = {

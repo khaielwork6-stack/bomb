@@ -806,7 +806,7 @@ render = function(refresh: boolean?)
 	table.clear(viewports)
 	local face = DailyController.panel(
 		screen,
-		if screen == "Shop" then "SHOP" else "ITEMS",
+		if screen == "Shop" then S.Ui.ShopTitle else S.Ui.ItemsTitle,
 		Vector2.new(880, 520),
 		if screen == "Shop" then P.Fuse else Color3.fromRGB(56, 150, 255),
 		refresh
@@ -1165,7 +1165,7 @@ function StoreController.start()
 		end, { color = "rainbow", key = Enum.KeyCode.B })
 		DailyController.addDockButton("Locker", "Items", 2, function()
 			StoreController.open("Locker")
-		end, { color = "blue", key = Enum.KeyCode.N, label = "Items" })
+		end, { color = "blue", key = Enum.KeyCode.N, label = S.Ui.ItemsTile })
 	end)
 	RunService.RenderStepped:Connect(spinPreviews)
 	-- the lobby's shop kiosk and crate stands (LobbyDepot puts FV_Open on their prompts)

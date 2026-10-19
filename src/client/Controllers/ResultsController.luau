@@ -47,18 +47,18 @@ local closeMoment: (() -> ())? = nil
 local W, ROW = 660, 30
 
 local OUTCOME = {
-	LastStand = { title = "VICTORY", art = "Victory", color = P.Gold },
-	Survivors = { title = "SURVIVORS WIN", art = "SurvivorsWin", color = P.Runner },
-	Bombers = { title = "BOMBERS WIN", art = "BombersWin", color = P.Bomber },
+	LastStand = { title = S.Round.Victory, art = "Victory", color = P.Gold },
+	Survivors = { title = S.Round.SurvivorsWinTitle, art = "SurvivorsWin", color = P.Runner },
+	Bombers = { title = S.Round.BombersWinTitle, art = "BombersWin", color = P.Bomber },
 }
 
 local LINES = {
-	{ key = "crossings", label = "Crossings survived" },
-	{ key = "defuses", label = "Bombs defused" },
-	{ key = "clutches", label = "Clutch defuses" },
-	{ key = "passes", label = "Passes" },
-	{ key = "tags", label = "Bombs stuck" },
-	{ key = "booms", label = "Booms" },
+	{ key = "crossings", label = S.Round.Stats.crossings },
+	{ key = "defuses", label = S.Round.Stats.defuses },
+	{ key = "clutches", label = S.Round.Stats.clutches },
+	{ key = "passes", label = S.Round.Stats.passes },
+	{ key = "tags", label = S.Round.Stats.tags },
+	{ key = "booms", label = S.Round.Stats.booms },
 }
 
 local function close()
@@ -577,15 +577,15 @@ local function show(payload: any)
 	end
 	-- Your round (the receipt) | the payout
 	local mine = type(payload.stats) == "table" and payload.stats[ClientState.myId()] or nil
-	local stats = column(panelFace, "Round", "YOUR ROUND", 24)
-	column(panelFace, "Payout", "PAYOUT", W / 2 + 16)
+	local stats = column(panelFace, "Round", S.Round.YourRound, 24)
+	column(panelFace, "Payout", S.Round.Payout, W / 2 + 16)
 	if not mine then
 		Widgets.label(stats, {
 			Size = UDim2.new(1, 0, 0, ROW),
 			TextSize = 18,
 			color = P.Ash,
 			align = Enum.TextXAlignment.Left,
-			Text = "You watched this one",
+			Text = S.Round.Watched,
 		})
 	else
 		local shown = 0

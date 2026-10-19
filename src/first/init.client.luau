@@ -184,15 +184,16 @@ local spark = new("ImageLabel", {
 local tip = new("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0.72, 30),
-	Size = UDim2.fromOffset(700, 30),
+	Size = UDim2.new(0.9, 0, 0, 30),
 	BackgroundTransparency = 1,
 	FontFace = FONT,
-	TextSize = 24,
+	TextScaled = true, -- a long tip on a phone shrinks instead of running off the screen
 	TextColor3 = Color3.new(1, 1, 1),
 	Text = "",
 	ZIndex = 6,
 	Parent = gui,
 })
+new("UITextSizeConstraint", { MaxTextSize = 24, Parent = tip })
 new("UIStroke", { Color = INK, Thickness = 3, Parent = tip })
 
 -- assets + strings once Shared is in

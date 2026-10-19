@@ -57,7 +57,7 @@ local function segText(seg: { [string]: any }): string
 		return tostring(seg.amount)
 	end
 	local c = St.CRATES[seg.crate or ""]
-	return if c then string.upper(c.name) else "CRATE"
+	return if c then string.upper(c.name) else S.Ui.CrateFallback
 end
 
 local function totalWeight(): number

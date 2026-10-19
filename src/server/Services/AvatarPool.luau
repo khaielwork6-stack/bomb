@@ -71,11 +71,12 @@ local function randomCandidate(): number?
 	return nil
 end
 
--- Worth showing: some clothing and some hair or headwear (default avatars and blank accounts are skipped).
+-- Worth showing on a stranger: a full outfit (a top AND pants: half-dressed starter accounts read as placeholders)
+-- and some hair or headwear. Friends' looks only need wearsSomething (below).
 local function dressed(desc: HumanoidDescription): boolean
-	local clothes = desc.Shirt ~= 0 or desc.Pants ~= 0 or desc.GraphicTShirt ~= 0
+	local top = desc.Shirt ~= 0 or desc.GraphicTShirt ~= 0
 	local head = desc.HairAccessory ~= "" or desc.HatAccessory ~= ""
-	return clothes and head
+	return top and desc.Pants ~= 0 and head
 end
 
 -- Not a blank rig: classic clothing or hair / headwear (friends' looks count with less; layered clothing doesn't
