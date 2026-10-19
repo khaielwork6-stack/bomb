@@ -330,7 +330,14 @@ function OnboardingController.start()
 	player:GetAttributeChangedSignal("BombId"):Connect(function()
 		if player:GetAttribute("BombId") ~= nil then
 			carries += 1
-			tip("FirstCarry", S.Tips.FirstCarry)
+			local UIS = game:GetService("UserInputService")
+			tip(
+				"FirstCarry",
+				if Screen.touch()
+					then S.Tips.FirstCarryTouch
+					elseif UIS.GamepadEnabled and not UIS.KeyboardEnabled then S.Tips.FirstCarryPad
+					else S.Tips.FirstCarry
+			)
 			if carries >= 2 then
 				tip("Lunge", S.Tips.Lunge) -- the Hand-Off's attack (GDD §7.4b)
 			end

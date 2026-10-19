@@ -24,6 +24,7 @@ local LookShare = require(ServerScriptService.Server.Logic.LookShare)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
 local AvatarPool = require(script.Parent.AvatarPool)
+local BombService = require(script.Parent.BombService)
 local Characters = require(script.Parent.Characters)
 local GameState = require(script.Parent.GameState)
 local ModifierService = require(script.Parent.ModifierService)
@@ -537,8 +538,11 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 	-- A pass target: the nearest eligible body; a Bomber in reach is the favourite when time is short (revenge).
 	local target: Seen? = nil
 	local best = math.huge
+	-- F-BOMB-05: not straight back to whoever just gave it (they'd be refused for NO_PASSBACK)
+	local bomb = BombService.bombOf(p)
+	local blocked = if bomb and now() - bomb.receivedAt < Config.Bomb.NO_PASSBACK then bomb.lastGiver else nil
 	for _, s in ipairs(seen) do
-		if s.active and not s.carrying and not s.safe then
+		if s.active and not s.carrying and not s.safe and s.p.id ~= blocked then
 			local d = ((s.pos - pos) * FLAT).Magnitude
 			if s.p.role == R.Bomber and remaining < BC.REVENGE_WINDOW then
 				d -= 6
@@ -560,6 +564,16 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 	if choice == "pass" and target then
 		local aim = BombBrain.intercept(target.pos, target.vel, 0.2)
 		brain.desired = flatUnit(aim - pos)
+		-- F-BOMB-15: close enough to slap it on them (by skill, like the lunge)
+		local stage = if remaining <= Config.Bomb.STAGE_CRITICAL
+			then "CRITICAL"
+			elseif remaining <= Config.Bomb.STAGE_HOT then "HOT"
+			else "LIT"
+		local slapReach = (Config.Bomb.PASS_RANGE_STAGE :: any)[stage] + Config.Bomb.PASS_SLAP_REACH
+		local real = ((target.pos - pos) * FLAT).Magnitude -- (best carries the revenge / feed preference)
+		if real <= slapReach and rng:NextNumber() < brain.tier.dash then
+			BombService.slapPass(p, target.pos - pos)
+		end
 		if best < BC.PASS_DASH_RANGE and MovementCore.canDash(brain.ms) and rng:NextNumber() < brain.tier.dash then
 			technique(p, brain, "Dash", brain.desired)
 		end

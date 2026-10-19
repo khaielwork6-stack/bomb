@@ -110,6 +110,7 @@ return {
 		BtnDash = "DASH",
 		BtnSlide = "SLIDE",
 		BtnStop = "STOP",
+		BtnPass = "PASS",
 		On = "ON",
 		Off = "OFF",
 		Spectating = "Spectating",
@@ -267,7 +268,9 @@ return {
 		LastStand = "LAST STAND",
 	},
 	Tips = {
-		FirstCarry = "IT'S ON YOU: BUMP SOMEONE OR RUN!",
+		FirstCarry = "IT'S ON YOU: GET CLOSE AND CLICK TO SLAP IT ON THEM!",
+		FirstCarryTouch = "IT'S ON YOU: GET CLOSE AND HIT PASS!",
+		FirstCarryPad = "IT'S ON YOU: GET CLOSE AND PULL R2!",
 		FirstBomber = "TOUCH A RUNNER. THEIR PROBLEM NOW.",
 		FirstFieldWarn = "GET ACROSS BEFORE IT BLOWS!",
 		-- The Hand-Off (GDD §7.4b): the Lunge on your second carry, the Reject the first time a pass lands on you

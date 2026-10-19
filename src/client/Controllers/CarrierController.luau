@@ -219,6 +219,17 @@ local function step()
 			setOutline(model, nil)
 		end
 	end
+	-- in slap reach the tether takes over (HandOffController, F-BOMB-15): one marker at a time
+	local stage = if remaining <= Config.Bomb.STAGE_CRITICAL
+		then "CRITICAL"
+		elseif remaining <= Config.Bomb.STAGE_HOT then "HOT"
+		else "LIT"
+	local slapReach = (Config.Bomb.PASS_RANGE_STAGE :: any)[stage]
+		+ Config.Bomb.PASS_SLAP_REACH
+		+ Config.Bomb.LAG_SLACK * 0.75
+	if nearestD <= slapReach then
+		nearest = nil
+	end
 	arrow.Adornee = nearest
 	arrow.Enabled = nearest ~= nil
 	if nearest then

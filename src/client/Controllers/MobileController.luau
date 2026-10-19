@@ -47,6 +47,7 @@ type Btn = {
 	cdMax: number,
 	wasCooling: boolean,
 	lobby: boolean, -- usable in the lobby
+	carry: boolean?, -- only while you carry a bomb (PASS)
 }
 
 local gui: ScreenGui
@@ -288,8 +289,9 @@ local function step()
 	local live = lobby or ClientState.activeInRun() or ph == Types.Phase.Ready
 	root.Visible = live
 	local state = MovementController.state() :: any
+	local carrying = player:GetAttribute("BombId") ~= nil and ClientState.role() == Types.Role.Runner
 	for _, b in ipairs(buttons) do
-		b.holder.Visible = b.lobby or not lobby
+		b.holder.Visible = (b.lobby or not lobby) and (not b.carry or carrying)
 		local cd = if state then (state[b.cdKey] or 0) else 0
 		local cooling = cd > 0.02
 		if cooling then
@@ -333,7 +335,10 @@ function MobileController.start()
 	local small = {
 		makeButton("Slide", S.Ui.BtnSlide, "Slide", "cyan", MC.SMALL_SIZE, "slideCD", MV.SLIDE_CD, false),
 		makeButton("HardStop", S.Ui.BtnStop, "Stop", "red", MC.SMALL_SIZE, "stopCD", MV.HARDSTOP_CD, false),
+		-- F-BOMB-15: the Slap-Pass, only while you carry
+		makeButton("Swing", S.Ui.BtnPass, "Bomb", "orange", MC.SMALL_SIZE, "passCD", Config.Bomb.PASS_SLAP_CD, false),
 	}
+	small[3].carry = true
 	for i, b in ipairs(small) do
 		local a = math.rad(MC.ARC_ANGLES[i])
 		b.holder.Position = UDim2.new(0.5, math.cos(a) * MC.ARC_RADIUS, 0.5, -math.sin(a) * MC.ARC_RADIUS)

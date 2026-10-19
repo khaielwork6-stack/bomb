@@ -6,7 +6,8 @@ return {
 	DASH_SIZE = 110, -- the big one, under the thumb
 	SMALL_SIZE = 78, -- SLIDE and STOP, in an arc round DASH
 	ARC_RADIUS = 104, -- from DASH's centre to the small buttons' centres
-	ARC_ANGLES = { 182, 112 }, -- degrees, 0 = right, counter-clockwise (up): SLIDE to the left, STOP above-left
+	ARC_ANGLES = { 182, 112, 60 }, -- degrees, 0 = right, counter-clockwise (up): SLIDE left, STOP above-left, PASS
+	-- above (PASS only shows while you carry a bomb, F-BOMB-15)
 	MARGIN_RIGHT = 34,
 	MARGIN_BOTTOM = 38,
 	REF_HEIGHT = 720,

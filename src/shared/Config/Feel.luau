@@ -4,7 +4,9 @@
 
 return {
 	-- Tag / pass (§10.3): both rigs freeze for HITSTOP; the bomb pops on landing; your own camera kicks.
-	HITSTOP = 0.06,
+	HITSTOP = 0.09, -- D-PASS-02: a pass's freeze lands with the bomb (60 ms read as nothing)
+	HITSTOP_CHAIN = 0.012, -- …longer for every Carrier the bomb has been through…
+	HITSTOP_MAX = 0.15, -- …up to this
 	HITSTOP_TAG = 0.09, -- the slap's freeze on the contact pose (F-BOMB-10)
 	-- The Hand-Off (GDD §7.4b, HandOffController)
 	HITSTOP_SLAM = 0.1, -- a SLAM PASS
@@ -42,9 +44,24 @@ return {
 	KICK_FOV = 3, -- degrees of FOV punch when a bomb lands on you
 
 	-- The pass flight (§7.4, §10.3): the real bomb (the giver's skin) flies back to back with a motion trail.
-	PASS_TIME = 0.18,
-	PASS_ARC = 2, -- studs of lift at the middle of the arc
+	PASS_TIME = 0.26, -- D-PASS-02: long enough to see it fly (0.18 was a blur between two touching bodies)
+	PASS_ARC = 3.2, -- studs of lift at the middle of the arc
 	PASS_SPINS = 1.5, -- full turns in flight
+	PASS_TRAIL_CHAIN = 0.18, -- the trail widens by this × per Carrier in the chain
+	-- The landing (D-PASS-02, HandOffController): a burst on the receiver's back that grows with the chain, the
+	-- receiver flashes white and stumbles, and your screen edge flashes in the stage colour when it's you.
+	PASS_BURST = 2.6, -- burst size at a chain of 1…
+	PASS_BURST_CHAIN = 0.45, -- …plus this per Carrier
+	PASS_FLASH_TIME = 0.16, -- the receiver's white flash
+	PASS_EDGE_TIME = 0.45, -- your screen edge when it lands on you
+	PASS_EDGE_PX = 26,
+	PASS_RECEIVE_FOV = 5, -- degrees of FOV punch when it lands on you (KICK_FOV is the giver's)
+	CHAIN_RAYS_FROM = 3, -- a light-ray burst behind the receiver from this chain length
+	CHAIN_GASP_FROM = 4, -- the crowd gasps from here (and on a CLOSE ONE)
+	CHAIN_SLOWMO_FROM = 5, -- presentation slow-mo from here (F-FEEL-04 budget rules still apply)
+	-- The reach tether (F-BOMB-15): while you carry, a crackling arc from your bomb to whoever a slap would hit.
+	TETHER_WIDTH = 1.1,
+	TETHER_SPEED = 3,
 
 	-- Boom on you (§10.3): the camera holds while the explosion expands, then a whoosh as you fly.
 	IMPACT_FREEZE = 0.35,

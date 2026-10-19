@@ -12,12 +12,18 @@
 --   for a beat, and the bomb visibly ricocheting off them and back onto the giver.
 --   The Chain Song (F-BOMB-14): every pass plays the next note of a rising major scale (the in-house mallet note,
 --   art/audio/make_chain_note.py, pitched by semitones), and a ×N tag rides above the Carrier from ×2.
+--   Every pass is a slap (D-PASS-02): the giver swings, the bomb flies and lands with a burst that grows with the
+--   chain, the receiver flashes white and stumbles; your screen edge flashes in the stage colour when it's you; from
+--   ×3 a light-ray burst, from ×4 the crowd gasps (and the slow-mo from ×5, ImpactController).
+--   The Slap-Pass (F-BOMB-15): click / R2 / the PASS button sends the intent with your aim (the server decides); a
+--   crackling tether runs from your bomb to whoever a slap would hit right now.
 -- Nothing here decides anything: the server's BombFx beats and the Carrier attributes drive it all.
--- Implements: F-BOMB-11..14 (presentation).
+-- Implements: F-BOMB-11..15 (presentation, and the Slap-Pass input).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -31,6 +37,7 @@ local BombController = require(script.Parent.BombController)
 local CameraController = require(script.Parent.CameraController)
 local FxController = require(script.Parent.FxController)
 local ImpactController = require(script.Parent.ImpactController)
+local InputController = require(script.Parent.InputController)
 local SlapController = require(script.Parent.SlapController)
 
 local B = Config.Bomb
@@ -222,6 +229,112 @@ local function updateRing(ring: Ring, root: BasePart, dt: number, clock: number)
 		math.max(0, F.RING_ALPHA + F.RING_PULSE * beat - (if ring.stretch > 0.05 then 0.1 else 0))
 end
 
+-- ── The Slap-Pass (F-BOMB-15): the aim, the tether, the input ──────────────────────────────────────────────────
+local localPlayer = Players.LocalPlayer
+local tether: Beam
+local tetherGlow: Beam
+local tetherInk: Beam
+local tetherA: Attachment
+local tetherB: Attachment
+local SLAP_COS = math.cos(math.rad(B.PASS_SLAP_CONE))
+
+-- Where a slap goes: the way the camera looks (you aim with it), else the way you face.
+local function slapAim(root: BasePart): Vector3
+	local cam = workspace.CurrentCamera
+	local look = (if cam then cam.CFrame.LookVector else root.CFrame.LookVector) * FLAT
+	if look.Magnitude < 1e-3 then
+		look = root.CFrame.LookVector * FLAT
+	end
+	return if look.Magnitude > 1e-3 then look.Unit else Vector3.new(0, 0, -1)
+end
+
+local function carryingLive(): boolean
+	return localPlayer:GetAttribute("BombId") ~= nil
+		and not localPlayer:GetAttribute("BombLocked")
+		and ClientState.activeInRun()
+		and ClientState.role() == "Runner"
+end
+
+-- Whoever a slap would hit right now (the server's rule, with most of its lag slack).
+local function slapTarget(root: BasePart, t: number): BasePart?
+	local stage = stageOf(localPlayer, t)
+	-- the server allows LAG_SLACK on top; the tether takes most of it (what you see lags the server a little)
+	local reach = (B.PASS_RANGE_STAGE :: any)[stage] + B.PASS_SLAP_REACH + B.LAG_SLACK * 0.75
+	local aim = slapAim(root)
+	local best: BasePart? = nil
+	local bestD = math.huge
+	for _, e in ipairs(ClientState.participants()) do
+		local host, model = e.host, e.model
+		local r = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local role = host:GetAttribute("Role")
+		if
+			host ~= localPlayer
+			and r
+			and (role == "Runner" or role == "Bomber")
+			and host:GetAttribute("State") == "Active"
+			and host:GetAttribute("BombId") == nil
+		then
+			local d = (r.Position - root.Position) * FLAT
+			local dist = d.Magnitude
+			if dist <= reach and (dist < 1.5 or d.Unit:Dot(aim) >= SLAP_COS) and dist < bestD then
+				best, bestD = r, dist
+			end
+		end
+	end
+	return best
+end
+
+local function updateTether(t: number)
+	local char = localPlayer.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local target = if root and carryingLive() then slapTarget(root, t) else nil
+	tether.Enabled = target ~= nil
+	tetherGlow.Enabled = target ~= nil
+	tetherInk.Enabled = target ~= nil
+	if not target or not root then
+		return
+	end
+	local torso = char and char:FindFirstChild("Torso") :: BasePart?
+	local from = if torso then (torso.CFrame * CFrame.new(0, 0.4, 0.9)).Position else root.Position
+	tetherA.WorldPosition = from
+	tetherB.WorldPosition = target.Position + Vector3.new(0, 0.6, 0)
+	local color = Theme.stageColor(stageOf(localPlayer, t))
+	tether.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.35), color)
+	tetherGlow.Color = ColorSequence.new(color)
+	-- it crackles: the width and the brightness flicker every frame
+	local flick = math.random()
+	tether.Transparency = NumberSequence.new(0.1 * flick, 0.1)
+	tether.Width0 = F.TETHER_WIDTH * (0.7 + 0.4 * flick)
+	tether.Width1 = F.TETHER_WIDTH * 0.45
+	tetherGlow.Transparency = NumberSequence.new(0.5 + 0.2 * flick, 0.7)
+	tetherGlow.Width0 = F.TETHER_WIDTH * 2.4
+	tetherGlow.Width1 = F.TETHER_WIDTH * 1.4
+	tetherInk.Width0 = tether.Width0 * 0.7
+	tetherInk.Width1 = tether.Width1 * 0.7
+end
+
+local nextSwing = 0
+local function onSwing(state: Enum.UserInputState): boolean
+	if state ~= Enum.UserInputState.Begin or not carryingLive() then
+		return false
+	end
+	local clock = os.clock()
+	if clock < nextSwing then
+		return true
+	end
+	nextSwing = clock + B.PASS_SLAP_CD
+	local char = localPlayer.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not char or not root then
+		return false
+	end
+	-- the swing starts now (the server decides whether it lands; the landing beats come with its Pass)
+	SlapController.playClip(char, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
+	Sfx.play("SlapSwing", 0.8, 1.1)
+	Net.send("PassSlap", slapAim(root))
+	return true
+end
+
 local function step(dt: number)
 	local t = workspace:GetServerTimeNow()
 	local clock = os.clock()
@@ -267,6 +380,7 @@ local function step(dt: number)
 			end
 		end
 	end
+	updateTether(t)
 	-- the ×N tags follow their Carriers; a bomb that's gone takes its tag with it
 	for host, tag in pairs(HandOffController.tags) do
 		if host:GetAttribute("BombId") == nil then
@@ -379,6 +493,101 @@ local function dust(pos: Vector3)
 	puff:Emit(3)
 end
 
+-- A light-ray burst behind the receiver (a long chain).
+local function rays(pos: Vector3, color: Color3, n: number)
+	local att = new("Attachment", { WorldPosition = pos, Parent = workspace.Terrain }) :: Attachment
+	task.delay(1, function()
+		att:Destroy()
+	end)
+	local e = new("ParticleEmitter", {
+		Texture = Assets.Vfx.Rays,
+		Lifetime = NumberRange.new(0.32),
+		Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 2),
+			NumberSequenceKeypoint.new(1, 5 + n),
+		}),
+		Transparency = NumberSequence.new(0.15, 1),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-60, 60),
+		Color = ColorSequence.new(color),
+		LightEmission = 1,
+		LightInfluence = 0,
+		ZOffset = 0.8,
+		Rate = 0,
+		Parent = att,
+	}) :: ParticleEmitter
+	e:Emit(1)
+end
+
+-- The receiver flashes white for a beat (the impact frame).
+local function flashBody(model: Model)
+	local h = new("Highlight", {
+		Name = "FV_PassFlash",
+		FillColor = Color3.new(1, 1, 1),
+		FillTransparency = 0.1,
+		OutlineColor = Color3.new(1, 1, 1),
+		OutlineTransparency = 0.3,
+		DepthMode = Enum.HighlightDepthMode.Occluded,
+		Adornee = model,
+		Parent = model,
+	}) :: Highlight
+	local tw = TweenService:Create(
+		h,
+		TweenInfo.new(F.PASS_FLASH_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ FillTransparency = 1, OutlineTransparency = 1 }
+	)
+	tw.Completed:Connect(function()
+		h:Destroy()
+	end)
+	tw:Play()
+end
+
+-- Your screen edge flashes in the stage colour: it's on YOU now.
+local edgeGui: ScreenGui
+local edgeStroke: UIStroke
+local function edgeFlash(color: Color3)
+	edgeStroke.Color = color
+	edgeStroke.Transparency = 0.05
+	edgeGui.Enabled = true
+	TweenService:Create(edgeStroke, TweenInfo.new(F.PASS_EDGE_TIME, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
+end
+
+-- The landing (D-PASS-02): everything a pass says happens here, when the flying bomb reaches the back.
+local function landing(p: any, n: number)
+	local toRoot = rootOf(p.who)
+	if not toRoot then
+		return
+	end
+	local myId = ClientState.myId()
+	local fromRoot = if type(p.from) == "string" then rootOf(p.from) else nil
+	local dir = if fromRoot then (toRoot.Position - fromRoot.Position) * FLAT else Vector3.zero
+	local toward = if dir.Magnitude > 1e-3 then dir.Unit else nil
+	local color = if n >= 5 then P.Detonate elseif n >= 3 then P.Ember else P.Spark
+	local back = toRoot.Position + Vector3.new(0, 0.8, 0)
+	burst(back, color, F.PASS_BURST + F.PASS_BURST_CHAIN * (n - 1) + (if p.slam then 1.6 else 0), 6 + 2 * n, toward)
+	if n >= F.CHAIN_RAYS_FROM then
+		rays(back, color, n)
+	end
+	local _, toModel = ClientState.byId(p.who)
+	if toModel then
+		flashBody(toModel)
+		SlapController.playClip(toModel, "Stumble", 0)
+	end
+	Sfx.at("Slap", toRoot.Position, math.min(1.2, 0.7 + 0.08 * n), math.max(0.8, 1.15 - 0.04 * n))
+	if p.slam then
+		Sfx.at("Slap", toRoot.Position, 1.1, 0.82)
+		Sfx.at("BombClamp", toRoot.Position, 1, 0.8)
+	end
+	local close = type(p.remaining) == "number" and p.remaining <= B.CLOSE_PASS_WINDOW
+	if n >= F.CHAIN_GASP_FROM or close then
+		Sfx.at("CrowdGasp", toRoot.Position, 0.8)
+	end
+	if p.who == myId and not ImpactController.calm() then
+		local host = ClientState.byId(p.who)
+		edgeFlash(Theme.stageColor(if host then stageOf(host, workspace:GetServerTimeNow()) else "LIT"))
+	end
+end
+
 -- The bomb ricochets off the rejecter and back onto the giver: the hero bomb, wide-eyed, out and back.
 local function ricochet(giverId: string, rejecterId: string)
 	local giverHost, giverModel = ClientState.byId(giverId)
@@ -453,22 +662,17 @@ local function onBomb(p: any)
 		if p.from == me then
 			Sfx.play("PassWhoosh", 0.7, 1.65) -- relief: it's gone
 		end
-		if p.slam and toRoot then
-			-- SLAM PASS: a shockwave and a spray the way it was shoved, a low thud, a heavier freeze
-			local fromRoot = if type(p.from) == "string" then rootOf(p.from) else nil
-			local dir = if fromRoot then (toRoot.Position - fromRoot.Position) * FLAT else Vector3.zero
-			burst(toRoot.Position, P.Spark, 4.2, 9, if dir.Magnitude > 1e-3 then dir.Unit else nil)
-			Sfx.at("Slap", toRoot.Position, 1.1, 0.82)
-			Sfx.at("BombClamp", toRoot.Position, 1, 0.8)
-			ImpactController.hitStop(p.who, F.HITSTOP_SLAM)
-			if type(p.from) == "string" then
-				ImpactController.hitStop(p.from, F.HITSTOP_SLAM)
-			end
-			if not calm and (p.who == me or p.from == me) then
-				FxController.shake(F.KICK_SHAKE * 1.3)
-				CameraController.punch(F.KICK_FOV * 1.4)
+		-- every pass is a slap (D-PASS-02): the giver swings (their own Slap-Pass already swung on their screen)
+		if type(p.from) == "string" and not (p.swing and p.from == me) then
+			local _, fromModel = ClientState.byId(p.from)
+			if fromModel then
+				SlapController.playClip(fromModel, "Slap", math.max(0, F.SLAP_CONTACT - 0.03))
 			end
 		end
+		-- the burst, the flash, the stumble, the edge flash: when the flying bomb reaches the back
+		task.delay(F.PASS_TIME, function()
+			landing(p, n)
+		end)
 	elseif p.kind == "Reject" and type(p.from) == "string" then
 		-- p.who rejected, p.from (the giver) gets it back
 		local rej = rootOf(p.who)
@@ -492,6 +696,18 @@ local function onBomb(p: any)
 				FxController.shake(F.KICK_SHAKE * 1.2)
 			end
 		end
+	elseif p.kind == "Swing" then
+		-- F-BOMB-15: a slap at nobody (no penalty); the swinger's own screen already played it
+		if p.who ~= me then
+			local _, model = ClientState.byId(p.who)
+			local root = rootOf(p.who)
+			if model then
+				SlapController.playClip(model, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
+			end
+			if root then
+				Sfx.at("SlapSwing", root.Position, 0.7, 1.1)
+			end
+		end
 	elseif p.kind == "Whiff" then
 		-- a lunge at somebody that missed: dust at the feet, a miss whoosh, a stumble
 		local root = rootOf(p.who)
@@ -509,6 +725,76 @@ end
 function HandOffController.start()
 	folder = new("Folder", { Name = "FV_DangerRings", Parent = workspace }) :: Folder
 	refreshRayFilter()
+	tetherA = new("Attachment", { Name = "FV_TetherA", Parent = workspace.Terrain }) :: Attachment
+	tetherB = new("Attachment", { Name = "FV_TetherB", Parent = workspace.Terrain }) :: Attachment
+	-- both point up, so the beam's curve bows upward into an arc (CurveSize0 up from A, CurveSize1 down into B)
+	tetherA.Axis = Vector3.yAxis
+	tetherB.Axis = Vector3.yAxis
+	tether = new("Beam", {
+		Name = "FV_PassTether",
+		Attachment0 = tetherA,
+		Attachment1 = tetherB,
+		Texture = Assets.Vfx.PassRibbon, -- the pass flight's own ribbon (a hot core in a gold → orange band)
+		TextureMode = Enum.TextureMode.Stretch,
+		TextureSpeed = F.TETHER_SPEED,
+		Segments = 12,
+		CurveSize0 = 1.6,
+		CurveSize1 = -0.8,
+		FaceCamera = true,
+		LightEmission = 0, -- solid, so it reads on bright floors and sky (additive washed out); the glow adds the light
+		LightInfluence = 0,
+		ZOffset = 0.1,
+		Enabled = false,
+		Parent = workspace.Terrain,
+	}) :: Beam
+	-- the ink edge under it (the house outline: every hero element has one)
+	tetherInk = new("Beam", {
+		Name = "FV_PassTetherInk",
+		Attachment0 = tetherA,
+		Attachment1 = tetherB,
+		Texture = "",
+		Segments = 12,
+		CurveSize0 = 1.6,
+		CurveSize1 = -0.8,
+		FaceCamera = true,
+		Color = ColorSequence.new(P.Ink),
+		LightEmission = 0,
+		LightInfluence = 0,
+		Enabled = false,
+		Parent = workspace.Terrain,
+	}) :: Beam
+	-- the glow round it (the soft title glow, stretched along the arc)
+	tetherGlow = new("Beam", {
+		Name = "FV_PassTetherGlow",
+		Attachment0 = tetherA,
+		Attachment1 = tetherB,
+		Texture = Assets.TitleFx.Glow,
+		TextureMode = Enum.TextureMode.Stretch,
+		Segments = 12,
+		CurveSize0 = 1.6,
+		CurveSize1 = -0.8,
+		FaceCamera = true,
+		LightEmission = 1,
+		LightInfluence = 0,
+		Enabled = false,
+		Parent = workspace.Terrain,
+	}) :: Beam
+	edgeGui = new("ScreenGui", {
+		Name = "FV_PassEdge",
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		DisplayOrder = 3,
+		Enabled = false,
+		Parent = localPlayer:WaitForChild("PlayerGui"),
+	}) :: ScreenGui
+	local edge = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = edgeGui })
+	edgeStroke = new("UIStroke", {
+		Thickness = F.PASS_EDGE_PX,
+		Transparency = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = edge,
+	}) :: UIStroke
+	InputController.on("Swing", onSwing)
 	RunService.RenderStepped:Connect(step)
 	Net.listen("BombFx", onBomb)
 end

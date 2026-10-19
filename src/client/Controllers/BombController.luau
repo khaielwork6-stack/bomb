@@ -862,7 +862,7 @@ end
 
 -- Pass arc (GDD §7.4, §10.3): the real bomb, in the giver's skin, flies back to back with spins and a motion trail,
 -- then the receiver's clamp catches it (attach() does the slam and the pop).
-local function passArc(fromId: string, toId: string)
+local function passArc(fromId: string, toId: string, chain: number)
 	local fromHost, fromModel = ClientState.byId(fromId)
 	local _, toModel = ClientState.byId(toId)
 	local a = fromModel and fromModel:FindFirstChild("Torso") :: BasePart?
@@ -902,7 +902,7 @@ local function passArc(fromId: string, toId: string)
 			TextureMode = Enum.TextureMode.Stretch,
 			Color = ColorSequence.new(Color3.new(1, 1, 1)),
 			Transparency = NumberSequence.new(0, 0.4),
-			WidthScale = NumberSequence.new(1.2, 0.5),
+			WidthScale = NumberSequence.new(1.2 * (1 + F.PASS_TRAIL_CHAIN * (chain - 1)), 0.5),
 			Lifetime = 0.24,
 			LightEmission = 0.8,
 			LightInfluence = 0,
@@ -957,7 +957,12 @@ function BombController.start()
 			and type(payload.from) == "string"
 			and type(payload.who) == "string"
 		then
-			passArc(payload.from, payload.who)
+			-- D-PASS-02: the receiver's back bomb appears as the flying one lands (no second bomb mid-air)
+			local toHost = ClientState.byId(payload.who)
+			if toHost then
+				BombController.deferAttach(toHost, os.clock() + F.PASS_TIME)
+			end
+			passArc(payload.from, payload.who, if type(payload.chain) == "number" then payload.chain else 1)
 		end
 	end)
 end

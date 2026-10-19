@@ -158,6 +158,32 @@ function BombRules.pickReceiver(bomb: Bomb, carrier: Body, bodies: { Body }, now
 	return best, best ~= nil and carrier.lungeDir ~= nil
 end
 
+-- F-BOMB-15: the Slap-Pass receiver: the closest eligible body in front of `aim` (within PASS_SLAP_CONE°), up to the
+-- stage reach + PASS_SLAP_REACH (+ the lag slack). A body right on top of the Carrier counts whatever the aim.
+function BombRules.slapReceiver(bomb: Bomb, carrier: Body, aim: Vector3, bodies: { Body }, now: number): Body?
+	if not BombRules.canPass(bomb, carrier, now) then
+		return nil
+	end
+	local flatAim = aim * Vector3.new(1, 0, 1)
+	if flatAim.Magnitude < 1e-3 then
+		return nil
+	end
+	flatAim = flatAim.Unit
+	local range = BombRules.passRange(bomb, now) + B.PASS_SLAP_REACH + B.LAG_SLACK
+	local cosCone = math.cos(math.rad(B.PASS_SLAP_CONE))
+	local best, bestD = nil, math.huge
+	for _, b in ipairs(bodies) do
+		if BombRules.canReceive(bomb, b, now) and math.abs(b.pos.Y - carrier.pos.Y) <= B.VERTICAL_REACH then
+			local d = (b.pos - carrier.pos) * Vector3.new(1, 0, 1)
+			local dist = d.Magnitude
+			if dist <= range + (b.reach or 0) and (dist < 1.5 or d.Unit:Dot(flatAim) >= cosCone) and dist < bestD then
+				best, bestD = b, dist
+			end
+		end
+	end
+	return best
+end
+
 -- F-BOMB-13: does this receiver bounce the bomb back (a Hard Stop just before it landed, off cooldown, and they
 -- haven't rejected this bomb yet)? A MEGA BOMBER never rejects a feed.
 function BombRules.rejects(bomb: Bomb, receiver: Body): boolean

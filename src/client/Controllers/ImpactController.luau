@@ -153,32 +153,35 @@ local function onBomb(p: any)
 	local me = ClientState.myId()
 	-- (a tag's freeze, kick and camera are the slap's: SlapController times them to the contact frame)
 	if p.kind == "Pass" then
-		if type(p.who) == "string" then
-			hitStop(p.who)
-		end
-		if type(p.from) == "string" then
-			hitStop(p.from)
-		end
-		if not calm() then
-			if p.who == me then
-				FxController.shake(F.KICK_SHAKE)
-				CameraController.punch(F.KICK_FOV)
-			elseif p.from == me then
-				FxController.shake(F.KICK_SHAKE * 0.5)
+		-- D-PASS-02: everything lands with the bomb (after its flight), and grows with the chain
+		local n = if type(p.chain) == "number" then p.chain else 1
+		local hold = if p.slam then F.HITSTOP_SLAM else F.HITSTOP
+		hold = math.min(F.HITSTOP_MAX, hold + F.HITSTOP_CHAIN * (n - 1))
+		local heat = 1 + 0.15 * (n - 1) * (if p.slam then 1.3 else 1)
+		task.delay(F.PASS_TIME, function()
+			if type(p.who) == "string" then
+				hitStop(p.who, hold)
 			end
-		end
-		-- a pass with the fuse nearly out (F-FEEL-04)
-		if
-			p.kind == "Pass"
-			and type(p.remaining) == "number"
-			and p.remaining <= F.SLOWMO_PASS_LEFT
-			and type(p.who) == "string"
-		then
-			local r = rootOf(p.who)
-			if p.who == me or p.from == me or near(r and r.Position, F.SLOWMO_RANGE) then
-				slowmo()
+			if type(p.from) == "string" then
+				hitStop(p.from, hold)
 			end
-		end
+			if not calm() then
+				if p.who == me then
+					FxController.shake(F.KICK_SHAKE * 1.3 * heat)
+					CameraController.punch(F.PASS_RECEIVE_FOV * heat)
+				elseif p.from == me then
+					FxController.shake(F.KICK_SHAKE * 0.5 * heat)
+				end
+			end
+			-- a pass with the fuse nearly out, or a long chain (F-FEEL-04)
+			local close = type(p.remaining) == "number" and p.remaining <= F.SLOWMO_PASS_LEFT
+			if (close or n >= F.CHAIN_SLOWMO_FROM) and type(p.who) == "string" then
+				local r = rootOf(p.who)
+				if p.who == me or p.from == me or near(r and r.Position, F.SLOWMO_RANGE) then
+					slowmo()
+				end
+			end
+		end)
 	elseif p.kind == "Boom" and p.who == me then
 		impactFreeze()
 	elseif p.kind == "Defuse" and p.clutch == true then

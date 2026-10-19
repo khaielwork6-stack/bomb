@@ -280,7 +280,7 @@ Some rounds bend one rule. A modifier has to pass all six of these tests, or it 
 ### 7.4 Passing (F-BOMB-03..05)
 | ID | Rule |
 |---|---|
-| F-BOMB-03 | **Contact passes.** When a Carrier's hitbox overlaps another eligible player, the bomb jumps to them **instantly** (server-authoritative). A 0.18 s visual arc plays from back to back. There is no button: contact is the pass. This makes it mobile-first, and it means accidents are part of the comedy.<br><br>**The bump (D-FEEL-01):** a pass knocks the two bodies apart, **3 studs** each, away from each other (`PASS_BUMP`), so "BUMP SOMEONE!" is literally what you see. |
+| F-BOMB-03 | **Contact passes.** When a Carrier's hitbox overlaps another eligible player, the bomb jumps to them **instantly** (server-authoritative). A 0.26 s visual arc plays from back to back, and the bomb clamps on when it lands. Contact always passes, with no button needed: it stays mobile-first, and accidents are part of the comedy. The Slap-Pass (F-BOMB-15) adds an active pass on top.<br><br>**The bump (D-FEEL-01, D-PASS-02):** a pass **launches the receiver 5 studs** (`PASS_KNOCK`) and steps the giver back **3 studs** (`PASS_BUMP`), away from each other, so every pass visibly sends someone flying. |
 | F-BOMB-04 | **The fuse keeps its remaining time.** It never resets, never extends. |
 | F-BOMB-05 | **Eligible receivers:** anyone *not in a Safe Strip* and *not already carrying*. That includes Runners and Bombers.<br><br>**No pass-back for 1.0 s:** you can't pass a bomb straight back to the player who just gave it to you (`NO_PASSBACK`). This kills ping-pong.<br><br>**Receive grace of 0.2 s:** a fresh Carrier can't pass in the first 0.2 s (`RECEIVE_GRACE`). This stops same-frame bounces and gives the receiver one frame of "oh no". |
 
@@ -290,8 +290,9 @@ Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nob
 | ID | Rule |
 |---|---|
 | F-BOMB-11 | **The Danger Ring.** A ring on the ground under every Carrier shows exactly how far their pass reaches, in the bomb's stage colour. It **grows as the fuse burns: 4 studs at LIT, 4.75 at HOT, 5.5 at CRITICAL** (`PASS_RANGE_STAGE`). The server uses the same radius, so what you see is the rule. A READ THE FACE bomb's ring stays LIT-sized until it turns HOT, like its face. |
-| F-BOMB-12 | **The Lunge.** A Carrier's **Dash** is a lunge: for the dash (0.34 s), the reach stretches **+2.5 studs** toward bodies in front of them (within 60° of the dash direction, `LUNGE_REACH`, `LUNGE_CONE`), and the ring stretches into an oval that way. A pass that connects during a lunge is a **SLAM PASS**: a heavier freeze, the receiver knocked 5 studs, and its own callout. **A whiff:** if you lunged at someone (a body in that cone within the stretched reach + 3 studs when the dash started) and didn't connect, you stumble for 0.35 s at 60 % speed (`WHIFF_*`), and the dodger gets DODGE!. A dash to escape is never punished. |
+| F-BOMB-12 | **The Lunge.** A Carrier's **Dash** is a lunge: for the dash (0.34 s), the reach stretches **+2.5 studs** toward bodies in front of them (within 60° of the dash direction, `LUNGE_REACH`, `LUNGE_CONE`), and the ring stretches into an oval that way. A pass that connects during a lunge is a **SLAM PASS**: a heavier freeze, the receiver knocked 7 studs (`SLAM_KNOCK`), and its own callout. **A whiff:** if you lunged at someone (a body in that cone within the stretched reach + 3 studs when the dash started) and didn't connect, you stumble for 0.35 s at 60 % speed (`WHIFF_*`), and the dodger gets DODGE!. A dash to escape is never punished. |
 | F-BOMB-13 | **The Reject.** **Hard Stop just as the bomb reaches you** (within 0.25 s before contact on the server, `REJECT_WINDOW`): **REJECTED!** The bomb ricochets back to the giver, even inside the no-pass-back second, and the giver is staggered for 0.4 s (`REJECT_STAGGER`). Limits: a **4 s** cooldown per player, and **one reject per bomb per player**, so there are no endless volleys. A Carrier can't reject. **The duel:** Lunge beats running, Reject beats Lunge, and a feint beats Reject (fake the lunge, wait out their Hard Stop, then walk in while they're on cooldown). |
+| F-BOMB-15 | **The Slap-Pass (D-PASS-02).** A Carrier can also pass on purpose: **click (PC), R2 (gamepad) or the PASS button (phone)**. It's a quick slap that puts the bomb on the closest eligible body **in front of your aim** (within 70°, `PASS_SLAP_CONE`), up to the stage reach **+1.5 studs** (`PASS_SLAP_REACH`). Every pass rule still applies (receive grace, no pass-back, safe strips), and the receiver can still Reject it. A slap at nobody costs only a 0.45 s wait (`PASS_SLAP_CD`). The aim is the camera's direction (phones: the way you face); the server re-checks everything, and the client only sends the intent. **While you carry, a crackling arc runs from your bomb to whoever a slap would hit right now**, so you know the click lands. Bots slap-pass by skill when someone is in front and in reach. |
 | F-BOMB-14 | **The Chain Song.** Every pass in a chain plays the next note of a rising major scale, one licensed pluck pitched by semitones, so a ×5 chain sounds like a climbing arpeggio. The bomb carries its chain: a ×N tag and a hotter rim from ×2. On the transfer: a freeze on both bodies, the ricochet arc, "FROM name" on the receiver's screen, and a relief whoosh on the giver's. |
 
 **Bots** lunge (their pass dash) and reject with skill-tier odds, so the duel exists in a solo round. **No new Stars:** a SLAM PASS pays as a pass, and a REJECTED! pays XP only. **Success measure (pace probe):** passes per bomb from 0.64 to 1.2+, boom % within 45–60, 2–6 rejects a round, and some whiffs. First bot probe (2026-10-18): 0.83 passes per bomb, 38 % SLAM PASSES, 1.8 rejects a round, 14 whiffs in 8.5 min, boom 61 %. **Bots take a free hand-off within 7 studs** (`Config.Bots.OPPORTUNITY_RANGE`), as a player would.
@@ -328,11 +329,15 @@ Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nob
 | `STAGE_HOT` / `STAGE_CRITICAL` | 2.5 / 1.0 | Stage thresholds |
 | `TAG_RANGE` | 3.5 | Studs, root-to-root (Bomber reach) [TUNE]. Was 4.5: with the lag slack, tags landed from 6.5 studs and never looked like a touch (D-FEEL-01) |
 | `TAG_SHOVE` / `TAG_SHOVE_TIME` | 6 / 0.25 | studs / s: the slap's stumble (F-BOMB-10) |
-| `PASS_BUMP` | 3 | studs each: the pass knock-apart (F-BOMB-03) |
+| `PASS_BUMP` | 3 | studs: the giver steps back on a pass (F-BOMB-03) |
+| `PASS_KNOCK` | 5 | studs: the receiver is launched on a pass (D-PASS-02) |
+| `PASS_SLAP_REACH` | 1.5 | studs beyond the stage reach for a Slap-Pass (F-BOMB-15) |
+| `PASS_SLAP_CONE` | 70 | degrees either side of the aim (F-BOMB-15) |
+| `PASS_SLAP_CD` | 0.45 | s between Slap-Pass attempts (F-BOMB-15) |
 | `PASS_RANGE` | 4.0 | Studs, root-to-root (body contact) [TUNE]; LIT reach, see `PASS_RANGE_STAGE` |
 | `PASS_RANGE_STAGE` | 4 / 4.75 / 5.5 | studs at LIT / HOT / CRITICAL: the Danger Ring (F-BOMB-11) |
 | `LUNGE_REACH` / `LUNGE_CONE` | 2.5 / 60 | studs added in front during a Carrier's dash / degrees either side (F-BOMB-12) |
-| `SLAM_KNOCK` | 5 | studs the receiver of a SLAM PASS is knocked |
+| `SLAM_KNOCK` | 7 | studs the receiver of a SLAM PASS is knocked |
 | `WHIFF_TIME` / `WHIFF_SPEED` | 0.35 / 0.6 | s / speed while stumbling after a whiffed lunge |
 | `REJECT_WINDOW` / `REJECT_COOLDOWN` / `REJECT_STAGGER` | 0.25 / 4 / 0.4 | s (F-BOMB-13) |
 | `TAG_COOLDOWN` | 1.5 | s |

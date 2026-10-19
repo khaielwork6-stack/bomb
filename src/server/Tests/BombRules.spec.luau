@@ -91,6 +91,28 @@ return function(t)
 		t.expect(BombRules.lungeTarget(bomb, carrier, { carrier, ahead }, later)).toBe(ahead)
 	end)
 
+	t.it("the Slap-Pass reaches further, only in front of the aim, and obeys the pass rules (F-BOMB-15)", function()
+		local bomb = BombRules.newBomb(1, body("B1", "Bomber", 50), body("A", "Runner", 0), NOW)
+		local later = NOW + 0.5
+		local carrier = body("A", "Runner", 0)
+		local d = B.PASS_RANGE_STAGE.LIT + B.LAG_SLACK + B.PASS_SLAP_REACH * 0.8 -- past contact, inside the slap
+		local ahead, behind = body("F", "Runner", d), body("R", "Runner", -d)
+		local aim = Vector3.new(1, 0, 0)
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { carrier, ahead, behind }, later)).toBe(ahead)
+		t.expect(BombRules.slapReceiver(bomb, carrier, -aim, { carrier, ahead }, later)).toBe(nil)
+		local tooFar = body("X", "Runner", B.PASS_RANGE_STAGE.LIT + B.LAG_SLACK + B.PASS_SLAP_REACH + 0.5)
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { carrier, tooFar }, later)).toBe(nil)
+		-- the usual rules: receive grace, safe strips, someone already carrying
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { ahead }, NOW + B.RECEIVE_GRACE * 0.5)).toBe(nil)
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { body("S", "Runner", d, { safe = true }) }, later))
+			.toBe(nil)
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { body("C", "Runner", d, { carrying = true }) }, later))
+			.toBe(nil)
+		-- right on top of you counts whatever the aim
+		local close = body("N", "Runner", -1)
+		t.expect(BombRules.slapReceiver(bomb, carrier, aim, { close }, later)).toBe(close)
+	end)
+
 	t.it("the Reject: a timed Hard Stop bounces it back, once per bomb per player (F-BOMB-13)", function()
 		local bomb = BombRules.newBomb(1, body("B1", "Bomber", 50), body("A", "Runner", 0), NOW)
 		local ready = body("C", "Runner", 2, { rejectReady = true })

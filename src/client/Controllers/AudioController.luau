@@ -187,11 +187,14 @@ local function onBomb(p: any)
 		if from then
 			Sfx.at("PassWhoosh", from.Position)
 		end
-		if mine then
-			Sfx.play("BombClamp", 1.2, 1.25)
-		elseif to then
-			Sfx.at("BombClamp", to.Position, 1, 1.25)
-		end
+		-- the clamp bites as the bomb lands (D-PASS-02: after the flight)
+		task.delay(Config.Feel.PASS_TIME, function()
+			if mine then
+				Sfx.play("BombClamp", 1.2, 1.25)
+			elseif to then
+				Sfx.at("BombClamp", to.Position, 1, 1.25)
+			end
+		end)
 	elseif p.kind == "Boom" and typeof(p.pos) == "Vector3" then
 		local pos = p.pos :: Vector3
 		if mine then

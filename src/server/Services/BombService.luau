@@ -1,7 +1,8 @@
 --!strict
 -- The bomb, server side (GDD §7). Every Heartbeat while a crossing is live it snapshots the participants, asks
 -- Logic/BombRules what happens, and applies it: tags stick fresh bombs, contact passes them, safe strips defuse them
--- and the fuse booms them. Nothing here is triggered by a client remote (F-SEC-01): contact is measured on the server.
+-- and the fuse booms them. Contact is measured on the server (F-SEC-01); the one client intent is the Slap-Pass
+-- (F-BOMB-15, `PassSlap`): the server re-checks the bomb, the reach, the aim cone and every pass rule before it lands.
 -- Clients draw every bomb from the Carrier's attributes (BombId, BombExplodeAt, BombLocked) plus the BombFx beats.
 -- Round modifiers (GDD §6.4): READ THE FACE bombs get a random fuse and keep their boom time off the Carrier
 -- (`BombMasked`) until they turn HOT; the Mole's armed STRIKE (p.data.strikeUntil, set by ModifierService) tags.
@@ -9,8 +10,9 @@
 -- The Hand-Off (GDD §7.4b): the pass reach grows with the fuse stage (F-BOMB-11); a Carrier's dash is a lunge that
 -- reaches further forward and makes a SLAM PASS, and a lunge at someone that misses stumbles the Carrier (F-BOMB-12);
 -- a receiver's timed Hard Stop rejects the pass and staggers the giver (F-BOMB-13). Slows go through the SlowMult /
--- SlowUntil attributes, never SpeedMult (the Last Stand and MEGA own that one).
--- Implements: F-BOMB-01..13, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
+-- SlowUntil attributes, never SpeedMult (the Last Stand and MEGA own that one). D-PASS-02: a pass launches the
+-- receiver (PASS_KNOCK) and steps the giver back (PASS_BUMP); the Slap-Pass is the active pass (F-BOMB-15).
+-- Implements: F-BOMB-01..15, the §7.7 edge cases, F-FUSE-03 (boomParticipant), F-SEC-01, F-MOD-02, F-MOD-04 (strike).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -327,7 +329,16 @@ local function tag(bomber: Participant, target: Participant, bBody: Body, tBody:
 	BombService.Tagged:Fire(bomber, target, bomb)
 end
 
-local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body, tBody: Body, t: number, slam: boolean)
+local function pass(
+	bomb: Bomb,
+	from: Participant,
+	to: Participant,
+	fBody: Body,
+	tBody: Body,
+	t: number,
+	slam: boolean,
+	swing: boolean?
+)
 	if tBody.mega then
 		-- F-MEGA-06: fed to the giant. The bomb is gone (MegaService staggers it and burns its fuse).
 		local remaining = BombRules.remaining(bomb, t)
@@ -343,9 +354,9 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 	byCarrier[to.id] = bomb
 	setCarrierAttrs(to, bomb)
 	from.stats.passes += 1
-	-- the bump (F-BOMB-03): both bodies knock apart; a SLAM PASS knocks the receiver further (F-BOMB-12)
+	-- the bump (F-BOMB-03, D-PASS-02): the receiver is launched, the giver steps back; a SLAM PASS launches further
 	local apart = tBody.pos - fBody.pos
-	Characters.push(to, apart, if slam then B.SLAM_KNOCK else B.PASS_BUMP, B.PASS_BUMP_TIME)
+	Characters.push(to, apart, if slam then B.SLAM_KNOCK else B.PASS_KNOCK, B.PASS_BUMP_TIME)
 	Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
 	from.data.lungeAim = nil -- the lunge connected: no whiff
 	local remaining = BombRules.remaining(bomb, t)
@@ -357,6 +368,7 @@ local function pass(bomb: Bomb, from: Participant, to: Participant, fBody: Body,
 		remaining = if bomb.masked and not bomb.shown then nil else remaining, -- F-MOD-02: no time while LIT
 		chain = BombRules.chainLength(bomb),
 		slam = slam or nil,
+		swing = swing or nil, -- F-BOMB-15: made with the Slap-Pass (the giver's client already swung)
 		at = t,
 	})
 	BombService.Passed:Fire(from, to, bomb, remaining, slam)
@@ -522,6 +534,46 @@ local function step()
 	dodges(bodies, byId, t)
 end
 
+-- F-BOMB-15: the Slap-Pass. The Carrier slaps the bomb onto the closest eligible body in front of `aim` (or of their
+-- facing) within the stage reach + PASS_SLAP_REACH; the receiver can still Reject it. A swing at nobody costs only
+-- the PASS_SLAP_CD wait (everyone sees the swing). Humans arrive via the PassSlap remote, bots call it directly.
+function BombService.slapPass(p: Participant, aim: Vector3?): boolean
+	local bomb = byCarrier[p.id]
+	local t = now()
+	local root = p.root
+	if not BombService.live or not bomb or not root or t < (p.data.slapPassAt or 0) then
+		return false
+	end
+	p.data.slapPassAt = t + B.PASS_SLAP_CD
+	local bodies: { Body } = {}
+	local from: Body? = nil
+	for _, q in ipairs(Participants.all()) do
+		local b = bodyOf(q, t)
+		if b then
+			table.insert(bodies, b)
+			if b.id == p.id then
+				from = b
+			end
+		end
+	end
+	if not from or not BombRules.canPass(bomb, from, t) then
+		return false
+	end
+	local dir = if aim and (aim * Vector3.new(1, 0, 1)).Magnitude > 1e-3 then aim else root.CFrame.LookVector
+	local to = BombRules.slapReceiver(bomb, from, dir, bodies, t)
+	local tp = to and Participants.get(to.id)
+	if to and tp then
+		if BombRules.rejects(bomb, to) then
+			reject(bomb, p, tp, from, to, t)
+		else
+			pass(bomb, p, tp, from, to, t, false, true)
+		end
+		return true
+	end
+	Net.fireAll("BombFx", { kind = "Swing", bomb = bomb.id, who = p.id, at = t })
+	return false
+end
+
 -- ── API for RoundService ─────────────────────────────────────────────────────────────────────────────────────────
 -- F-FUSE-03: the field detonation booms a participant with no bomb and no credit (a Bomber is only flung).
 function BombService.boomParticipant(p: Participant)
@@ -591,6 +643,13 @@ end
 
 function BombService.start()
 	RunService.Heartbeat:Connect(step)
+	-- F-BOMB-15: the Slap-Pass intent (an aim direction; everything else is checked here)
+	Net.on("PassSlap", function(player: Player, aim: any)
+		local p = Participants.fromPlayer(player)
+		if p then
+			BombService.slapPass(p, if Net.isVec3(aim, 2) then aim :: Vector3 else nil)
+		end
+	end)
 	-- §7.7: a Carrier who leaves → the bomb booms in place (splash, no credit).
 	Participants.Removed:Connect(function(p: Participant)
 		local bomb = byCarrier[p.id]
@@ -609,6 +668,14 @@ function BombService.start()
 		end
 	end)
 	-- Studio: "bomb <id>" sticks a fresh bomb on a participant (tests without a Bomber in reach).
+	AdminService.register("slappass", function(args)
+		-- slappass <participantId>: that Carrier slaps the way they face (F-BOMB-15, Studio checks)
+		local p = Participants.get(args[1] or "")
+		if not RunService:IsStudio() or not p then
+			return "usage: slappass <participantId>"
+		end
+		return if BombService.slapPass(p) then "slapped it on someone" else "swung at nobody"
+	end)
 	AdminService.register("bomb", function(args)
 		local p = Participants.get(args[1] or "")
 		if not RunService:IsStudio() or not p or byCarrier[p.id] then

@@ -14,7 +14,7 @@ return {
 	-- someone (in the cone within reach + WHIFF_AIM when the dash started) and missing stumbles you.
 	LUNGE_REACH = 2.5,
 	LUNGE_CONE = 60,
-	SLAM_KNOCK = 5,
+	SLAM_KNOCK = 7, -- D-PASS-02: a SLAM PASS launches further than a plain pass (PASS_KNOCK)
 	WHIFF_AIM = 3,
 	WHIFF_TIME = 0.35,
 	WHIFF_SPEED = 0.6,
@@ -29,8 +29,14 @@ return {
 	-- The slap (F-BOMB-10): the tagged Runner stumbles forward, away from the Bomber; a pass bumps both bodies apart.
 	TAG_SHOVE = 6, -- studs
 	TAG_SHOVE_TIME = 0.25,
-	PASS_BUMP = 3, -- studs each
+	PASS_BUMP = 3, -- studs: the giver steps back
+	PASS_KNOCK = 5, -- studs: the receiver is launched (D-PASS-02: every pass visibly sends someone flying)
 	PASS_BUMP_TIME = 0.2,
+	-- F-BOMB-15 the Slap-Pass (D-PASS-02): the PASS button / click slaps the bomb onto the closest eligible body in
+	-- front (within PASS_SLAP_CONE° of the aim) up to the stage reach + PASS_SLAP_REACH. Contact still passes too.
+	PASS_SLAP_REACH = 1.5,
+	PASS_SLAP_CONE = 70,
+	PASS_SLAP_CD = 0.45, -- seconds between slap-pass attempts (a miss costs nothing but this)
 	NO_PASSBACK = 1.0, -- you can't pass straight back to whoever just gave it to you
 	RECEIVE_GRACE = 0.2, -- a fresh Carrier can't pass in its first moments
 	BOMBER_STUN = 3.0, -- a bomb that blows on a Bomber
