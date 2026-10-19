@@ -177,7 +177,7 @@ local function wordOf(key: string, n: number?): string
 	)
 end
 
--- "+N Word!" beside your body, floating up and fading (world-anchored, so it rides with you).
+-- "+N" (and the word, when the centre isn't saying it) beside your body, floating up and fading (world-anchored).
 local function bodyTag(amount: number, word: string, comboN: number)
 	local char = player.Character
 	local head = char and char:FindFirstChild("Head") :: BasePart?
@@ -219,7 +219,9 @@ local function bodyTag(amount: number, word: string, comboN: number)
 	if amount > 0 then
 		piece("+" .. tostring(amount), GOLD, 30, 1)
 	end
-	piece(word, Color3.new(1, 1, 1), 26, 2)
+	if word ~= "" then
+		piece(word, Color3.new(1, 1, 1), 26, 2)
+	end
 	if comboN >= 2 then
 		piece(("×%d"):format(comboN), Color3.fromRGB(255, 140, 60), 24, 3)
 	end
@@ -249,7 +251,10 @@ function HypeController.reward(key: string, n: number?, xp: number, stars: numbe
 	local t = os.clock()
 	combo = if t - lastPaid <= H.COMBO_WINDOW then combo + 1 else 1
 	lastPaid = t
-	bodyTag(if stars > 0 then stars else xp, wordOf(key, n), combo)
+	-- the word only when the middle of the screen doesn't already say it (one voice: BOOM! is the title, "+20" here)
+	local def = Config.Callouts.List[key]
+	local word = if def and def.title then "" else wordOf(key, n)
+	bodyTag(if stars > 0 then stars else xp, word, combo)
 	local cam = workspace.CurrentCamera
 	local head = player.Character and player.Character:FindFirstChild("Head") :: BasePart?
 	if stars > 0 and cam and head then

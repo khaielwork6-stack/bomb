@@ -1,0 +1,374 @@
+{
+ "AllClear": {
+  "family": "Green",
+  "glowScale": [
+   1.234,
+   1.838
+  ],
+  "size": [
+   1067,
+   298
+  ],
+  "text": "ALL CLEAR!"
+ },
+ "Betrayal": {
+  "family": "Purple",
+  "glowScale": [
+   1.235,
+   1.838
+  ],
+  "size": [
+   1065,
+   298
+  ],
+  "text": "BETRAYAL!"
+ },
+ "Bomber": {
+  "family": "Red",
+  "glowScale": [
+   1.29,
+   1.841
+  ],
+  "size": [
+   1080,
+   372
+  ],
+  "text": "BOMBER!"
+ },
+ "BombersWin": {
+  "family": "Red",
+  "glowScale": [
+   1.172,
+   1.824
+  ],
+  "size": [
+   1047,
+   218
+  ],
+  "text": "BOMBERS WIN!"
+ },
+ "Boom": {
+  "family": "Fire",
+  "glowScale": [
+   1.377,
+   1.838
+  ],
+  "size": [
+   833,
+   376
+  ],
+  "text": "BOOM!"
+ },
+ "Chain": {
+  "family": "Gold",
+  "glowScale": [
+   1.359,
+   1.838
+  ],
+  "size": [
+   887,
+   379
+  ],
+  "text": "CHAIN!"
+ },
+ "CloseOne": {
+  "family": "Fire",
+  "glowScale": [
+   1.228,
+   1.833
+  ],
+  "size": [
+   1062,
+   290
+  ],
+  "text": "CLOSE ONE!"
+ },
+ "ClutchDefuse": {
+  "family": "Gold",
+  "glowScale": [
+   1.158,
+   1.825
+  ],
+  "size": [
+   1042,
+   200
+  ],
+  "text": "CLUTCH DEFUSE!"
+ },
+ "Defused": {
+  "family": "Green",
+  "glowScale": [
+   1.272,
+   1.839
+  ],
+  "size": [
+   1070,
+   347
+  ],
+  "text": "DEFUSED!"
+ },
+ "Dodge": {
+  "family": "Blue",
+  "glowScale": [
+   1.346,
+   1.839
+  ],
+  "size": [
+   912,
+   376
+  ],
+  "text": "DODGE!"
+ },
+ "DoubleBoom": {
+  "family": "Fire",
+  "glowScale": [
+   1.177,
+   1.831
+  ],
+  "size": [
+   1046,
+   222
+  ],
+  "text": "DOUBLE BOOM!"
+ },
+ "Go": {
+  "family": "Green",
+  "glowScale": [
+   1.076,
+   1.843
+  ],
+  "size": [
+   675,
+   530
+  ],
+  "text": "GO!"
+ },
+ "Hurry": {
+  "family": "Red",
+  "glowScale": [
+   1.334,
+   1.837
+  ],
+  "size": [
+   942,
+   376
+  ],
+  "text": "HURRY!"
+ },
+ "LastStand": {
+  "family": "Gold",
+  "glowScale": [
+   1.208,
+   1.83
+  ],
+  "size": [
+   1056,
+   265
+  ],
+  "text": "LAST STAND"
+ },
+ "LevelUp": {
+  "family": "Gold",
+  "glowScale": [
+   1.262,
+   1.84
+  ],
+  "size": [
+   1071,
+   334
+  ],
+  "text": "LEVEL UP!"
+ },
+ "LightsOut": {
+  "family": "Purple",
+  "glowScale": [
+   1.222,
+   1.837
+  ],
+  "size": [
+   1056,
+   279
+  ],
+  "text": "LIGHTS OUT"
+ },
+ "MegaBomb": {
+  "family": "Purple",
+  "glowScale": [
+   1.202,
+   1.835
+  ],
+  "size": [
+   1054,
+   255
+  ],
+  "text": "MEGA BOMB!"
+ },
+ "ReadTheFace": {
+  "family": "Gold",
+  "glowScale": [
+   1.169,
+   1.825
+  ],
+  "size": [
+   1048,
+   214
+  ],
+  "text": "READ THE FACE"
+ },
+ "Rejected": {
+  "family": "Blue",
+  "glowScale": [
+   1.248,
+   1.84
+  ],
+  "size": [
+   1068,
+   315
+  ],
+  "text": "REJECTED!"
+ },
+ "Revenge": {
+  "family": "Red",
+  "glowScale": [
+   1.266,
+   1.836
+  ],
+  "size": [
+   1070,
+   341
+  ],
+  "text": "REVENGE!"
+ },
+ "ReviveSaved": {
+  "family": "Gold",
+  "glowScale": [
+   1.179,
+   1.833
+  ],
+  "size": [
+   1046,
+   224
+  ],
+  "text": "REVIVE SAVED"
+ },
+ "Revived": {
+  "family": "Green",
+  "glowScale": [
+   1.277,
+   1.84
+  ],
+  "size": [
+   1071,
+   353
+  ],
+  "text": "REVIVED!"
+ },
+ "Safe": {
+  "family": "Green",
+  "glowScale": [
+   1.4,
+   1.839
+  ],
+  "size": [
+   747,
+   378
+  ],
+  "text": "SAFE!"
+ },
+ "SlamPass": {
+  "family": "Gold",
+  "glowScale": [
+   1.207,
+   1.834
+  ],
+  "size": [
+   1054,
+   261
+  ],
+  "text": "SLAM PASS!"
+ },
+ "SurvivorsWin": {
+  "family": "Blue",
+  "glowScale": [
+   1.153,
+   1.823
+  ],
+  "size": [
+   1044,
+   194
+  ],
+  "text": "SURVIVORS WIN!"
+ },
+ "Tagged": {
+  "family": "Red",
+  "glowScale": [
+   1.301,
+   1.838
+  ],
+  "size": [
+   1051,
+   377
+  ],
+  "text": "TAGGED!"
+ },
+ "TheMole": {
+  "family": "Purple",
+  "glowScale": [
+   1.265,
+   1.836
+  ],
+  "size": [
+   1066,
+   338
+  ],
+  "text": "THE MOLE"
+ },
+ "TripleBoom": {
+  "family": "Red",
+  "glowScale": [
+   1.191,
+   1.832
+  ],
+  "size": [
+   1051,
+   241
+  ],
+  "text": "TRIPLE BOOM!"
+ },
+ "Victory": {
+  "family": "Gold",
+  "glowScale": [
+   1.266,
+   1.836
+  ],
+  "size": [
+   1065,
+   338
+  ],
+  "text": "VICTORY!"
+ },
+ "YouWon": {
+  "family": "Gold",
+  "glowScale": [
+   1.244,
+   1.834
+  ],
+  "size": [
+   1063,
+   310
+  ],
+  "text": "YOU WON!"
+ },
+ "YoureTheMole": {
+  "family": "Red",
+  "glowScale": [
+   1.151,
+   1.821
+  ],
+  "size": [
+   1044,
+   192
+  ],
+  "text": "YOU'RE THE MOLE"
+ }
+}

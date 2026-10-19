@@ -22,7 +22,7 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
-local HudController = require(script.Parent.HudController)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 local InputController = require(script.Parent.InputController)
 
 local MOD = Config.Modifiers
@@ -418,7 +418,8 @@ function ModifierController.start()
 		if p.kind == "Mole" then
 			isMole = true
 			armedUntil, retryAt = 0, 0
-			HudController.flash(S.YouMole, S.YouMoleSub, P.Bomber, Config.Round.INTRO) -- their whole INTRO
+			-- private to the Mole; it outranks the pick reveal for them alone
+			Announcer.say({ key = "YoureTheMole", tier = "Moment", priority = 3.5, hold = 2 })
 			Sfx.play("Stamp", 0.8, 0.8)
 		elseif p.kind == "Armed" then
 			armedUntil = if type(p.untilAt) == "number" then p.untilAt else 0
@@ -434,7 +435,13 @@ function ModifierController.start()
 			isMole = false
 		end
 		local _, model = ClientState.byId(p.who)
-		HudController.flash(S.Reveal, if model then model.Name else "", P.Bomber, 2.2)
+		Announcer.say({
+			key = "TheMole",
+			tier = "Moment",
+			priority = 3,
+			sub = if model then model.Name else nil,
+			hold = 2,
+		})
 		revealFlash(p.who)
 		Sfx.play("CrowdGasp", 0.7, 1)
 	end)

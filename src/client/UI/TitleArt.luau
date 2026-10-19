@@ -35,7 +35,14 @@ export type Opts = {
 	hold: number?, -- seconds on screen before it leaves (default: the tier's); 0 = stays until dismissed
 	zIndex: number?,
 }
-export type Handle = { frame: Frame, dismiss: () -> () }
+export type Handle = {
+	key: string,
+	frame: Frame,
+	dismiss: () -> (), -- leave now
+	extend: (seconds: number) -> (), -- stay this long from now (0 = until dismissed)
+	setSub: (text: string) -> (), -- set / change the nameplate (e.g. "×3" when a callout repeats)
+	punch: () -> (), -- a quick pop (the same callout again)
+}
 
 function TitleArt.has(key: string): boolean
 	return (Assets.Title :: any)[key] ~= nil
@@ -211,7 +218,8 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 
 	-- the nameplate below: dark pill, gold rim, white type
 	local plate: Frame? = nil
-	if o.sub and o.sub ~= "" then
+	local plateLabel: TextLabel? = nil
+	local function makePlate(text: string, entering: boolean)
 		local ph = math.max(26, h * 0.3)
 		local p = new("Frame", {
 			Name = "Plate",
@@ -250,17 +258,27 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
 			FontFace = Theme.Font.Display,
-			Text = o.sub,
+			Text = text,
 			TextColor3 = Color3.new(1, 1, 1),
 			TextSize = math.floor(ph * 0.66),
 			ZIndex = z + 5,
 			Parent = p,
 		}) :: TextLabel
 		new("UIStroke", { Color = P.Ink, Thickness = math.max(1.5, ph * 0.06), Parent = label })
-		fadeable(p, "BackgroundTransparency", 0)
-		fadeable(rim, "Transparency", 0)
-		fadeable(label, "TextTransparency", 0)
-		plate = p
+		if entering then
+			fadeable(p, "BackgroundTransparency", 0)
+			fadeable(rim, "Transparency", 0)
+			fadeable(label, "TextTransparency", 0)
+		else
+			table.insert(fades, { inst = p, prop = "BackgroundTransparency", rest = 0 })
+			table.insert(fades, { inst = rim, prop = "Transparency", rest = 0 })
+			table.insert(fades, { inst = label, prop = "TextTransparency", rest = 0 })
+			Widgets.springIn(p, 0.6)
+		end
+		plate, plateLabel = p, label
+	end
+	if o.sub and o.sub ~= "" then
+		makePlate(o.sub, true)
 	end
 
 	-- sparkles: twinkling round the word's edges (none under Reduce Motion)
@@ -379,12 +397,46 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 			holder:Destroy()
 		end)
 	end
+	-- the hold timer (restartable: a repeat of the same callout keeps it up)
+	local token = 0
+	local function extend(seconds: number)
+		token += 1
+		local mine = token
+		if seconds > 0 then
+			task.delay(seconds, function()
+				if mine == token then
+					dismiss()
+				end
+			end)
+		end
+	end
 	local hold = if o.hold ~= nil then o.hold else tier.hold
-	if hold > 0 then
-		task.delay(T.IN_TIME + T.SETTLE_TIME + hold, dismiss)
+	extend(if hold > 0 then T.IN_TIME + T.SETTLE_TIME + hold else 0)
+
+	local function setSub(text: string)
+		if gone then
+			return
+		end
+		local l = plateLabel
+		if l then
+			l.Text = text
+		else
+			makePlate(text, false)
+		end
+	end
+	local function punch()
+		if gone or reduce then
+			return
+		end
+		local up = tween(scale, 0.07, { Scale = 1.12 }, Enum.EasingStyle.Quad)
+		up.Completed:Connect(function()
+			tween(scale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back)
+		end)
+		band.Offset = Vector2.new(-1.2, 0)
+		tween(band, T.SHINE_TIME, { Offset = Vector2.new(1.2, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 	end
 	local _ = plate
-	return { frame = holder, dismiss = dismiss }
+	return { key = key, frame = holder, dismiss = dismiss, extend = extend, setSub = setSub, punch = punch }
 end
 
 return TitleArt

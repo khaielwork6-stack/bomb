@@ -11,7 +11,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
-local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
@@ -29,7 +28,6 @@ local arrow: BillboardGui
 local chevron: Frame
 local chevronLabel: TextLabel
 local chevronArrow: ImageLabel
-local fromLabel: TextLabel
 local highlights: { [Model]: Highlight } = {}
 
 local function gs(): Configuration
@@ -101,17 +99,6 @@ local function build()
 		ZIndex = 5,
 		Parent = chevron,
 	})
-	-- "from <name>" under the HUD fuse when a pass lands on you.
-	fromLabel = Theme.display(gui, {
-		Name = "PassFrom",
-		Position = UDim2.new(0.5, 0, 0, 120),
-		Size = UDim2.fromOffset(400, 30),
-		TextSize = 22,
-		font = Theme.Font.Heavy,
-		stroke = 2,
-		color = P.Paper,
-	})
-	fromLabel.Visible = false
 end
 
 local function setOutline(model: Model, color: Color3?)
@@ -250,20 +237,7 @@ end
 function CarrierController.start()
 	build()
 	RunService.RenderStepped:Connect(step)
-	Net.listen("BombFx", function(p)
-		if type(p) ~= "table" or p.kind ~= "Pass" or p.who ~= ClientState.myId() or type(p.from) ~= "string" then
-			return
-		end
-		local host, model = ClientState.byId(p.from)
-		local name = if host and host:IsA("Player") then host.DisplayName elseif model then model.Name else nil
-		if name then
-			fromLabel.Text = "from " .. name
-			fromLabel.Visible = true
-			task.delay(1, function()
-				fromLabel.Visible = false
-			end)
-		end
-	end)
+	-- (no "from <name>" line any more: one voice at a time, DECISIONS 2026-10-18)
 end
 
 return CarrierController

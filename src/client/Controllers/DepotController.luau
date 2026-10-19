@@ -27,6 +27,7 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local Sfx = require(script.Parent.Parent.Sfx)
 local SkinApply = require(script.Parent.Parent.SkinApply)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local DailyController = require(script.Parent.DailyController)
 local FxController = require(script.Parent.FxController)
@@ -148,13 +149,10 @@ local function practiceStep()
 			FxController.boom(at, 0.55, true)
 		end
 		best = math.max(best, streak)
-		hud.Text = S.PracticeBoom
-		task.delay(1.2, function()
-			if not practice.holder then
-				hud.Visible = false
-				hudHint.Visible = false
-			end
-		end)
+		-- one voice: the BOOM! title with the reset on its plate (the streak line steps aside)
+		hud.Visible = false
+		hudHint.Visible = false
+		Announcer.say({ key = "Boom", sub = S.StreakReset, merge = false })
 		setBomb(h, nil)
 		practice.holder = nil
 		return
@@ -169,13 +167,13 @@ local function practiceStep()
 				best = math.max(best, streak)
 				setBomb(player, nil)
 				practice.holder = nil
-				hud.Text = S.Defused .. "  " .. S.Streak:format(streak) .. "  ·  " .. S.Best:format(best)
-				task.delay(1.4, function()
-					if not practice.holder then
-						hud.Visible = false
-						hudHint.Visible = false
-					end
-				end)
+				hud.Visible = false
+				hudHint.Visible = false
+				Announcer.say({
+					key = "Defused",
+					sub = S.Streak:format(streak) .. "  ·  " .. S.Best:format(best),
+					merge = false,
+				})
 				return
 			end
 		end

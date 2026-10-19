@@ -22,6 +22,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local CameraController = require(script.Parent.CameraController)
 
@@ -31,7 +32,6 @@ local player = Players.LocalPlayer
 local PickController = {}
 
 local GOLD = Color3.fromRGB(255, 206, 40)
-local NAME_RED = Color3.fromRGB(240, 52, 44)
 local BAR = 0.11 -- letterbox bar height, fraction of the screen
 local SWEEP_FRAC = 0.4 -- the share of INTRO spent sweeping the crowd (the rest locks onto the Bombers)
 local HOP = 0.22 -- seconds per viewfinder hop
@@ -315,34 +315,16 @@ local function run(bombers: { string })
 		local name = if host and host:IsA("Player")
 			then host.DisplayName
 			else (host and host:GetAttribute("DisplayName") :: string?) or l.model.Name
-		local card = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.7),
-			Size = UDim2.fromOffset(900, 160),
-			BackgroundTransparency = 1,
-			ZIndex = 6,
-			Parent = gui,
+		-- the reveal: BOMBER! title art with their name on the plate, above them (never over the character)
+		Announcer.clear()
+		Announcer.say({
+			key = "Bomber",
+			tier = "Moment",
+			priority = 3,
+			sub = name,
+			hold = math.max(0.4, lockTime - 0.45),
+			merge = false,
 		})
-		local nameL = Widgets.label(card, {
-			Size = UDim2.new(1, 0, 0, 110),
-			TextSize = 96,
-			font = Theme.Font.Display,
-			stroke = 6,
-			color = NAME_RED,
-			Text = string.upper(name),
-			ZIndex = 7,
-		})
-		nameL.TextScaled = true
-		Widgets.label(card, {
-			Position = UDim2.fromOffset(0, 112),
-			Size = UDim2.new(1, 0, 0, 40),
-			TextSize = 34,
-			font = Theme.Font.Display,
-			stroke = 3,
-			Text = Config.Strings.Ui.PickBomber,
-			ZIndex = 7,
-		})
-		Widgets.springIn(card, 0.3)
 		moveCam(goal, math.min(0.45, lockTime * 0.4), token)
 		local hold = lockTime - math.min(0.45, lockTime * 0.4)
 		local holdEnd = os.clock() + hold
@@ -352,7 +334,6 @@ local function run(bombers: { string })
 			push += PUSH_SPEED * RunService.RenderStepped:Wait()
 			c.CFrame = goal()
 		end
-		card:Destroy()
 	end
 
 	-- 4. hand the camera back

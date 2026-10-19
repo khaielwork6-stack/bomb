@@ -21,6 +21,13 @@ return {
 	FLOAT_PX = 2.5, -- the idle breath while it holds (0 under Reduce Motion)
 	GLOW_REST = 0.04, -- glow transparency at rest (it flashes brighter on the slam)
 	BACKING = 0.66, -- a dark soft halo under the glow, so a title pops on a bright, busy frame (transparency)
+	-- The announcer (Client/UI/Announcer): one title in the middle of the screen at a time.
+	Y = 0.3, -- where it sits (fraction of the screen height): above the character, under the top HUD
+	WAIT = 1.0, -- a less important word waits this long for the slot, then is dropped
+	MERGE_HOLD = 1.2, -- the same word again: stay up this much longer (and count ×N)
+	DEDUPE = 0.8, -- the same word inside this window is one moment told twice (a headline + a callout): said once
+	DISPLAY_ORDER = 25, -- above the HUD, under modal panels
+	TIP_HOLD = 3, -- a first-time tip (the calm pill low on the screen) stays this long
 	-- per colour family: the glow behind the word and the sparkle / streak tint
 	Families = {
 		Gold = { glow = hex("#FFB52E"), spark = hex("#FFF2B0") },

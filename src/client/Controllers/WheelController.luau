@@ -26,6 +26,7 @@ local Modal = require(script.Parent.Parent.UI.Modal)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TitleArt = require(script.Parent.Parent.UI.TitleArt)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local W = Config.Wheel
@@ -147,15 +148,20 @@ local function celebrate(i: number)
 	})
 	local holder = pop.Parent :: Frame
 	holder.ZIndex = 30
-	Widgets.label(pop, {
-		Position = UDim2.fromOffset(0, 10),
-		Size = UDim2.new(1, 0, 0, 40),
-		TextSize = 36,
-		font = Theme.Font.Display,
-		stroke = 3.5,
-		Text = S.Ui.YouWon,
-		ZIndex = 32,
-	})
+	-- YOU WON! as title art across the card's top edge (the plain label only if the art is missing)
+	if TitleArt.has("YouWon") then
+		TitleArt.show(holder, "YouWon", { tier = "Callout", y = 0, hold = 0, zIndex = 33 })
+	else
+		Widgets.label(pop, {
+			Position = UDim2.fromOffset(0, 10),
+			Size = UDim2.new(1, 0, 0, 40),
+			TextSize = 36,
+			font = Theme.Font.Display,
+			stroke = 3.5,
+			Text = S.Ui.YouWon,
+			ZIndex = 32,
+		})
+	end
 	Widgets.icon(pop, segIcon(seg), 80, {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 40, 0, 104),

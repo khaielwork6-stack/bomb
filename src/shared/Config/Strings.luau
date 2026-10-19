@@ -182,6 +182,7 @@ return {
 		Practice = "PRACTICE BOMB",
 		PracticeHint = "bump a dummy to pass it · the green pad defuses",
 		PracticeBoom = "BOOM! streak reset",
+		StreakReset = "STREAK RESET", -- the plate under the practice BOOM! title
 		Defused = "DEFUSED!",
 		VipOnly = "VIP pass owners only",
 		NoChampions = "no champions yet this week",

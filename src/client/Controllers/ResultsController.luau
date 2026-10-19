@@ -23,6 +23,7 @@ local Sfx = require(script.Parent.Parent.Sfx)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TitleArt = require(script.Parent.Parent.UI.TitleArt)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Podium = require(script.Parent.Parent.UI.Podium)
 local Progress = require(script.Parent.Parent.Progress)
@@ -46,9 +47,9 @@ local closeMoment: (() -> ())? = nil
 local W, ROW = 660, 30
 
 local OUTCOME = {
-	LastStand = { title = "VICTORY", color = P.Gold },
-	Survivors = { title = "SURVIVORS WIN", color = P.Runner },
-	Bombers = { title = "BOMBERS WIN", color = P.Bomber },
+	LastStand = { title = "VICTORY", art = "Victory", color = P.Gold },
+	Survivors = { title = "SURVIVORS WIN", art = "SurvivorsWin", color = P.Runner },
+	Bombers = { title = "BOMBERS WIN", art = "BombersWin", color = P.Bomber },
 }
 
 local LINES = {
@@ -470,12 +471,17 @@ local function show(payload: any)
 		Podium.build(holder, top, payload.outcome == "Bombers" and type(payload.mvp) == "string")
 	end
 	Widgets.springIn(holder)
-	Skin.ribbon(holder, o.title, o.color, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 0),
-		Size = UDim2.fromOffset(360, 64),
-		ZIndex = 5,
-	})
+	-- the outcome as title art across the card's top edge (the flat ribbon only if the art is missing)
+	if TitleArt.has(o.art) then
+		TitleArt.show(holder, o.art, { tier = "Callout", y = 0, hold = 0, zIndex = 8 })
+	else
+		Skin.ribbon(holder, o.title, o.color, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, 0),
+			Size = UDim2.fromOffset(360, 64),
+			ZIndex = 5,
+		})
+	end
 	-- Winners
 	local row = new("Frame", {
 		Name = "Winners",

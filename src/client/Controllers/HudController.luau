@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
@@ -26,7 +27,7 @@ local player = Players.LocalPlayer
 local HudController = {}
 
 local gs: Configuration
-local HEADLINE_SIZE, SUBLINE_SIZE, MOVE_SIZE = 56, 24, 48 -- the centre lines on a wide screen…
+local HEADLINE_SIZE, SUBLINE_SIZE = 34, 20 -- the status line (AFK / up next) on a wide screen…
 local HEADLINE_REF_W, HEADLINE_MIN = 1000, 0.66 -- …scaled by width / 1000 below that, down to 66%
 local gui: ScreenGui
 local fuseHolder: Frame
@@ -45,7 +46,6 @@ local roleLabel: TextLabel
 local headline: TextLabel
 local headlineScale: UIScale
 local subline: TextLabel
-local moveWarn: TextLabel
 local vignette: { GuiObject } = {}
 local lastRole = ""
 
@@ -270,31 +270,23 @@ local function build()
 	})
 	teamIcon("Bomber", 4)
 	bombersLabel = numberLabel(row, P.Bomber, 5)
-	-- Centre: headline + subline.
+	-- The status line: only a lasting state (AFK, up next) — every one-off moment is title art through the
+	-- announcer (UI/Announcer), one at a time, in the middle of the screen below this.
 	headline = Theme.display(gui, {
 		Name = "Headline",
-		Position = UDim2.fromScale(0.5, 0.3),
+		Position = UDim2.fromScale(0.5, 0.2),
 		Size = UDim2.fromOffset(700, 70),
 		TextSize = HEADLINE_SIZE,
 	})
 	headlineScale = new("UIScale", { Scale = 1, Parent = headline })
 	subline = Theme.display(gui, {
 		Name = "Subline",
-		Position = UDim2.new(0.5, 0, 0.3, 46),
+		Position = UDim2.new(0.5, 0, 0.2, 32),
 		Size = UDim2.fromOffset(600, 32),
 		TextSize = SUBLINE_SIZE,
 		font = Theme.Font.Heavy,
 		stroke = 2,
 	})
-	moveWarn = Theme.display(gui, {
-		Name = "MoveWarn",
-		Position = UDim2.fromScale(0.5, 0.62),
-		Size = UDim2.fromOffset(400, 60),
-		TextSize = MOVE_SIZE,
-		color = P.Detonate,
-		Text = "MOVE!",
-	})
-	moveWarn.Visible = false
 	-- Carrier vignette: one radial edge mask (art/ui/make_hud.py) tinted Detonate, pulsing with the tick.
 	local v = new("ImageLabel", {
 		Name = "Vignette",
@@ -327,7 +319,6 @@ local function place()
 	local k = math.clamp(Screen.size().X / HEADLINE_REF_W, HEADLINE_MIN, 1)
 	headline.TextSize = math.floor(HEADLINE_SIZE * k)
 	subline.TextSize = math.floor(SUBLINE_SIZE * k)
-	moveWarn.TextSize = math.floor(MOVE_SIZE * k)
 end
 
 -- A count changes like a split-flap: the old number squashes shut, the new one springs open.
@@ -356,7 +347,6 @@ end
 
 -- ── Headlines ───────────────────────────────────────────────────────────────────────────────────────────────────
 local lastHeadline = ""
-local holdUntil = 0 -- an event headline (YOU'RE A BOMBER, ALL CLEAR) holds until then
 local function show(text: string, sub: string?, color: Color3?)
 	if not headline then
 		return
@@ -376,19 +366,18 @@ local function show(text: string, sub: string?, color: Color3?)
 	end
 end
 
--- The round's modifier strings (GDD §6.4), or nil on a normal round.
-local function modifierText(): { Name: string, Line: string }?
+-- The round's twist as a title key (MEGA BOMB!, or the modifier: READ THE FACE / LIGHTS OUT / THE MOLE), or nil.
+local TWISTS = { Face = "ReadTheFace", LightsOut = "LightsOut", Mole = "TheMole" }
+local function twistTitle(): string?
+	if gs:GetAttribute("MegaId") then
+		return "MegaBomb"
+	end
 	local m = gs:GetAttribute("Modifier")
-	local s = if type(m) == "string" and m ~= "" then (Config.Strings.Modifiers :: any)[m] else nil
-	return if type(s) == "table" then s else nil
+	return if type(m) == "string" then TWISTS[m] else nil
 end
-
--- An event headline from another controller (the Mole's reveal, GDD §6.4): holds for `seconds`.
-function HudController.flash(text: string, sub: string?, color: Color3?, seconds: number)
-	lastHeadline = ""
-	show(text, sub, color)
-	holdUntil = os.clock() + seconds
-end
+local twistSaid: any = nil -- the READY (by its end time) each one-off moment was said for
+local goSaid: any = nil
+local lastStandSaid: any = nil
 
 -- ── Per frame ───────────────────────────────────────────────────────────────────────────────────────────────────
 local function step()
@@ -470,8 +459,7 @@ local function step()
 	counterHolder.Visible = inRound
 	flip(runnersLabel, tostring(gs:GetAttribute("RunnersLeft") or 0))
 	flip(bombersLabel, tostring(gs:GetAttribute("BombersCount") or 0))
-	-- MOVE! and the Carrier vignette.
-	moveWarn.Visible = player:GetAttribute("MoveWarn") == true
+	-- The Carrier vignette (no MOVE! / BUMP SOMEONE! text: the BUMP! marker and the safe-side chevron already say it).
 	-- (a READ THE FACE bomb has no time while LIT: the vignette keeps its LIT beat, F-MOD-02)
 	local explodeAt = player:GetAttribute("BombExplodeAt")
 	local carrying = player:GetAttribute("BombId") ~= nil
@@ -484,35 +472,46 @@ local function step()
 		edge.Visible = carrying;
 		(edge :: any).ImageTransparency = 1 - math.min(1, strength * 1.3) * (0.6 + 0.4 * beat)
 	end
-	-- Headlines by phase (an event headline holds its moment first).
-	if os.clock() < holdUntil then
-		return
-	end
-	if phase == Ph.Intro and gs:GetAttribute("MegaId") then
-		show(Config.Strings.Round.Mega, Config.Strings.Round.MegaSub, P.Mega) -- GDD §16
-	elseif phase == Ph.Intro and modifierText() then
-		local m = modifierText() :: { Name: string, Line: string }
-		show(m.Name, m.Line, P.Gold) -- F-MOD-01: the round's modifier, in one line
-	elseif phase == Ph.Intro then
-		show("BOMBERS", "watch out for the red team", P.Bomber)
-	elseif phase == Ph.Ready then
-		show(if left <= 1 then "GO!" else "GET READY", "")
+	-- One-off moments: title art through the announcer, once each.
+	if phase == Ph.Ready then
+		local readyId = gs:GetAttribute("PhaseEndsAt")
+		if crossing <= 1 and twistSaid ~= readyId then
+			-- the round's twist, once, as crossing 1 gets ready (the pick camera hides the INTRO)
+			twistSaid = readyId
+			local twist = twistTitle()
+			if twist then
+				Announcer.say({ key = twist, tier = "Moment", priority = 3, hold = 1.2 })
+			end
+		end
+		if left <= 1 and goSaid ~= readyId then
+			goSaid = readyId
+			Announcer.say({ key = "Go", priority = 1.7, hold = 0.5 })
+		end
 	elseif phase == Ph.LastStand and ClientState.sub() == Types.Sub.Intro then
 		local id = gs:GetAttribute("LastStandId") or ""
-		local _, model = ClientState.byId(id)
-		show("LAST STAND", if model then model.Name else "", P.Gold)
-	elseif
+		if lastStandSaid ~= id then
+			lastStandSaid = id
+			local _, model = ClientState.byId(id)
+			Announcer.say({
+				key = "LastStand",
+				tier = "Moment",
+				priority = 3,
+				sub = if model then model.Name else nil,
+				icon = "Crown",
+				hold = Config.Round.LAST_STAND_INTRO,
+			})
+		end
+	end
+	-- The status line: only while sitting out mid-round (D-LOBBY-01: waiting in The Depot for the next READY).
+	if
 		ClientState.role() == Types.Role.None
 		and (phase == Ph.Ready or phase == Ph.Crossing or phase == Ph.Resolve or phase == Ph.LastStand)
 	then
-		-- D-LOBBY-01: joined mid-round, waiting in The Depot for the next READY (unless they chose AFK)
 		if player:GetAttribute("Afk") then
 			show(Config.Strings.Lobby.Afk, Config.Strings.Lobby.AfkSub, P.Paper)
 		else
 			show(Config.Strings.Lobby.Joining, Config.Strings.Lobby.JoiningSub, P.Bomber)
 		end
-	elseif carrying and phase ~= Ph.Results then -- (RESULTS belongs to the results card, ResultsController)
-		show("BUMP SOMEONE!", "or run to a safe side", P.Detonate)
 	else
 		show("", nil)
 	end
@@ -525,24 +524,17 @@ function HudController.start()
 	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(place)
 	Screen.Changed:Connect(place)
 	RunService.RenderStepped:Connect(step)
-	-- "You're a Bomber" beat when my boom turns me (GDD §10.3).
+	-- BOMBER! when my boom turns me (GDD §10.3)
 	player:GetAttributeChangedSignal("Role"):Connect(function()
 		if ClientState.role() == Types.Role.Bomber and ClientState.phase() ~= Ph.Intro then
-			lastHeadline = ""
-			show("YOU'RE A BOMBER", "touch Runners to stick bombs", P.Bomber)
-			holdUntil = os.clock() + 1.8
+			Announcer.say({ key = "Bomber", tier = "Moment", priority = 2.5, hold = 1.4 })
 		end
 	end)
 	Net.listen("FieldFx", function(p)
 		if type(p) == "table" and p.kind == "Hurry" then
-			lastHeadline = ""
-			show(Config.Strings.Round.Hurry, Config.Strings.Round.HurrySub, P.Detonate)
-			holdUntil = os.clock() + 1.4
-		end
-		if type(p) == "table" and p.kind == "Clear" then
-			lastHeadline = ""
-			show("ALL CLEAR", "", P.Safe)
-			holdUntil = os.clock() + 1.2
+			Announcer.say({ key = "Hurry", priority = 2.5 })
+		elseif type(p) == "table" and p.kind == "Clear" then
+			Announcer.say({ key = "AllClear", priority = 1.6 })
 		end
 	end)
 end

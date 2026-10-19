@@ -221,6 +221,9 @@ function Screen.fit(holder: Instance, rule: (Vector2) -> number): UIScale
 	end
 	apply()
 	local sc = Motion.scaleOf(g)
+	if sc.Name == "Motion" then
+		sc.Name = "Fit" -- panels (Results, the Store's tab strip) look their fit up by this name
+	end
 	local conn = changed.Event:Connect(apply)
 	holder.Destroying:Connect(function()
 		conn:Disconnect()

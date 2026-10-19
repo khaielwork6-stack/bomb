@@ -16,6 +16,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(script.Parent.Parent.Sfx)
+local Modal = require(script.Parent.Parent.UI.Modal)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -68,6 +69,7 @@ end
 local function close()
 	local c = card
 	card = nil
+	Modal.set("Vote", false)
 	if c then
 		Widgets.springOut(c, function()
 			c:Destroy()
@@ -79,6 +81,7 @@ local function build(options: { Option }, endsAt: number)
 	if card then
 		card:Destroy()
 	end
+	Modal.set("Vote", true) -- one focus at a time: a queued level-up waits for the vote
 	local holder = new("Frame", {
 		Name = "Vote",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -314,13 +317,28 @@ local function build(options: { Option }, endsAt: number)
 	end)
 end
 
+local opening = false -- waiting for the screen to be free before the card opens
 local function refresh()
 	local gs = ReplicatedStorage:FindFirstChild("GameState")
 	local opts = decode(gs and gs:GetAttribute("VoteOptions"))
 	if type(opts) == "table" and #opts >= 2 then
-		if not card then
-			myVote = ""
-			build(opts, (gs :: Instance):GetAttribute("VoteEndsAt") or (workspace:GetServerTimeNow() + 15))
+		if not card and not opening then
+			opening = true
+			task.spawn(function()
+				-- a level-up celebration queued for this intermission goes first (it checks every 0.3 s), then the
+				-- card opens once it's done (never two at once)
+				task.wait(0.6)
+				local waited = 0
+				while Modal.busy("Vote") and waited < 6 do
+					waited += task.wait(0.2)
+				end
+				opening = false
+				local now = decode(gs and gs:GetAttribute("VoteOptions"))
+				if not card and type(now) == "table" and #now >= 2 then
+					myVote = ""
+					build(now, (gs :: Instance):GetAttribute("VoteEndsAt") or (workspace:GetServerTimeNow() + 15))
+				end
+			end)
 		end
 	elseif card and not preview then
 		close()

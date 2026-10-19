@@ -9,7 +9,7 @@ import numpy as np
 argv = sys.argv[sys.argv.index("--") + 1 :]
 BG, OUTP = argv[0], argv[1]
 REF = argv[2] if len(argv) > 2 else None
-TITLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out", "Titles")
+TITLES = os.environ.get("TITLES_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "out", "Titles")
 
 
 def load(p):

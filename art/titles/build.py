@@ -2,7 +2,7 @@
 BOOM! …) as chunky glossy 3D toy letters, the same family as the logo (art/logo), never flat text with a stroke.
 
 Per word:
-  1. Blender renders the letters in 3D — Luckiest Guy (the game's display face), bevelled and extruded, each letter
+  1. Blender renders the letters in 3D — Denk One (chunky, with open counters), bevelled and extruded, each letter
      bounced and tilted a touch (seeded: a word always bakes the same). The face carries ONE gradient across the whole
      word (bright cream top → saturated mid → deep bottom) under a clear-coat; the camera looks slightly UP so the
      extruded underside shows as a dark band of depth, like a toy title.
@@ -14,11 +14,13 @@ can move.
 No AI art: geometry, light and maths only.
 
 Run (Blender 4.5):
-  blender -b --factory-startup --python-exit-code 1 --python art/titles/build.py -- --font <LuckiestGuy-Regular.ttf>
+  blender -b --factory-startup --python-exit-code 1 --python art/titles/build.py -- [--font <file.ttf>]
+  (default font: Denk One from the local Roblox Studio install)
           [--only KEY,KEY]
 Out: art/out/Titles/<Key>.png (transparent, ≤1024 px wide) + art/out/Titles/_sheet.png (review sheet)
 """
 
+import json
 import math
 import os
 import random
@@ -34,6 +36,13 @@ OUT = os.path.join(ROOT, "art", "out", "Titles")
 os.makedirs(OUT, exist_ok=True)
 argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 FONT = argv[argv.index("--font") + 1] if "--font" in argv else ""
+ARG_FONT = FONT != ""
+if not FONT:
+    # Denk One (DECISIONS 2026-10-18: chunky but open counters, the owner's pick), from the Roblox Studio install
+    import glob
+
+    found = sorted(glob.glob(os.path.join(os.environ.get("LOCALAPPDATA", ""), "Roblox", "Versions", "*", "content", "fonts", "DenkOne-Regular.ttf")))
+    FONT = found[-1] if found else ""
 ONLY = set(argv[argv.index("--only") + 1].split(",")) if "--only" in argv else None
 
 
@@ -60,13 +69,45 @@ FAMILIES = {
 
 # key -> (text, family). The three test words first; the rest follow once the look is approved.
 WORDS = {
+    # moments
     "LastStand": ("LAST STAND", "Gold"),
     "Bomber": ("BOMBER!", "Red"),
+    "MegaBomb": ("MEGA BOMB!", "Purple"),
+    "ReadTheFace": ("READ THE FACE", "Gold"),
+    "LightsOut": ("LIGHTS OUT", "Purple"),
+    "TheMole": ("THE MOLE", "Purple"),
+    "YoureTheMole": ("YOU'RE THE MOLE", "Red"),
+    "Victory": ("VICTORY!", "Gold"),
+    "SurvivorsWin": ("SURVIVORS WIN!", "Blue"),
+    "BombersWin": ("BOMBERS WIN!", "Red"),
+    "LevelUp": ("LEVEL UP!", "Gold"),
+    "YouWon": ("YOU WON!", "Gold"),
+    "Revived": ("REVIVED!", "Green"),
+    "ReviveSaved": ("REVIVE SAVED", "Gold"),
+    # callouts
     "Boom": ("BOOM!", "Fire"),
+    "DoubleBoom": ("DOUBLE BOOM!", "Fire"),
+    "TripleBoom": ("TRIPLE BOOM!", "Red"),
+    "Tagged": ("TAGGED!", "Red"),
+    "SlamPass": ("SLAM PASS!", "Gold"),
+    "Rejected": ("REJECTED!", "Blue"),
+    "CloseOne": ("CLOSE ONE!", "Fire"),
+    "Defused": ("DEFUSED!", "Green"),
+    "ClutchDefuse": ("CLUTCH DEFUSE!", "Gold"),
+    "Revenge": ("REVENGE!", "Red"),
+    "Betrayal": ("BETRAYAL!", "Purple"),
+    "Chain": ("CHAIN!", "Gold"),
+    "Dodge": ("DODGE!", "Blue"),
+    # crossing beats
+    "Go": ("GO!", "Green"),
+    "Hurry": ("HURRY!", "Red"),
+    "AllClear": ("ALL CLEAR!", "Green"),
+    "Safe": ("SAFE!", "Green"),
 }
 
 SIZE = 1.0  # letter size (Blender units)
-WORD_PX = 2000  # the word's width in the render; the PNG is halved (≈1000 px plus outline) for clean edges
+WORD_PX = 2000  # a long word's width in the render; the PNG is halved (≈1000 px plus outline) for clean edges
+LETTER_PX = 560  # the letters' height in the render at most (≈280 px in the PNG): short words stay this sharp
 
 
 # ── scene ───────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -185,7 +226,7 @@ def letter(ch, font):
         cu.font = font
     cu.size = SIZE
     cu.extrude = SIZE * 0.13
-    cu.bevel_depth = SIZE * 0.035
+    cu.bevel_depth = SIZE * 0.022
     cu.bevel_resolution = 6
     cu.align_x = "CENTER"
     cu.align_y = "CENTER"
@@ -221,7 +262,7 @@ def build_word(text, fam, font, seed):
     x = -total / 2
     half_h = SIZE * 0.42
     face = face_material(fam, ref, half_h)
-    depth = SIZE * 0.13 + SIZE * 0.035
+    depth = SIZE * 0.13 + SIZE * 0.022
     side = side_material(fam, ref, half_h, depth)
     meshes = []
     for i, (o, w) in enumerate(zip(letters, widths)):
@@ -251,6 +292,9 @@ def build_word(text, fam, font, seed):
 def render_word(key, text, fam_name, seed):
     reset()
     font = bpy.data.fonts.load(FONT) if FONT else None  # after the reset (it clears every datablock)
+    if not font or font.filepath.lower().endswith("bfont.pfb") or "DenkOne" not in os.path.basename(FONT) and not ARG_FONT:
+        raise SystemExit(f"title font not loaded ({FONT!r}): refusing to bake in Blender's built-in font")
+    print("FONT", key, font.name, os.path.basename(FONT), flush=True)
     fam = FAMILIES[fam_name]
     meshes = build_word(text, fam, font, seed)
     sc = bpy.context.scene
@@ -268,13 +312,15 @@ def render_word(key, text, fam_name, seed):
     cam_d.ortho_scale = W * margin
     cam = bpy.data.objects.new("Cam", cam_d)
     sc.collection.objects.link(cam)
-    pitch = math.radians(11)
+    pitch = math.radians(8)
     dist = 30
     cam.location = centre + Vector((0, -dist * math.cos(pitch), -dist * math.sin(pitch)))
     cam.rotation_euler = (math.radians(90) + pitch, 0, 0)
     sc.camera = cam
-    # the word itself spans ~WORD_PX of the render (halved to ~1020 px), whatever the margin round it
-    res_x = int(WORD_PX * margin) // 4 * 4
+    # pixels per unit: as sharp as the letter height allows (LETTER_PX tall), but a long word never wider than
+    # WORD_PX (it's halved to ~1000 px) — every word gets the same letter sharpness, no huge renders for short ones
+    ppu = min(WORD_PX / W, LETTER_PX / H)
+    res_x = int(W * margin * ppu) // 4 * 4
     sc.render.resolution_x = res_x
     sc.render.resolution_y = int(res_x * aspect_h) // 4 * 4
     path = os.path.join(OUT, f"_raw_{key}.png")
@@ -335,6 +381,31 @@ def dilate(m, r):
     return out
 
 
+def holes_of(alpha):
+    """The letters' counters (the hole in A, O, R…): background the image border can't reach. Flood-filled at quarter
+    resolution (a cell counts as open if any of its pixels is open, so the gaps between letters stay open)."""
+    bg = alpha < 0.5
+    h, w = bg.shape
+    q = 4
+    hh, ww = h // q, w // q
+    small = bg[: hh * q, : ww * q].reshape(hh, q, ww, q).any(axis=(1, 3))
+    ext = np.zeros_like(small)
+    ext[0, :], ext[-1, :], ext[:, 0], ext[:, -1] = small[0, :], small[-1, :], small[:, 0], small[:, -1]
+    while True:
+        grow = ext.copy()
+        grow[1:, :] |= ext[:-1, :]
+        grow[:-1, :] |= ext[1:, :]
+        grow[:, 1:] |= ext[:, :-1]
+        grow[:, :-1] |= ext[:, 1:]
+        grow &= small
+        if (grow == ext).all():
+            break
+        ext = grow
+    full = np.ones_like(bg)
+    full[: hh * q, : ww * q] = np.repeat(np.repeat(ext, q, axis=0), q, axis=1)
+    return (bg & ~full).astype(np.float32)
+
+
 def blur(m, r):
     """A cheap gaussian-ish blur: three box passes each way."""
     out = m.copy()
@@ -367,9 +438,12 @@ def finish(key, raw_path, fam):
     alpha = a[..., 3]
     rows = np.nonzero(alpha.max(axis=1) > 0.05)[0]
     letter_h = rows[-1] - rows[0]
-    r_out = max(6, int(letter_h * 0.075))
-    # the outline: the whole word's silhouette grown evenly, in the family's ink
-    ring = dilate(alpha, r_out)
+    r_out = max(6, int(letter_h * 0.064))
+    r_hole = max(2, int(letter_h * 0.02))
+    # the outline: bold round the outside of the word, only a hairline inside the counters (so the holes in A, O, R
+    # stay open and the letters read clearly), in the family's ink
+    holes = blur(holes_of(alpha), 2)
+    ring = dilate(alpha, r_out) * (1 - holes) + dilate(alpha, r_hole) * holes
     ink = hex8(fam["ink"])
     # drop shadow: the outlined silhouette, pushed down and softened
     sh = blur(shift(ring, 0, -int(letter_h * 0.06)), max(2, int(letter_h * 0.035)))
@@ -377,10 +451,10 @@ def finish(key, raw_path, fam):
     canvas = over(canvas, np.zeros(3), sh * 0.45)
     canvas = over(canvas, ink, ring)
     canvas = over(canvas, a[..., :3], alpha)
-    r_in = max(2, int(letter_h * 0.022))
+    r_in = max(2, int(letter_h * 0.014))
     core = 1 - dilate(1 - alpha, r_in)  # the letters shrunk by r_in
     rim = np.clip(alpha - core, 0, 1)
-    canvas = over(canvas, hex8(fam["side"][0]), rim * 0.55)
+    canvas = over(canvas, hex8(fam["side"][0]), rim * 0.45)
     # crop to content + a small margin, then halve (2×2 average, premultiplied) for clean edges
     ys = np.nonzero(canvas[..., 3].max(axis=1) > 0.004)[0]
     xs = np.nonzero(canvas[..., 3].max(axis=0) > 0.004)[0]
@@ -417,6 +491,15 @@ def finish(key, raw_path, fam):
     save_rgba(os.path.join(OUT, f"{key}_glow.png"), glow_img)
     # where the word sits inside the glow frame (fractions), for the game to line them up
     ww, wh = (x1 - x0), (y1 - y0)
+    meta_path = os.path.join(OUT, "meta.json")
+    meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+    meta[key] = {
+        "text": WORDS[key][0],
+        "family": WORDS[key][1],
+        "size": [int(small.shape[1]), int(small.shape[0])],
+        "glowScale": [round((gx1 - gx0) / ww, 3), round((gy1 - gy0) / wh, 3)],
+    }
+    json.dump(meta, open(meta_path, "w"), indent=1, sort_keys=True)
     print(
         "GLOW",
         key,

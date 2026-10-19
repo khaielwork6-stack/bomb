@@ -26,7 +26,7 @@ local Modal = require(script.Parent.Parent.UI.Modal)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
-local HudController = require(script.Parent.HudController)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 
 local PerkController = {}
 
@@ -306,9 +306,9 @@ function PerkController.start()
 		if r.kind == "Revived" then
 			revivedRound = true
 			Sfx.play("Claim")
-			HudController.flash(S.Ui.Revived, S.Ui.RevivedSub, P.Safe, 1.6)
+			Announcer.say({ key = "Revived", tier = "Moment", priority = 2.7, hold = 1.3 })
 		elseif r.kind == "ReviveSaved" then
-			HudController.flash(S.Ui.ReviveSaved, S.Ui.ReviveSavedSub, P.Gold, 1.6)
+			Announcer.say({ key = "ReviveSaved", priority = 2, hold = 1.3 })
 		end
 	end)
 	-- a new round: the pack card and the Revive come back

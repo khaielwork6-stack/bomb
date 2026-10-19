@@ -21,6 +21,7 @@ local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
 local Screen = require(script.Parent.Parent.UI.Screen)
+local TitleArt = require(script.Parent.Parent.UI.TitleArt)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local ProgressController = require(script.Parent.ProgressController)
 
@@ -39,8 +40,10 @@ local playing = false
 local gui: ScreenGui
 
 local function calm(): boolean
+	-- one voice at a time: never mid-round, and not over the results card (its title is speaking) — the
+	-- celebration plays once the card has gone, in the intermission
 	local ph = ClientState.phase()
-	return ph ~= Ph.Crossing and ph ~= Ph.LastStand and ph ~= Ph.Ready and ph ~= Ph.Intro
+	return ph ~= Ph.Crossing and ph ~= Ph.LastStand and ph ~= Ph.Ready and ph ~= Ph.Intro and ph ~= Ph.Results
 end
 
 local function burst(parent: Instance)
@@ -156,15 +159,20 @@ local function play(up: Up)
 	local smash = new("UIScale", { Scale = if Widgets.reduced() then 1 else 3, Parent = badgeHolder })
 	TweenService:Create(smash, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
-	local title = Skin.ribbon(stage, S.Ui.LevelUp, P.Gold, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.1),
-		Size = UDim2.fromOffset(380, 72),
-		ZIndex = 7,
-	})
-	local tScale = new("UIScale", { Scale = 0.6, Parent = title })
-	TweenService:Create(tScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
+	-- LEVEL UP! as title art (slam, glow, shine, sparkles); the flat ribbon only if the art is missing
+	if TitleArt.has("LevelUp") then
+		TitleArt.show(stage, "LevelUp", { tier = "Moment", y = 0.1, hold = 0, zIndex = 7 })
+	else
+		local title = Skin.ribbon(stage, S.Ui.LevelUp, P.Gold, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.1),
+			Size = UDim2.fromOffset(380, 72),
+			ZIndex = 7,
+		})
+		local tScale = new("UIScale", { Scale = 0.6, Parent = title })
+		TweenService:Create(tScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			:Play()
+	end
 	-- the reward card flips in
 	task.delay(0.45, function()
 		if stage.Parent == nil then
@@ -259,13 +267,6 @@ function LevelUpController.start()
 		while true do
 			task.wait(0.3)
 			if not playing and #queue > 0 and calm() and not Modal.busy() then
-				-- on the results screen, let the receipt print first
-				if ClientState.phase() == Ph.Results then
-					task.wait(3.2)
-					if Modal.busy() or not calm() then
-						continue -- something else took the screen meanwhile (the Daily screen): wait for it
-					end
-				end
 				local up = table.remove(queue, 1)
 				if up then
 					play(up)

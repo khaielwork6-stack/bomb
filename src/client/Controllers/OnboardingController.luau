@@ -16,6 +16,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Progress = require(script.Parent.Parent.Progress)
 local Settings = require(script.Parent.Parent.Settings)
+local Announcer = require(script.Parent.Parent.UI.Announcer)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -179,24 +180,50 @@ local function tip(id: string, text: string)
 	end
 	tipsShown[id] = true
 	Progress.action("Tip", { id = id })
-	local label = Theme.display(tipLayer, {
-		Text = text,
-		TextSize = 36,
-		color = P.Paper,
-		Size = UDim2.new(1, -40, 0, 50),
-		Position = UDim2.fromScale(0.5, 0.5),
-		ZIndex = 5,
-	})
-	label.TextWrapped = true
-	Widgets.springIn(label, 0.7)
-	task.delay(2.5, function()
-		TweenService:Create(label, TweenInfo.new(0.35), { TextTransparency = 1 }):Play()
-		local st = label:FindFirstChildOfClass("UIStroke")
-		if st then
-			TweenService:Create(st, TweenInfo.new(0.35), { Transparency = 1 }):Play()
+	task.spawn(function()
+		-- one voice at a time: a tip waits for the middle of the screen to be free (a title is saying something)
+		local waited = 0
+		while Announcer.busy() and waited < 3 do
+			waited += task.wait(0.1)
 		end
-		task.delay(0.4, function()
-			label:Destroy()
+		-- a calm dark pill low on the screen (the nameplate style), never a shouting headline
+		local pill = new("Frame", {
+			Name = "Tip",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(0, 44),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundColor3 = P.Ink2,
+			BackgroundTransparency = 0.12,
+			ZIndex = 5,
+			Parent = tipLayer,
+		})
+		new("UICorner", { CornerRadius = UDim.new(0, 14), Parent = pill })
+		new("UIStroke", { Color = P.Spark, Thickness = 2, Transparency = 0.25, Parent = pill })
+		new("UIPadding", { PaddingLeft = UDim.new(0, 22), PaddingRight = UDim.new(0, 22), Parent = pill })
+		local label = new("TextLabel", {
+			Size = UDim2.new(0, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
+			FontFace = Theme.Font.Display,
+			Text = text,
+			TextColor3 = P.Paper,
+			TextSize = 22,
+			ZIndex = 6,
+			Parent = pill,
+		})
+		Widgets.springIn(pill, 0.8)
+		task.delay(Config.Titles.TIP_HOLD, function()
+			local fade = TweenInfo.new(0.3)
+			TweenService:Create(pill, fade, { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(label, fade, { TextTransparency = 1 }):Play()
+			local st = pill:FindFirstChildOfClass("UIStroke")
+			if st then
+				TweenService:Create(st, fade, { Transparency = 1 }):Play()
+			end
+			task.delay(0.35, function()
+				pill:Destroy()
+			end)
 		end)
 	end)
 end
@@ -267,7 +294,7 @@ function OnboardingController.start()
 	})
 	tipLayer = new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.3),
+		Position = UDim2.fromScale(0.5, 0.8),
 		Size = UDim2.fromOffset(700, 60),
 		BackgroundTransparency = 1,
 		Parent = tipGui,
