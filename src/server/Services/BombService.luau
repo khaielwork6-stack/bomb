@@ -21,6 +21,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
+local ThrowPhysics = require(ReplicatedStorage.Shared.ThrowPhysics)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BombRules = require(ServerScriptService.Server.Logic.BombRules)
 local AdminService = require(script.Parent.AdminService)
@@ -34,6 +35,7 @@ type Bomb = BombRules.Bomb
 type Body = BombRules.Body
 
 local B = Config.Bomb
+local TH = Config.Throw
 local M = Config.Movement
 local MOD = Config.Modifiers
 local fuseRng = Random.new()
@@ -88,6 +90,7 @@ local function setCarrierAttrs(p: Participant?, bomb: Bomb?)
 	p.attrs:SetAttribute("BombExplodeAt", if bomb and not hidden then bomb.explodeAt else nil)
 	p.attrs:SetAttribute("BombMasked", if bomb and bomb.masked then true else nil)
 	p.attrs:SetAttribute("BombLocked", if bomb then bomb.locked else nil)
+	p.attrs:SetAttribute("BombThrown", if bomb and bomb.flying then true else nil) -- THROW MODE: it's in the air
 end
 
 local function detach(bomb: Bomb)
@@ -311,7 +314,7 @@ local function attach(bomb: Bomb, to: Participant)
 	setCarrierAttrs(to, bomb)
 end
 
-local function tag(bomber: Participant, target: Participant, bBody: Body, tBody: Body, t: number)
+local function tag(bomber: Participant, target: Participant, bBody: Body, tBody: Body, t: number, throwVel: Vector3?)
 	nextId += 1
 	local face = GameState.get("Modifier") == "Face" and not bBody.mega
 	local fuse = if bBody.mega
@@ -324,8 +327,16 @@ local function tag(bomber: Participant, target: Participant, bBody: Body, tBody:
 	bomber.attrs:SetAttribute("TagReadyAt", bomber.data.tagReadyAt)
 	bomber.stats.tags += 1
 	attach(bomb, target)
-	Characters.push(target, tBody.pos - bBody.pos, B.TAG_SHOVE, B.TAG_SHOVE_TIME) -- F-BOMB-10: the stumble
-	Net.fireAll("BombFx", { kind = "Stick", bomb = bomb.id, from = bomber.id, who = target.id, at = t })
+	-- F-BOMB-10: the stumble (THROW MODE: along the throw)
+	Characters.push(target, throwVel or (tBody.pos - bBody.pos), B.TAG_SHOVE, B.TAG_SHOVE_TIME)
+	Net.fireAll("BombFx", {
+		kind = "Stick",
+		bomb = bomb.id,
+		from = bomber.id,
+		who = target.id,
+		throw = if throwVel then true else nil,
+		at = t,
+	})
 	BombService.Tagged:Fire(bomber, target, bomb)
 end
 
@@ -337,7 +348,8 @@ local function pass(
 	tBody: Body,
 	t: number,
 	slam: boolean,
-	swing: boolean?
+	swing: boolean?,
+	throwVel: Vector3? -- THROW MODE: the bomb arrived through the air at this velocity
 )
 	if tBody.mega then
 		-- F-MEGA-06: fed to the giant. The bomb is gone (MegaService staggers it and burns its fuse).
@@ -356,8 +368,14 @@ local function pass(
 	from.stats.passes += 1
 	-- the bump (F-BOMB-03, D-PASS-02): the receiver is launched, the giver steps back; a SLAM PASS launches further
 	local apart = tBody.pos - fBody.pos
-	Characters.push(to, apart, if slam then B.SLAM_KNOCK else B.PASS_KNOCK, B.PASS_BUMP_TIME)
-	Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	if throwVel then
+		-- thrown: the receiver is sent along the throw, harder the faster it hit; the thrower is far away
+		local speed = (throwVel * Vector3.new(1, 0, 1)).Magnitude
+		Characters.push(to, throwVel, TH.KNOCK * math.clamp(speed / TH.SPEED_MAX, 0.5, 1.2), B.PASS_BUMP_TIME)
+	else
+		Characters.push(to, apart, if slam then B.SLAM_KNOCK else B.PASS_KNOCK, B.PASS_BUMP_TIME)
+		Characters.push(from, -apart, B.PASS_BUMP, B.PASS_BUMP_TIME)
+	end
 	from.data.lungeAim = nil -- the lunge connected: no whiff
 	local remaining = BombRules.remaining(bomb, t)
 	Net.fireAll("BombFx", {
@@ -369,6 +387,7 @@ local function pass(
 		chain = BombRules.chainLength(bomb),
 		slam = slam or nil,
 		swing = swing or nil, -- F-BOMB-15: made with the Slap-Pass (the giver's client already swung)
+		throw = if throwVel then true else nil, -- THROW MODE: it flew there (no back-to-back arc)
 		at = t,
 	})
 	BombService.Passed:Fire(from, to, bomb, remaining, slam)
@@ -464,14 +483,303 @@ local function dodges(bodies: { Body }, byId: { [string]: Body }, t: number)
 	end
 end
 
+-- ── THROW MODE (GDD §7.4c, D-THROW-01) ──────────────────────────────────────────────────────────────────────────
+-- The bomb is thrown: a Carrier throws theirs to pass it, a ready Bomber throws its hand bomb to tag. Every flight is
+-- simulated here (Shared/ThrowPhysics, the same arc every client draws); it sticks to the first eligible body it
+-- passes through. A Carrier's miss is reeled back on the fuse cord (and a fuse that runs out mid-air booms the
+-- thrower); a Bomber's miss fizzles. A timed Hard Stop as it arrives bats it away (F-THROW-06). Slides duck under it.
+local function throwMode(): boolean
+	return GameState.get("ThrowMode") == true
+end
+BombService.throwMode = throwMode
+
+type Flight = {
+	id: number,
+	kind: string, -- "Pass" (a Carrier's bomb) | "Tag" (a Bomber's hand bomb)
+	owner: string,
+	bomb: Bomb?,
+	state: ThrowPhysics.State,
+	startedAt: number,
+	near: { [string]: number }, -- the closest flat approach to each body (DODGE!)
+}
+local flights: { [number]: Flight } = {}
+local nextFlight = 0
+local castParams = RaycastParams.new()
+castParams.FilterType = Enum.RaycastFilterType.Exclude
+castParams.IgnoreWater = true
+local castRefreshAt = 0
+
+local function refreshCast()
+	local list: { Instance } = {}
+	for _, q in ipairs(Participants.all()) do
+		if q.model then
+			table.insert(list, q.model)
+		end
+	end
+	local bots = workspace:FindFirstChild("Bots")
+	if bots then
+		table.insert(list, bots)
+	end
+	castParams.FilterDescendantsInstances = list
+end
+
+local function cast(a: Vector3, b: Vector3): (Vector3?, Vector3?)
+	local hit = workspace:Raycast(a, b - a, castParams)
+	if hit then
+		return hit.Position, hit.Normal
+	end
+	return nil, nil
+end
+
+-- F-THROW-01: the bomb (or the hand bomb) leaves the thrower's hand. Humans arrive via the Throw remote, bots call it.
+function BombService.throw(p: Participant, aim: Vector3, power: number): boolean
+	local t = now()
+	local root = p.root
+	if not BombService.live or not throwMode() or not root or p.state ~= S.Active or t < (p.data.throwAt or 0) then
+		return false
+	end
+	if p.data.ragdolled or p.data.locked or (p.data.stunnedUntil or 0) > t then
+		return false
+	end
+	local bomb = byCarrier[p.id]
+	local kind: string
+	if bomb then
+		if bomb.flying or bomb.locked or p.role ~= R.Runner or t - bomb.receivedAt < B.RECEIVE_GRACE then
+			return false
+		end
+		kind = "Pass"
+	elseif p.role == R.Bomber and not p.data.mega and t >= (p.data.tagReadyAt or 0) then
+		kind = "Tag"
+		p.data.tagReadyAt = t + B.TAG_COOLDOWN
+		p.attrs:SetAttribute("TagReadyAt", p.data.tagReadyAt)
+	else
+		return false
+	end
+	p.data.throwAt = t + TH.COOLDOWN
+	local flatAim = aim * Vector3.new(1, 0, 1)
+	if flatAim.Magnitude < 1e-3 then
+		flatAim = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	end
+	flatAim = flatAim.Unit
+	local origin = root.Position + Vector3.new(0, TH.RELEASE_UP, 0) + flatAim * TH.RELEASE_FORWARD
+	local vel = ThrowPhysics.launch(flatAim, power) + root.AssemblyLinearVelocity * Vector3.new(1, 0, 1) * TH.INHERIT
+	nextFlight += 1
+	local f: Flight = {
+		id = nextFlight,
+		kind = kind,
+		owner = p.id,
+		bomb = bomb,
+		state = ThrowPhysics.new(origin, vel),
+		startedAt = t,
+		near = {},
+	}
+	flights[f.id] = f
+	if bomb then
+		bomb.flying = f.id
+		p.attrs:SetAttribute("BombThrown", true)
+	end
+	Net.fireAll("BombFx", {
+		kind = "Throw",
+		flight = f.id,
+		who = p.id,
+		bomb = if bomb then bomb.id else nil,
+		tag = kind == "Tag" or nil,
+		pos = origin,
+		vel = vel,
+		power = math.clamp(power, 0, 1),
+		at = t,
+	})
+	return true
+end
+
+local function endFlight(f: Flight)
+	flights[f.id] = nil
+	local bomb = f.bomb
+	if bomb and bomb.flying == f.id then
+		bomb.flying = nil
+	end
+end
+
+-- The bomb comes back to its thrower: the back bomb shows again once the reel-in has landed.
+local function reelIn(owner: Participant, bomb: Bomb?)
+	task.delay(TH.RETURN_TIME, function()
+		if bomb and byCarrier[owner.id] == bomb and not bomb.flying then
+			owner.attrs:SetAttribute("BombThrown", nil)
+		end
+	end)
+end
+
+-- Whoever it came within a hair of and didn't hit slipped it (DODGE!).
+local function nearMissDodges(f: Flight, t: number, except: string?)
+	local thrower = Participants.get(f.owner)
+	for id, d in pairs(f.near) do
+		if
+			id ~= except
+			and d <= TH.HIT_RADIUS + TH.DODGE_NEAR
+			and t - (lastDodge[id] or -math.huge) >= B.DODGE_COOLDOWN
+		then
+			local rp = Participants.get(id)
+			if rp and thrower and rp.role == R.Runner and byCarrier[id] == nil then
+				lastDodge[id] = t
+				rp.stats.dodges += 1
+				BombService.dodgeCount += 1
+				BombService.Dodged:Fire(rp, thrower)
+			end
+		end
+	end
+end
+
+-- F-THROW-04: nobody hit. A Carrier's bomb is reeled back (and the thrower is slowed reeling it in); a hand bomb fizzles.
+local function miss(f: Flight, t: number)
+	endFlight(f)
+	local owner = Participants.get(f.owner)
+	if f.kind == "Pass" and owner then
+		slow(owner, TH.MISS_SLOW, TH.MISS_SLOW_TIME)
+		reelIn(owner, f.bomb)
+		Net.fireAll("BombFx", { kind = "Return", flight = f.id, who = owner.id, pos = f.state.pos, at = t })
+	else
+		Net.fireAll("BombFx", { kind = "Fizzle", flight = f.id, who = f.owner, pos = f.state.pos, at = t })
+	end
+	nearMissDodges(f, t, nil)
+end
+
+-- F-THROW-06: a timed Hard Stop as it arrives bats it away. A Carrier's bomb goes back to its thrower (staggered); a
+-- hand bomb is knocked out of the air. Once per bomb per player, with the Reject's cooldown.
+local function parry(f: Flight, owner: Participant, rejecter: Participant, rBody: Body, t: number)
+	endFlight(f)
+	rejecter.data.rejectReadyAt = t + B.REJECT_COOLDOWN
+	rejecter.data.stopTechAt = nil
+	rejecter.stats.rejects += 1
+	local bomb = f.bomb
+	if bomb then
+		local by = bomb.rejectedBy or {}
+		by[rejecter.id] = true
+		bomb.rejectedBy = by
+		bomb.receivedAt = t
+		slow(owner, B.REJECT_SPEED, B.REJECT_STAGGER)
+		reelIn(owner, bomb)
+	end
+	Net.fireAll("BombFx", {
+		kind = "Reject",
+		bomb = if bomb then bomb.id else nil,
+		flight = f.id,
+		from = owner.id,
+		who = rejecter.id,
+		pos = f.state.pos,
+		throw = true,
+		tag = f.kind == "Tag" or nil,
+		at = t,
+	})
+	BombService.Rejected:Fire(rejecter, owner, bomb)
+	nearMissDodges(f, t, rBody.id)
+end
+
+local function stepFlights(bodies: { Body }, byId: { [string]: Body }, t: number, dt: number)
+	if next(flights) == nil then
+		return
+	end
+	if os.clock() >= castRefreshAt then
+		castRefreshAt = os.clock() + 0.5
+		refreshCast()
+	end
+	local field = GameState.get("FieldCFrame")
+	local floorY = if typeof(field) == "CFrame" then field.Position.Y - 20 else -math.huge
+	for _, f in pairs(flights) do
+		local owner = Participants.get(f.owner)
+		if not owner then
+			endFlight(f)
+			Net.fireAll("BombFx", { kind = "Fizzle", flight = f.id, who = f.owner, pos = f.state.pos, at = t })
+			continue
+		end
+		local before = f.state.pos
+		if ThrowPhysics.step(f.state, dt, cast) then
+			Net.fireAll("BombFx", { kind = "Bounce", flight = f.id, pos = f.state.pos, vel = f.state.vel, at = t })
+		end
+		local after = f.state.pos
+		local hit: Body? = nil
+		local hitD = math.huge
+		for _, b in ipairs(bodies) do
+			if b.id ~= f.owner then
+				local eligible = if f.kind == "Pass"
+					then f.bomb ~= nil and BombRules.canReceive(f.bomb :: Bomb, b, t)
+					else b.role == R.Runner and b.active and not b.safe and not b.carrying
+				if eligible then
+					local d = ThrowPhysics.flatDistance(before, after, b.pos)
+					f.near[b.id] = math.min(f.near[b.id] or math.huge, d)
+					local q = Participants.get(b.id)
+					local sliding = q ~= nil and (q.data.slideUntil or 0) > t
+					local high = if sliding then TH.SLIDE_HIGH else TH.BODY_HIGH
+					if ThrowPhysics.hitsBody(before, after, b.pos, high, b.reach) and d < hitD then
+						hit, hitD = b, d
+					end
+				end
+			end
+		end
+		local tp = if hit then Participants.get(hit.id) else nil
+		if hit and tp then
+			local ownerBody = byId[f.owner]
+			if
+				hit.rejectReady
+				and not hit.mega
+				and not (f.bomb and f.bomb.rejectedBy and f.bomb.rejectedBy[hit.id])
+			then
+				parry(f, owner, tp, hit, t)
+			elseif f.kind == "Pass" and f.bomb and ownerBody then
+				endFlight(f)
+				owner.attrs:SetAttribute("BombThrown", nil)
+				pass(f.bomb :: Bomb, owner, tp, ownerBody, hit, t, false, nil, f.state.vel)
+				ownerBody.carrying = false
+				hit.carrying = true
+				nearMissDodges(f, t, hit.id)
+			elseif f.kind == "Tag" and ownerBody then
+				endFlight(f)
+				tag(owner, tp, ownerBody, hit, t, f.state.vel)
+				hit.carrying = true
+				nearMissDodges(f, t, hit.id)
+			else
+				miss(f, t)
+			end
+		elseif f.state.rest or t - f.startedAt > TH.MAX_FLIGHT or after.Y < floorY then
+			miss(f, t)
+		end
+	end
+end
+
+-- What's in the air (the bots dodge it).
+export type FlightView = { id: number, kind: string, owner: string, pos: Vector3, vel: Vector3 }
+function BombService.flights(): { FlightView }
+	local out = {}
+	for _, f in pairs(flights) do
+		table.insert(out, { id = f.id, kind = f.kind, owner = f.owner, pos = f.state.pos, vel = f.state.vel })
+	end
+	return out
+end
+
+local lastStepAt: number? = nil
 local function step()
 	if not BombService.live or not Arena.current then
 		return
 	end
 	local t = now()
+	local dt = math.clamp(t - (lastStepAt or t), 0, 0.1)
+	lastStepAt = t
+	local throwing = throwMode()
 	-- Fuses first: a bomb that's out of time booms before it could be passed this frame.
 	for _, bomb in pairs(bombs) do
 		if t >= bomb.explodeAt then
+			-- THROW MODE: a fuse that runs out mid-air yanks it back on its cord and booms the thrower
+			local f = if bomb.flying then flights[bomb.flying] else nil
+			if f then
+				endFlight(f)
+				Net.fireAll("BombFx", {
+					kind = "Return",
+					flight = f.id,
+					who = bomb.carrier,
+					pos = f.state.pos,
+					boom = true,
+					at = t,
+				})
+			end
 			boom(bomb)
 		elseif bomb.masked and not bomb.shown and t >= bomb.explodeAt - B.STAGE_HOT then
 			bomb.shown = true -- F-MOD-02: HOT, so the time shows from here (the face never lies)
@@ -490,7 +798,7 @@ local function step()
 	-- Defuses (F-BOMB-09): a Runner carrying into a Safe Strip.
 	for _, bomb in pairs(bombs) do
 		local b = byId[bomb.carrier]
-		if b and b.safe and b.role == R.Runner then
+		if b and b.safe and b.role == R.Runner and not bomb.flying then
 			local p = Participants.get(bomb.carrier)
 			if p then
 				defuse(bomb, p)
@@ -498,10 +806,11 @@ local function step()
 			end
 		end
 	end
-	-- Passes (F-BOMB-03..05), before tags so a Carrier bumping into a Bomber's reach still passes.
+	-- Passes (F-BOMB-03..05), before tags so a Carrier bumping into a Bomber's reach still passes. THROW MODE: only
+	-- throws pass (stepFlights).
 	for _, bomb in pairs(bombs) do
 		local from = byId[bomb.carrier]
-		if from then
+		if from and not throwing and not bomb.flying then
 			local to, slam = BombRules.pickReceiver(bomb, from, bodies, t)
 			if to then
 				local fp, tp = Participants.get(from.id), Participants.get(to.id)
@@ -516,9 +825,13 @@ local function step()
 			end
 		end
 	end
-	-- Tags (F-BOMB-02), and the Mole's STRIKE (F-MOD-04).
+	if throwing then
+		stepFlights(bodies, byId, t, dt)
+	end
+	-- Tags (F-BOMB-02), and the Mole's STRIKE (F-MOD-04). THROW MODE: Bombers tag by throwing; the MEGA giant's touch
+	-- and the Mole's STRIKE still tag by contact.
 	for _, b in ipairs(bodies) do
-		if b.role == R.Bomber or b.striker then
+		if (b.role == R.Bomber and (not throwing or b.mega)) or b.striker then
 			local target = BombRules.pickTagTarget(b, bodies, t)
 			if target then
 				local bp, tp = Participants.get(b.id), Participants.get(target.id)
@@ -530,8 +843,10 @@ local function step()
 			end
 		end
 	end
-	lunges(bodies, byId, t)
-	dodges(bodies, byId, t)
+	if not throwing then
+		lunges(bodies, byId, t)
+		dodges(bodies, byId, t)
+	end
 end
 
 -- F-BOMB-15: the Slap-Pass. The Carrier slaps the bomb onto the closest eligible body in front of `aim` (or of their
@@ -541,7 +856,7 @@ function BombService.slapPass(p: Participant, aim: Vector3?): boolean
 	local bomb = byCarrier[p.id]
 	local t = now()
 	local root = p.root
-	if not BombService.live or not bomb or not root or t < (p.data.slapPassAt or 0) then
+	if not BombService.live or throwMode() or not bomb or not root or t < (p.data.slapPassAt or 0) then
 		return false
 	end
 	p.data.slapPassAt = t + B.PASS_SLAP_CD
@@ -607,6 +922,7 @@ function BombService.clear()
 	end
 	table.clear(bombs)
 	table.clear(byCarrier)
+	table.clear(flights)
 end
 
 -- A Revive bought right now (PerkService): during the tumble it makes the get-up a Runner's; within REVIVE_GRACE after
@@ -643,6 +959,20 @@ end
 
 function BombService.start()
 	RunService.Heartbeat:Connect(step)
+	-- THROW MODE (GDD §7.4c): the switch, and the throw intent (an aim and a power; everything else is checked here)
+	GameState.set("ThrowMode", TH.ENABLED)
+	Net.on("Throw", function(player: Player, aim: any, power: any)
+		local p = Participants.fromPlayer(player)
+		if p and Net.isVec3(aim, 2) and Net.isNum(power, 0, 1) then
+			BombService.throw(p, aim :: Vector3, power :: number)
+		end
+	end)
+	AdminService.register("throwmode", function(args)
+		-- throwmode on|off: switch THROW MODE live (A/B the old contact game in one session)
+		local on = args[1] ~= "off" and args[1] ~= false
+		GameState.set("ThrowMode", on)
+		return `throw mode: {on}`
+	end)
 	-- F-BOMB-15: the Slap-Pass intent (an aim direction; everything else is checked here)
 	Net.on("PassSlap", function(player: Player, aim: any)
 		local p = Participants.fromPlayer(player)

@@ -828,7 +828,12 @@ local function step(dt: number)
 	local seen = {}
 	for _, host in ipairs(hosts()) do
 		local id = host:GetAttribute("BombId")
-		if id ~= nil and (deferred[host] or 0) > os.clock() and not visuals[host] then
+		if id ~= nil and host:GetAttribute("BombThrown") then
+			seen[host] = true -- THROW MODE: it's in the air (ThrowController draws it); back on the back when it returns
+			if visuals[host] then
+				remove(host)
+			end
+		elseif id ~= nil and (deferred[host] or 0) > os.clock() and not visuals[host] then
 			seen[host] = true -- held back until the hand lands
 		elseif id ~= nil then
 			seen[host] = true
@@ -956,6 +961,7 @@ function BombController.start()
 			and payload.kind == "Pass"
 			and type(payload.from) == "string"
 			and type(payload.who) == "string"
+			and not payload.throw -- THROW MODE: it already flew there
 		then
 			-- D-PASS-02: the receiver's back bomb appears as the flying one lands (no second bomb mid-air)
 			local toHost = ClientState.byId(payload.who)

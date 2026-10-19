@@ -227,8 +227,8 @@ local function step()
 	local slapReach = (Config.Bomb.PASS_RANGE_STAGE :: any)[stage]
 		+ Config.Bomb.PASS_SLAP_REACH
 		+ Config.Bomb.LAG_SLACK * 0.75
-	if nearestD <= slapReach then
-		nearest = nil
+	if nearestD <= slapReach or ClientState.get("ThrowMode") == true then
+		nearest = nil -- (THROW MODE: the aim arc is the marker)
 	end
 	arrow.Adornee = nearest
 	arrow.Enabled = nearest ~= nil

@@ -24,6 +24,7 @@ export type Bomb = {
 	masked: boolean?, -- READ THE FACE (F-MOD-02): clients don't get the boom time while it's LIT
 	shown: boolean?, -- …and it has turned HOT, so they do
 	rejectedBy: { [string]: boolean }?, -- F-BOMB-13: who already rejected this bomb (once each)
+	flying: number?, -- THROW MODE (GDD §7.4c): the flight it's in (still the thrower's: a miss reels it back)
 }
 
 -- A participant as the rules see it, snapshotted each step.

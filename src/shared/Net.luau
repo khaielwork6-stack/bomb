@@ -20,6 +20,7 @@ Net.ClientToServer = {
 	StoreAction = 4, -- { kind = Buy | Equip | Unequip | OpenCrate | BuyRobux | BuyProduct | BuyPass, … } (P5)
 	Strike = 2, -- the Mole's STRIKE intent (GDD §6.4, F-MOD-04)
 	PassSlap = 4, -- the Carrier's slap-pass intent, with the aim direction (GDD §7.4b F-BOMB-15)
+	Throw = 4, -- THROW MODE: (aim, power 0..1) a Carrier throws its bomb / a Bomber its hand bomb (GDD §7.4c)
 	Taunt = 1, -- an emoji taunt (key from Config.Taunt.ORDER); the server relays it as TauntFx
 	Spin = 1, -- spin the lobby wheel (PerkService rolls it)
 	SetAfk = 2, -- the lobby AFK toggle (boolean): sit out the next rounds (PARTNER_REQUESTS #4)

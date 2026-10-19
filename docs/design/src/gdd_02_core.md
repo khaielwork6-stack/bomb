@@ -156,6 +156,24 @@ Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nob
 
 **Bots** lunge (their pass dash) and reject with skill-tier odds, so the duel exists in a solo round. **No new Stars:** a SLAM PASS pays as a pass, and a REJECTED! pays XP only. **Success measure (pace probe):** passes per bomb from 0.64 to 1.2+, boom % within 45–60, 2–6 rejects a round, and some whiffs. First bot probe (2026-10-18): 0.83 passes per bomb, 38 % SLAM PASSES, 1.8 rejects a round, 14 whiffs in 8.5 min, boom 61 %. **Bots take a free hand-off within 7 studs** (`Config.Bots.OPPORTUNITY_RANGE`), as a player would.
 
+### 7.4c THROW MODE: the bomb is a ball (F-THROW-01..08) [OURS, PROTOTYPE, D-THROW-01]
+**Why:** the owner's verdict on the contact game was "not fun… no skill… sloppy… too linear". Contact passing decides for you (a bomb lived 1.8 s, a Carrier held it 0.6 s), there's no skill ceiling, and no reason to hold. **The owner chose "bomb is a ball"**: the core verb becomes a throw. It's built behind a live switch (`Config.Throw.ENABLED`, GameState `ThrowMode`, Studio / admin `throwmode on|off`) so both games can be compared in a Team Test. While it's on, everything below replaces contact passing, contact tags (except the MEGA giant's and the Mole's STRIKE), the Lunge, the Danger Ring and the Slap-Pass.
+
+| ID | Rule |
+|---|---|
+| F-THROW-01 | **The throw.** A Carrier throws their bomb; a Bomber with a bomb in hand (tag ready) throws it at Runners. Hold click / R2 / THROW to wind up (full power in 0.55 s), aim with the camera, let go; a tap throws at 45 % power. 0.35 s between throws. The client sends only the aim and the power; the server checks the rest. |
+| F-THROW-02 | **The flight.** A real arc (gravity 110, speed 42–88 and lift 14–24 by power, half the thrower's own velocity added), bouncing off the world (restitution 0.45, friction 0.75, up to 3 bounces) until it lands. The server simulates it (`Shared/ThrowPhysics`, the same code every client draws with). Range ≈ 18 studs at a tap, ≈ 50 at full power. |
+| F-THROW-03 | **The hit.** It sticks to the first eligible body it passes through (a 2-stud radius round the body from 2.6 under the root to 1.8 over it). A Carrier's bomb follows every pass rule (receive grace, no pass-back, safe strips); the receiver is sent along the throw. A Bomber's hand bomb sticks a fresh bomb on a Runner (a tag). The thrower is never hit by their own throw. |
+| F-THROW-04 | **The miss.** A Carrier's bomb is still on their fuse cord: a miss is reeled back to them (0.28 s), and they're slowed while they reel it in. If the fuse runs out mid-air, it's yanked back and booms the thrower. A Bomber's hand bomb that misses fizzles out. Anyone it passed within 2 studs of the body without hitting gets **DODGE!** |
+| F-THROW-05 | **Dodging.** Jumping lifts the body out of a flat throw, a slide ducks under it (the body's top drops below the root), and moving does the rest. |
+| F-THROW-06 | **The parry.** A Hard Stop within the Reject window as it arrives bats it away: a Carrier's bomb goes back to its thrower (staggered), and a hand bomb is knocked out of the air. It's the Reject (F-BOMB-13): once per bomb per player, 4 s cooldown, REJECTED! |
+| F-THROW-07 | **Aim.** A dotted arc shows exactly where it will come down while you wind up, with an outline on the body the aim bends toward. The aim leads a target inside a small cone: 8° with a mouse, 16° on a gamepad, 28° on a phone (where a quick throw also picks the power for the distance). |
+| F-THROW-08 | **Bots** throw with the same aim solve (leading the target; aim error and power error by tier, Rookie ≈ 11°, Pro ≈ 4°), react every 0.35–0.9 s, and dodge what's coming by tier: a parry timed to the arrival, a dash across the line, or a slide. |
+
+**Still to come (stage 2, after the owner has felt it):** hold-to-earn (holding longer pays more: an economy change, re-soak first), the bomb moving into your hand during the wind-up, custom Throw / Catch clips (the slap clip stands in), others seeing your wind-up, trick-shot callouts.
+
+**First bot measurements (1 round, LIGHTS OUT and none):** a bomb lives **2.8 s** (contact: 1.8), a Carrier holds **1.4 s** before passing (0.6), **36 dodges** (4), **16 parries** (1), 59 % boom, 5 crossings. The question only people can answer: is it fun?
+
 ### 7.5 Booms (F-BOMB-06..08)
 | ID | Case | Result |
 |---|---|---|

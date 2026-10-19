@@ -95,12 +95,25 @@ local function play(model: Model, name: string, from: number)
 	end
 	local tr = track :: AnimationTrack
 	tr:Play(0.03, 1, 1)
+	tr:AdjustSpeed(1)
 	tr.TimePosition = from
 end
 
 -- Play one of the slap's clips on a body (the Hand-Off's whiff and reject stagger reuse Stumble).
 function SlapController.playClip(model: Model, name: string, from: number)
 	play(model, name, from)
+end
+
+-- Hold a clip on one frame (THROW MODE's wind-up: the arm drawn back) until playClip plays it on.
+function SlapController.holdClip(model: Model, name: string, at: number)
+	play(model, name, at)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	local set = animator and tracks[animator]
+	local track = set and set[name]
+	if track then
+		track:AdjustSpeed(0)
+	end
 end
 
 -- ── The hand bomb ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -379,10 +392,12 @@ local function onStick(p: any)
 	if type(p.from) == "string" then
 		fromHost, fromModel = ClientState.byId(p.from)
 	end
-	if toHost then
+	-- THROW MODE: a thrown hand bomb has already flown there: it lands now, with no slap
+	local lead = if p.throw then 0 else F.SLAP_LEAD
+	if toHost and not p.throw then
 		BombController.deferAttach(toHost, os.clock() + F.SLAP_LEAD)
 	end
-	if fromHost and fromModel then
+	if fromHost and fromModel and not p.throw then
 		slappedAt[fromHost] = os.clock()
 		play(fromModel, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
 		local root = fromModel:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -390,7 +405,7 @@ local function onStick(p: any)
 			Sfx.at("SlapSwing", root.Position)
 		end
 	end
-	task.delay(F.SLAP_LEAD, function()
+	task.delay(lead, function()
 		-- contact
 		if fromHost then
 			local h = hands[fromHost]

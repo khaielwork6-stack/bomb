@@ -188,7 +188,7 @@ local function onBomb(p: any)
 			Sfx.at("PassWhoosh", from.Position)
 		end
 		-- the clamp bites as the bomb lands (D-PASS-02: after the flight)
-		task.delay(Config.Feel.PASS_TIME, function()
+		task.delay(if p.throw then 0 else Config.Feel.PASS_TIME, function()
 			if mine then
 				Sfx.play("BombClamp", 1.2, 1.25)
 			elseif to then

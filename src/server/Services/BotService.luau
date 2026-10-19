@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Locomotion = require(ReplicatedStorage.Shared.Locomotion)
 local MovementCore = require(ReplicatedStorage.Shared.MovementCore)
 local Net = require(ReplicatedStorage.Shared.Net)
+local ThrowPhysics = require(ReplicatedStorage.Shared.ThrowPhysics)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BombBrain = require(ServerScriptService.Server.Logic.BombBrain)
 local BotNames = require(ServerScriptService.Server.Logic.BotNames)
@@ -34,6 +35,7 @@ local Participants = require(script.Parent.Participants)
 type Participant = Participants.Participant
 
 local BC = Config.Bots
+local TH = Config.Throw
 local MOD = Config.Modifiers
 local R, S, Ph = Types.Role, Types.State, Types.Phase
 local FLAT = Vector3.new(1, 0, 1)
@@ -58,6 +60,8 @@ type Brain = {
 	lobbyGoal: Vector3?, -- between rounds: the Depot station it's strolling to
 	lobbyNext: number?,
 	rejectRoll: number?, -- when it last rolled for a Reject (GDD §7.4b)
+	throwNext: number?, -- THROW MODE: the earliest it throws again (its reaction, F-THROW-08)
+	dodgePlans: { [number]: string }?, -- THROW MODE: per incoming flight, how it'll dodge (parry / dash / slide / none)
 }
 
 local brains: { [string]: Brain } = {}
@@ -393,6 +397,76 @@ local function technique(p: Participant, brain: Brain, kind: string, dir: Vector
 	end
 end
 
+-- ── THROW MODE (GDD §7.4c F-THROW-08): bots throw and dodge ────────────────────────────────────────────────────
+-- Throw at a body: the same aim solve the player's aim assist uses, led by the target's motion (weaker tiers lead
+-- less), with aim and power error by tier; one decision per reaction time.
+local function botThrow(p: Participant, brain: Brain, root: BasePart, target: Seen): boolean
+	local clock = os.clock()
+	if clock < (brain.throwNext or 0) then
+		return false
+	end
+	brain.throwNext = clock + rng:NextNumber(TH.BOT_REACT[1], TH.BOT_REACT[2]) / brain.tier.pace
+	local origin = root.Position + Vector3.new(0, TH.RELEASE_UP, 0)
+	-- the throw inherits some of the bot's own motion: aim at the target relative to that
+	local rel = (target.vel - root.AssemblyLinearVelocity * TH.INHERIT) * (1 - brain.tier.error)
+	local aim, power = ThrowPhysics.solve(origin, target.pos, rel)
+	if not aim or not power then
+		return false
+	end
+	local err = math.rad(rng:NextNumber(-1, 1) * TH.BOT_AIM_ERROR * (1 - brain.tier.dash * 0.8))
+	local a = aim :: Vector3
+	a = Vector3.new(a.X * math.cos(err) - a.Z * math.sin(err), 0, a.X * math.sin(err) + a.Z * math.cos(err))
+	local pw = math.clamp((power :: number) + rng:NextNumber(-0.06, 0.06) * (1 - brain.tier.dash), 0, 1)
+	return BombService.throw(p, a, pw)
+end
+
+-- Dodge what's coming: once per flight a bot picks how (by tier): a parry timed to the arrival, a dash across the
+-- throw's line, a slide under it, or nothing.
+local function dodgeThrows(p: Participant, brain: Brain, root: BasePart)
+	local flying = BombService.flights()
+	if #flying == 0 then
+		brain.dodgePlans = nil
+		return
+	end
+	local plans = brain.dodgePlans or {}
+	brain.dodgePlans = plans
+	local pos, vel = root.Position, root.AssemblyLinearVelocity
+	for _, f in ipairs(flying) do
+		local plan = plans[f.id]
+		if f.owner ~= p.id and plan ~= "done" then
+			local r = pos - f.pos
+			local v = f.vel - vel
+			local vv = v:Dot(v)
+			local tca = if vv > 1 then math.clamp(r:Dot(v) / vv, 0, 2) else 2
+			local missBy = ((r - v * tca) * FLAT).Magnitude
+			if tca <= TH.BOT_DODGE_LOOK and missBy < TH.BOT_DODGE_MISS then
+				if not plan then
+					local roll = rng:NextNumber()
+					plan = if roll < brain.tier.reject
+						then "parry"
+						elseif roll < brain.tier.dash then (if rng:NextNumber() < 0.5 then "dash" else "slide")
+						else "none"
+					plans[f.id] = plan
+				end
+				if plan == "parry" and tca <= Config.Bomb.REJECT_WINDOW * 0.8 then
+					technique(p, brain, "HardStop", Vector3.zero)
+					plans[f.id] = "done"
+				elseif plan == "dash" then
+					local across = Vector3.new(-f.vel.Z, 0, f.vel.X)
+					if across.Magnitude > 1e-3 then
+						local side = if (r * FLAT):Dot(across) >= 0 then 1 else -1
+						technique(p, brain, "Dash", across.Unit * side)
+					end
+					plans[f.id] = "done"
+				elseif plan == "slide" then
+					technique(p, brain, "Slide", Vector3.zero)
+					plans[f.id] = "done"
+				end
+			end
+		end
+	end
+end
+
 -- ── Deciding ────────────────────────────────────────────────────────────────────────────────────────────────────
 local function runnerDecide(p: Participant, brain: Brain, root: BasePart, seen: { Seen })
 	local f = assert(Arena.current, "no arena")
@@ -564,6 +638,10 @@ local function carrierDecide(p: Participant, brain: Brain, root: BasePart, seen:
 	if choice == "pass" and target then
 		local aim = BombBrain.intercept(target.pos, target.vel, 0.2)
 		brain.desired = flatUnit(aim - pos)
+		local throwReach = ((target.pos - pos) * FLAT).Magnitude
+		if BombService.throwMode() and throwReach <= TH.BOT_RANGE then
+			botThrow(p, brain, root, target) -- THROW MODE: throw it at them (F-THROW-08)
+		end
 		-- F-BOMB-15: close enough to slap it on them (by skill, like the lunge)
 		local stage = if remaining <= Config.Bomb.STAGE_CRITICAL
 			then "CRITICAL"
@@ -652,6 +730,9 @@ local function bomberDecide(p: Participant, brain: Brain, root: BasePart, seen: 
 			brain.desired = flatUnit(brain.desired + side * sway)
 		end
 		local ready = (p.attrs:GetAttribute("TagReadyAt") or 0) <= t
+		if BombService.throwMode() and ready and d <= TH.BOT_RANGE then
+			botThrow(p, brain, root, target) -- THROW MODE: a Bomber throws its hand bomb (F-THROW-08)
+		end
 		if
 			ready
 			and d < BC.TAG_DASH_RANGE
@@ -730,6 +811,9 @@ local function decide(p: Participant, brain: Brain)
 		return
 	end
 	local seen = look(p)
+	if BombService.throwMode() and p.state == S.Active then
+		dodgeThrows(p, brain, root)
+	end
 	local carrying = p.attrs:GetAttribute("BombId") ~= nil
 	if p.role == R.Runner and carrying and p.state == S.Active then
 		carrierDecide(p, brain, root, seen)

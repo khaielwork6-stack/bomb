@@ -331,14 +331,21 @@ function OnboardingController.start()
 		if player:GetAttribute("BombId") ~= nil then
 			carries += 1
 			local UIS = game:GetService("UserInputService")
+			local pad = UIS.GamepadEnabled and not UIS.KeyboardEnabled
+			local throwing = ClientState.get("ThrowMode") == true -- THROW MODE (GDD §7.4c)
 			tip(
 				"FirstCarry",
-				if Screen.touch()
-					then S.Tips.FirstCarryTouch
-					elseif UIS.GamepadEnabled and not UIS.KeyboardEnabled then S.Tips.FirstCarryPad
-					else S.Tips.FirstCarry
+				if throwing
+					then (if Screen.touch()
+						then S.Tips.ThrowCarryTouch
+						elseif pad then S.Tips.ThrowCarryPad
+						else S.Tips.ThrowCarry)
+					else (if Screen.touch()
+						then S.Tips.FirstCarryTouch
+						elseif pad then S.Tips.FirstCarryPad
+						else S.Tips.FirstCarry)
 			)
-			if carries >= 2 then
+			if carries >= 2 and not throwing then
 				tip("Lunge", S.Tips.Lunge) -- the Hand-Off's attack (GDD §7.4b)
 			end
 		end
@@ -351,7 +358,13 @@ function OnboardingController.start()
 	end)
 	player:GetAttributeChangedSignal("Role"):Connect(function()
 		if player:GetAttribute("Role") == Types.Role.Bomber then
-			tip("FirstBomber", S.Tips.FirstBomber)
+			tip(
+				"FirstBomber",
+				if ClientState.get("ThrowMode") ~= true
+					then S.Tips.FirstBomber
+					elseif Screen.touch() then S.Tips.ThrowBomberTouch
+					else S.Tips.ThrowBomber
+			)
 		end
 	end)
 	Net.listen("FieldFx", function(p)

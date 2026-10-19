@@ -158,7 +158,7 @@ local function onBomb(p: any)
 		local hold = if p.slam then F.HITSTOP_SLAM else F.HITSTOP
 		hold = math.min(F.HITSTOP_MAX, hold + F.HITSTOP_CHAIN * (n - 1))
 		local heat = 1 + 0.15 * (n - 1) * (if p.slam then 1.3 else 1)
-		task.delay(F.PASS_TIME, function()
+		task.delay(if p.throw then 0 else F.PASS_TIME, function()
 			if type(p.who) == "string" then
 				hitStop(p.who, hold)
 			end

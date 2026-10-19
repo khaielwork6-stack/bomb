@@ -248,8 +248,13 @@ local function slapAim(root: BasePart): Vector3
 	return if look.Magnitude > 1e-3 then look.Unit else Vector3.new(0, 0, -1)
 end
 
+local function throwMode(): boolean
+	return ClientState.get("ThrowMode") == true -- THROW MODE (GDD §7.4c): the throw replaces the ring, tether, slap
+end
+
 local function carryingLive(): boolean
-	return localPlayer:GetAttribute("BombId") ~= nil
+	return not throwMode()
+		and localPlayer:GetAttribute("BombId") ~= nil
 		and not localPlayer:GetAttribute("BombLocked")
 		and ClientState.activeInRun()
 		and ClientState.role() == "Runner"
@@ -346,7 +351,7 @@ local function step(dt: number)
 	for _, host in ipairs(hosts()) do
 		local char = characterOf(host)
 		local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if root and host:GetAttribute("BombId") ~= nil and not host:GetAttribute("BombLocked") then
+		if root and not throwMode() and host:GetAttribute("BombId") ~= nil and not host:GetAttribute("BombLocked") then
 			seen[host] = true
 			local stage = stageOf(host, t)
 			local ring = rings[host]
@@ -663,14 +668,14 @@ local function onBomb(p: any)
 			Sfx.play("PassWhoosh", 0.7, 1.65) -- relief: it's gone
 		end
 		-- every pass is a slap (D-PASS-02): the giver swings (their own Slap-Pass already swung on their screen)
-		if type(p.from) == "string" and not (p.swing and p.from == me) then
+		if type(p.from) == "string" and not (p.swing and p.from == me) and not p.throw then
 			local _, fromModel = ClientState.byId(p.from)
 			if fromModel then
 				SlapController.playClip(fromModel, "Slap", math.max(0, F.SLAP_CONTACT - 0.03))
 			end
 		end
 		-- the burst, the flash, the stumble, the edge flash: when the flying bomb reaches the back
-		task.delay(F.PASS_TIME, function()
+		task.delay(if p.throw then 0 else F.PASS_TIME, function()
 			landing(p, n)
 		end)
 	elseif p.kind == "Reject" and type(p.from) == "string" then
@@ -681,11 +686,13 @@ local function onBomb(p: any)
 			Sfx.at("BombTickHotA", rej.Position, 1.2, 2.6) -- the "ting"
 			Sfx.at("BombClamp", rej.Position, 0.9, 1.55)
 		end
-		ricochet(p.from, p.who)
+		if not p.throw then
+			ricochet(p.from, p.who) -- (THROW MODE draws the flight going back itself)
+		end
 		ImpactController.hitStop(p.who, F.HITSTOP_REJECT)
 		ImpactController.hitStop(p.from, F.HITSTOP_REJECT)
 		local _, giverModel = ClientState.byId(p.from)
-		if giverModel then
+		if giverModel and not p.tag then
 			SlapController.playClip(giverModel, "Stumble", 0)
 		end
 		if not calm then

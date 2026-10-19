@@ -111,6 +111,7 @@ return {
 		BtnSlide = "SLIDE",
 		BtnStop = "STOP",
 		BtnPass = "PASS",
+		BtnThrow = "THROW",
 		On = "ON",
 		Off = "OFF",
 		Spectating = "Spectating",
@@ -271,6 +272,12 @@ return {
 		FirstCarry = "IT'S ON YOU: GET CLOSE AND CLICK TO SLAP IT ON THEM!",
 		FirstCarryTouch = "IT'S ON YOU: GET CLOSE AND HIT PASS!",
 		FirstCarryPad = "IT'S ON YOU: GET CLOSE AND PULL R2!",
+		-- THROW MODE (GDD §7.4c)
+		ThrowCarry = "IT'S ON YOU: HOLD CLICK, AIM, LET GO. HIT SOMEONE!",
+		ThrowCarryTouch = "IT'S ON YOU: HOLD THROW, LET GO AT SOMEONE!",
+		ThrowCarryPad = "IT'S ON YOU: HOLD R2, AIM, LET GO!",
+		ThrowBomber = "CLICK TO THROW YOUR BOMB AT A RUNNER!",
+		ThrowBomberTouch = "TAP THROW TO HURL YOUR BOMB AT A RUNNER!",
 		FirstBomber = "TOUCH A RUNNER. THEIR PROBLEM NOW.",
 		FirstFieldWarn = "GET ACROSS BEFORE IT BLOWS!",
 		-- The Hand-Off (GDD §7.4b): the Lunge on your second carry, the Reject the first time a pass lands on you

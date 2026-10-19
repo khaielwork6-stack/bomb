@@ -290,6 +290,10 @@ local function step()
 	root.Visible = live
 	local state = MovementController.state() :: any
 	local carrying = player:GetAttribute("BombId") ~= nil and ClientState.role() == Types.Role.Runner
+	-- THROW MODE: a Bomber with a bomb in hand throws it too
+	if not carrying and ClientState.get("ThrowMode") == true and ClientState.role() == Types.Role.Bomber then
+		carrying = (player:GetAttribute("TagReadyAt") or 0) <= workspace:GetServerTimeNow()
+	end
 	for _, b in ipairs(buttons) do
 		b.holder.Visible = (b.lobby or not lobby) and (not b.carry or carrying)
 		local cd = if state then (state[b.cdKey] or 0) else 0
@@ -336,7 +340,16 @@ function MobileController.start()
 		makeButton("Slide", S.Ui.BtnSlide, "Slide", "cyan", MC.SMALL_SIZE, "slideCD", MV.SLIDE_CD, false),
 		makeButton("HardStop", S.Ui.BtnStop, "Stop", "red", MC.SMALL_SIZE, "stopCD", MV.HARDSTOP_CD, false),
 		-- F-BOMB-15: the Slap-Pass, only while you carry
-		makeButton("Swing", S.Ui.BtnPass, "Bomb", "orange", MC.SMALL_SIZE, "passCD", Config.Bomb.PASS_SLAP_CD, false),
+		makeButton(
+			"Swing",
+			if Config.Throw.ENABLED then S.Ui.BtnThrow else S.Ui.BtnPass,
+			"Bomb",
+			"orange",
+			MC.SMALL_SIZE,
+			"passCD",
+			Config.Bomb.PASS_SLAP_CD,
+			false
+		),
 	}
 	small[3].carry = true
 	for i, b in ipairs(small) do
