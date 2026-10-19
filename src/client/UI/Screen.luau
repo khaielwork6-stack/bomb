@@ -7,6 +7,8 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local Motion = require(script.Parent.Motion)
+
 local Screen = {}
 
 local changed = Instance.new("BindableEvent")
@@ -210,14 +212,15 @@ end
 
 -- A "Fit" UIScale on `holder` that keeps `rule(screen size)` applied while the holder lives, so a panel re-fits when
 -- a phone turns or the window is resized.
+-- The fit is the Base channel of the holder's one UIScale (UI/Motion): a second UIScale would be ignored by Roblox,
+-- which is how every fitted panel once lost its open spring.
 function Screen.fit(holder: Instance, rule: (Vector2) -> number): UIScale
-	local sc = Instance.new("UIScale")
-	sc.Name = "Fit"
+	local g = holder :: GuiObject
 	local function apply()
-		sc.Scale = rule(Screen.size())
+		Motion.set(g, "Base", rule(Screen.size()))
 	end
 	apply()
-	sc.Parent = holder
+	local sc = Motion.scaleOf(g)
 	local conn = changed.Event:Connect(apply)
 	holder.Destroying:Connect(function()
 		conn:Disconnect()

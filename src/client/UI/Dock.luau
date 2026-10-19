@@ -4,11 +4,11 @@
 -- top-right corner and a red "!" badge when something waits. Taps squash; the shortcut works on keyboards.
 -- Implements: F-UI-03 (lobby dock), Asset Bible §6.3 / §6.5.
 
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Sfx = require(script.Parent.Parent.Sfx)
 local Modal = require(script.Parent.Modal)
+local Motion = require(script.Parent.Motion)
 local Screen = require(script.Parent.Screen)
 local Skin = require(script.Parent.Skin)
 local Theme = require(script.Parent.Theme)
@@ -163,25 +163,9 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 		stroke = 2,
 		ZIndex = 10,
 	})
-	local sc = new("UIScale", { Parent = b })
-	local function press()
-		TweenService:Create(sc, TweenInfo.new(0.06), { Scale = 0.9 }):Play()
-	end
-	local function release()
-		TweenService:Create(sc, TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-			:Play()
-	end
-	b.MouseEnter:Connect(function()
-		if not Widgets.reduced() then
-			TweenService:Create(sc, TweenInfo.new(0.12, Enum.EasingStyle.Quad), { Scale = 1.05 }):Play()
-		end
-		Sfx.play("UiHover")
-	end)
-	b.MouseLeave:Connect(release)
-	b.MouseButton1Down:Connect(press)
-	b.MouseButton1Up:Connect(function()
-		release() -- no separate release sound: the click (UiPress) carries press and release
-	end)
+	-- hover lift + tilt + light + shine, press squish, release bounce, the hover sound (UI/Motion). No separate
+	-- release sound: the click (UiPress) carries press and release.
+	Motion.button(b)
 	b.Activated:Connect(function()
 		if Modal.blocking() then
 			return
@@ -203,8 +187,7 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 			if pos.X + size.X < 0 or pos.Y + size.Y < 0 then
 				return
 			end
-			press()
-			task.delay(0.08, release)
+			Motion.tap(b)
 			Sfx.play("UiPress")
 			onClick()
 		end)

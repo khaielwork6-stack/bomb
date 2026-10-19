@@ -436,14 +436,52 @@ local press = new("TextLabel", {
 new("UIStroke", { Color = INK, Thickness = 4, Parent = press })
 local ps = new("UIScale", { Scale = 0.2, Parent = play })
 TweenService:Create(ps, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+-- the house button feel (the same as UI/Motion, which isn't loaded yet this early): it breathes while idle, springs
+-- up and tilts on hover, squishes on press and bounces back on release
+local hovering, pressing = false, false
+local function scaleTo(s: number, t: number, style: Enum.EasingStyle?)
+	TweenService:Create(ps, TweenInfo.new(t, style or Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = s })
+		:Play()
+end
+local function tilt(r: number)
+	TweenService:Create(play, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Rotation = r })
+		:Play()
+end
 task.spawn(function()
+	task.wait(0.45)
 	while play.Parent do
-		TweenService:Create(ps, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Scale = 1.06 })
-			:Play()
+		if not hovering and not pressing then
+			scaleTo(1.06, 0.7, Enum.EasingStyle.Sine)
+		end
 		task.wait(0.7)
-		TweenService:Create(ps, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Scale = 1 })
-			:Play()
+		if not hovering and not pressing then
+			scaleTo(1, 0.7, Enum.EasingStyle.Sine)
+		end
 		task.wait(0.7)
+	end
+end)
+play.MouseEnter:Connect(function()
+	hovering = true
+	if not pressing then
+		scaleTo(1.1, 0.3)
+		tilt(-2)
+	end
+end)
+play.MouseLeave:Connect(function()
+	hovering, pressing = false, false
+	scaleTo(1, 0.3)
+	tilt(0)
+end)
+play.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		pressing = true
+		scaleTo(0.92, 0.07, Enum.EasingStyle.Quad)
+	end
+end)
+play.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		pressing = false
+		scaleTo(if hovering then 1.1 else 1, 0.3)
 	end
 end)
 

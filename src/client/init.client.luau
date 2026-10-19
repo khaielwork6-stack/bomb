@@ -38,6 +38,7 @@ local ORDER: { string } = {
 	"SlapController",
 	"HandOffController",
 	"MegaController",
+	"UiMotionController",
 	"HudController",
 	"CalloutController",
 	"CarrierController",

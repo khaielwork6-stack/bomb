@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
+local Motion = require(script.Parent.Motion)
 
 local Skin = {}
 
@@ -482,6 +483,7 @@ function Skin.close(parent: Instance, size: number?, props: { [string]: any }?):
 			(b :: any)[k] = v
 		end
 	end
+	Motion.button(b) -- the house hover / press feel (UI/Motion)
 	return b
 end
 

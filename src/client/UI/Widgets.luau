@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
+local Motion = require(script.Parent.Motion)
 local Settings = require(script.Parent.Parent.Settings)
 local Sfx = require(script.Parent.Parent.Sfx)
 local Skin = require(script.Parent.Skin)
@@ -124,7 +125,6 @@ function Widgets.button(
 		Parent = parent,
 	})
 	Skin.button(b, preset or "fuse")
-	local scale = new("UIScale", { Parent = b })
 	local label = Widgets.label(b, {
 		Text = text,
 		Size = UDim2.fromScale(1, 1),
@@ -133,19 +133,7 @@ function Widgets.button(
 		ZIndex = 8,
 	})
 	local enabled = true
-	b.MouseButton1Down:Connect(function()
-		if not enabled then
-			return
-		end
-		TweenService:Create(scale, TweenInfo.new(0.06), { Scale = 0.94 }):Play()
-	end)
-	b.MouseButton1Up:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-			:Play()
-	end)
-	b.MouseLeave:Connect(function()
-		scale.Scale = 1
-	end)
+	Motion.button(b) -- hover lift + light + shine, press squish, release bounce (UI/Motion)
 	b.Activated:Connect(function()
 		if not enabled then
 			Sfx.play("UiDeny")
@@ -206,58 +194,27 @@ function Widgets.countUp(label: TextLabel, from: number, to: number, format: ((n
 	end)
 end
 
--- A gentle breathing pulse on a claimable thing (Asset Bible §6.5). Returns a stop function.
+-- A gentle breathing pulse on a claimable thing (Asset Bible §6.5). Returns a stop function. It is a channel on the
+-- frame's one UIScale (UI/Motion), so it multiplies with the fit and the hover instead of being ignored.
 function Widgets.pulse(target: GuiObject): () -> ()
-	local s = target:FindFirstChild("PulseScale") :: UIScale?
-	if not s then
-		s = new("UIScale", { Name = "PulseScale", Parent = target })
-	end
-	local scale = s :: UIScale
 	if reduced() then
 		return function() end
 	end
-	local tween = TweenService:Create(
-		scale,
-		TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-		{ Scale = 1.04 }
-	)
-	tween:Play()
+	Motion.tween(target, "Pulse", 1.04, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true))
 	return function()
-		tween:Cancel()
-		scale.Scale = 1
+		Motion.set(target, "Pulse", 1)
 	end
 end
 
--- Spring a frame in (scale 0.85 → 1, Asset Bible §6.5) or fade it in under Reduce Motion.
+-- Spring a frame in (scale 0.85 → 1 with a soft overshoot, Asset Bible §6.5), growing from its visual centre
+-- whatever its AnchorPoint; under Reduce Motion it just appears.
 function Widgets.springIn(target: GuiObject, from: number?)
-	local s = target:FindFirstChild("OpenScale") :: UIScale?
-	if not s then
-		s = new("UIScale", { Name = "OpenScale", Parent = target })
-	end
-	local scale = s :: UIScale
-	if reduced() then
-		scale.Scale = 1
-		return
-	end
-	scale.Scale = from or 0.85
-	TweenService:Create(scale, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
+	Motion.open(target, from)
 end
 
--- Close motion: scale to 0.92 and fade, then run `after`.
+-- Close motion: a quick shrink toward the centre, then `after`.
 function Widgets.springOut(target: GuiObject, after: (() -> ())?)
-	local s = target:FindFirstChild("OpenScale") :: UIScale?
-	if not s then
-		s = new("UIScale", { Name = "OpenScale", Parent = target })
-	end
-	TweenService
-		:Create(s :: UIScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0.92 })
-		:Play()
-	task.delay(0.12, function()
-		if after then
-			after()
-		end
-	end)
+	Motion.close(target, after)
 end
 
 -- A chunky progress bar in a dark well. Returns the fill frame and a setter (0..1, animated).
