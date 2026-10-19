@@ -62,3 +62,8 @@ art/out/Prop.*/export/textures_*/*.png
 art/ref/gems/
 art/ref/quarry/
 art/ref/video2/
+
+# Licensed SFX pack: the source files and the mastered wavs stay on the owner's PC (licensed, not ours to redistribute);
+# art/audio/master_licensed.py rebuilds the masters, art/out/Audio/Licensed/ids.json keeps the uploaded ids
+art/audio/in/
+art/out/Audio/Licensed/*.wav

@@ -1129,7 +1129,7 @@ local function nextToast()
 		ZIndex = 5,
 	})
 	line.TextTruncate = Enum.TextTruncate.AtEnd
-	Sfx.play("QuestDone")
+	Sfx.play("Notify") -- a rare attention moment (NEW ITEM), so the announcement chime
 	local inPos = UDim2.new(1, -16, 0, 120)
 	game:GetService("TweenService")
 		:Create(holder, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = inPos })
@@ -1196,8 +1196,8 @@ function StoreController.start()
 		if type(r) ~= "table" then
 			return
 		end
-		if r.kind == "Bought" then
-			Sfx.play("Claim")
+		if r.kind == "Bought" or r.kind == "Pack" then
+			Sfx.play("Purchase")
 		elseif r.kind == "Equipped" then
 			Sfx.play("UiPress")
 		elseif r.kind == "Item" and type(r.id) == "string" then

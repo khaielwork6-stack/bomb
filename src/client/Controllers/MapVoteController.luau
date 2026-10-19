@@ -251,7 +251,7 @@ local function build(options: { Option }, endsAt: number)
 		ZIndex = 4,
 	})
 	Widgets.springIn(holder)
-	Sfx.play("UiOpen")
+	Sfx.play("Notify") -- once per intermission: the call to vote
 	-- live counts, voter heads, the countdown, the gold ring on my pick
 	local headCache: { [number]: string } = {}
 	local shown: { [string]: string } = {}

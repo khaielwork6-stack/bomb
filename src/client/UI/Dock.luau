@@ -180,8 +180,7 @@ function Dock.tile(parent: Instance, name: string, icon: string, onClick: () -> 
 	b.MouseLeave:Connect(release)
 	b.MouseButton1Down:Connect(press)
 	b.MouseButton1Up:Connect(function()
-		release()
-		Sfx.play("UiRelease")
+		release() -- no separate release sound: the click (UiPress) carries press and release
 	end)
 	b.Activated:Connect(function()
 		if Modal.blocking() then

@@ -210,7 +210,7 @@ local function toggle(face: Frame, key: string)
 		local on = not (Settings.get(key) == true)
 		Settings.set(key, on)
 		show(on, true)
-		Sfx.play("UiPress")
+		Sfx.play(if on then "ToggleOn" else "ToggleOff")
 	end)
 end
 

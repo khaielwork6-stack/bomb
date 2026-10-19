@@ -34,7 +34,8 @@ local function step(t: Track, leg: BasePart, speed: number, isMe: boolean)
 	-- Walk (≈6 studs/s) soft and low, a full run brighter and a touch louder; a little random pitch each time.
 	local pace = math.clamp((speed - MIN_SPEED) / 20, 0, 1)
 	local vol = (0.45 + 0.55 * pace) * (if isMe then 1 else OTHERS)
-	local pitch = (0.92 + 0.16 * pace) * (0.96 + math.random() * 0.08)
+	-- recorded steps: keep the pitch close to the recording (±2 % random, +4 % at a full run) so they stay natural
+	local pitch = (0.98 + 0.04 * pace) * (0.98 + math.random() * 0.04)
 	local k = math.random(1, #KEYS - 1)
 	if k >= lastKey then
 		k += 1 -- never the same recording twice in a row

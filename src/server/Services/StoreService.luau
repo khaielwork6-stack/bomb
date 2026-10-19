@@ -468,6 +468,7 @@ local function receive(
 	local function grant()
 		if prod.stars then
 			ProgressionService.grant(p, 0, prod.stars, "Robux:" .. k)
+			Net.fire(player, "Reward", { kind = "Pack", product = k, stars = prod.stars }) -- the purchase sound
 		end
 		if prod.items then
 			for _, id in ipairs(prod.items) do

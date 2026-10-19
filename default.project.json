@@ -39,7 +39,8 @@
         "$path": "builders"
       },
       "AnimTools": {
-        "$path": "tools/anim"
+        "$path": "tools/anim",
+        "$ignoreUnknownInstances": true
       }
     }
   }

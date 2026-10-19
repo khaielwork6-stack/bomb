@@ -1,7 +1,7 @@
 --!strict
 -- Every asset reference goes through this table (Asset Bible §10.5): code uses keys, never raw ids.
 -- src: R = Roblox official, PSE = ProSoundEffects, APM = APMOfficial, C = verified community, BI = built-in,
--- FV = sound-designed in-house (art/audio).
+-- FV = sound-designed in-house (art/audio), MA = the licensed MA BG pack (art/audio/in → master_licensed.py).
 -- An id of "" means the in-house file is waiting to be uploaded; code falls back until it lands.
 -- P0: only what the transferred movement uses (from Chase Game). The FUSE VALLEY sound stacks (Asset Bible §9) and
 -- the bomb's assets are added as their phases land.
@@ -15,6 +15,7 @@ type Sound = {
 	alt: { string }?, -- other takes of the same sound, picked at random (a frequent moment never repeats exactly)
 	fallback: string?, -- an in-house (FV) upload's licensed stand-in, played if the upload fails to load (moderation)
 	region: { number }?, -- play only this slice of the file (seconds)
+	gap: number?, -- minimum seconds between two plays of this key (spam guard for hover / deny)
 }
 
 local function s(id: number | string, volume: number, src: string, extra: { [string]: any }?): Sound
@@ -46,11 +47,12 @@ Assets.SFX = {
 		"FV",
 		{ pitch = { 0.92, 1.06 }, fallback = "rbxasset://sounds/action_jump_land.mp3" }
 	),
-	-- Footsteps: four soft single-hit steps, one picked at random per footfall (FootstepController sets the pace).
-	Footstep1 = s(83118919801898, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://123224557798023" }),
-	Footstep2 = s(132859876751182, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://131412978408311" }),
-	Footstep3 = s(117564083525822, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://114768473003662" }),
-	Footstep4 = s(131466290951841, 0.3, "FV", { pitch = { 0.92, 1.08 }, fallback = "rbxassetid://91882016473062" }),
+	-- Footsteps: four recorded concrete heel-toe steps (MA pack, level-matched by master_licensed.py), one picked at
+	-- random per footfall, never the same twice (FootstepController sets the pace). `fallback` = the in-house steps.
+	Footstep1 = s(120537674142798, 0.45, "MA", { pitch = { 0.97, 1.03 }, fallback = "rbxassetid://83118919801898" }),
+	Footstep2 = s(124641044387047, 0.45, "MA", { pitch = { 0.97, 1.03 }, fallback = "rbxassetid://132859876751182" }),
+	Footstep3 = s(134717983508465, 0.45, "MA", { pitch = { 0.97, 1.03 }, fallback = "rbxassetid://117564083525822" }),
+	Footstep4 = s(75329618622008, 0.45, "MA", { pitch = { 0.97, 1.03 }, fallback = "rbxassetid://131466290951841" }),
 
 	-- The bomb (Asset Bible §9.2; licensed APM / Pro Sound Effects / Roblox, most already shipped by Chase Game).
 	-- Each moment is a STACK of layers (AudioController), never one stock sound.
@@ -88,21 +90,33 @@ Assets.SFX = {
 	CrowdCheer = s(9120974378, 0.6, "PSE"),
 	CrowdGasp = s(9114013354, 0.6, "PSE"),
 	WinSting = s(1841980129, 0.85, "APM"),
-	-- UI (Asset Bible §6.3, §6.5): the in-house UI pack (art/audio/make_ui.py, modal synthesis) — an arcade
-	-- microswitch press / release, a soft hover tick, the deny buzz, panel open / close whooshes, a wooden tab tok,
-	-- the coin chime (pitched up per coin by the counter) and the claim chime. The clamp low stays the calendar stamp.
-	UiPress = s(81143391231439, 0.4, "FV", { pitch = { 0.97, 1.03 } }),
+	-- UI (Asset Bible §6.3, §6.5). The licensed MA pack where it fits (each placed by meaning, not just sound):
+	-- the click (press + release in one, so UiRelease is no longer played) on every button and, pitched up, on tabs;
+	-- a soft no-attack swell on hover; a rising "on" and a falling "off" for settings toggles, the "off" doubling as
+	-- the gentle deny; "earn" on every claim; "purchase" on every buy; "notify" only on rare attention moments (the
+	-- map vote opening, a NEW ITEM toast), never on callouts. `fallback` = the in-house sound while moderation runs.
+	-- The rest stays in-house (art/audio/make_ui.py) until licensed replacements arrive.
+	UiPress = s(103221186174166, 0.7, "MA", { pitch = { 0.98, 1.02 }, fallback = "rbxassetid://81143391231439" }),
 	UiRelease = s(84273825969787, 0.3, "FV", { pitch = { 0.97, 1.03 } }),
-	UiHover = s(88139694011190, 0.16, "FV", { pitch = { 0.95, 1.05 } }),
-	UiDeny = s(120904740098220, 0.38, "FV"),
+	UiHover = s(
+		81336814545607,
+		0.1,
+		"MA",
+		{ pitch = { 0.97, 1.03 }, gap = 0.08, fallback = "rbxassetid://88139694011190" }
+	),
+	UiDeny = s(89291088515971, 0.55, "MA", { gap = 0.25, fallback = "rbxassetid://120904740098220" }),
+	ToggleOn = s(128576867211606, 0.55, "MA", { fallback = "rbxassetid://81143391231439" }),
+	ToggleOff = s(89291088515971, 0.55, "MA", { fallback = "rbxassetid://84273825969787" }),
+	Purchase = s(89949934133752, 0.8, "MA", { fallback = "rbxassetid://72019982036724" }),
+	Notify = s(120568784950730, 0.6, "MA", { fallback = "rbxassetid://78051789530604" }),
 	UiOpen = s(84771068236030, 0.35, "FV"),
 	UiClose = s(136899153333162, 0.3, "FV"),
-	UiTab = s(74212251876794, 0.35, "FV", { pitch = { 0.96, 1.04 } }),
+	UiTab = s(103221186174166, 0.5, "MA", { pitch = { 1.1, 1.14 }, fallback = "rbxassetid://74212251876794" }),
 	CoinTick = s(136647661605856, 0.22, "FV", { pitch = { 1.0, 1.06 } }),
-	Claim = s(72019982036724, 0.55, "FV"),
+	Claim = s(115339350198039, 0.8, "MA", { fallback = "rbxassetid://72019982036724" }),
 	Stamp = s(88717870625190, 0.6, "FV", { pitch = { 0.95, 1.05 }, fallback = "rbxassetid://9125782643" }),
 	LevelUp = s(106482575046928, 0.7, "FV", { fallback = "rbxassetid://1841980129" }),
-	QuestDone = s(78051789530604, 0.55, "FV", { fallback = "rbxassetid://9047103106" }),
+	QuestDone = s(115339350198039, 0.75, "MA", { fallback = "rbxassetid://78051789530604" }),
 	LoseSting = s(1839303737, 0.75, "APM"),
 	-- The rest of the Asset Bible §9.2 registry, sound-designed in-house (art/audio/make_sfx.py).
 	BombIgnite = s(94650004025445, 0.6, "FV", { pitch = { 0.96, 1.04 } }), -- match strike + fuse catch: a fresh bomb

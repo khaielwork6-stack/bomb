@@ -1,0 +1,13 @@
+{
+  "ui_click": "rbxassetid://103221186174166",
+  "ui_hover": "rbxassetid://81336814545607",
+  "ui_on": "rbxassetid://128576867211606",
+  "ui_off": "rbxassetid://89291088515971",
+  "earn": "rbxassetid://115339350198039",
+  "purchase": "rbxassetid://89949934133752",
+  "notify": "rbxassetid://120568784950730",
+  "step_concrete_1": "rbxassetid://120537674142798",
+  "step_concrete_2": "rbxassetid://124641044387047",
+  "step_concrete_3": "rbxassetid://134717983508465",
+  "step_concrete_4": "rbxassetid://75329618622008"
+}

@@ -29,13 +29,14 @@ function Sfx.setVolume(v: number)
 	getGroup().Volume = v
 end
 
--- In-house uploads that failed to load (moderation): play their licensed `fallback` instead (checked once, at start).
+-- Uploads that failed to load (moderation, or still under review): play their `fallback` instead (checked once,
+-- at start).
 local failed: { [string]: boolean } = {}
 task.spawn(function()
 	local list: { Instance } = {}
 	local keyOf: { [Instance]: string } = {}
 	for key, def in pairs(Assets.SFX :: any) do
-		if def.fallback and def.src == "FV" then
+		if def.fallback and (def.src == "FV" or def.src == "MA") then
 			local probe = Instance.new("Sound")
 			probe.SoundId = def.id
 			probe.Volume = 0
@@ -114,8 +115,18 @@ function Sfx.preload(keys: { string })
 	end)
 end
 
--- 2D (global) sound.
+local lastPlay: { [string]: number } = {}
+
+-- 2D (global) sound. A key with a `gap` plays at most once per gap (hover sweeps, mashed disabled buttons).
 function Sfx.play(key: string, volumeMult: number?, pitch: number?)
+	local def = (Assets.SFX :: any)[key]
+	if def and def.gap then
+		local now = os.clock()
+		if now - (lastPlay[key] or -math.huge) < def.gap then
+			return
+		end
+		lastPlay[key] = now
+	end
 	local s = make(key)
 	if not s then
 		return
