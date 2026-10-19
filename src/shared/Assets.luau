@@ -821,4 +821,43 @@ Assets.Skins = {
 	},
 } :: { [string]: { [string]: { color: string, normal: string, rough: string, metal: string } } }
 
+-- Title word art (art/titles/build.py: 3D glossy toy letters + one outline + drop shadow, ≤1024 px wide). `size` is
+-- the PNG's pixel size, so Client/UI/TitleArt keeps the aspect; `mask` is the letters-only mask the live shine sweeps
+-- inside; `glow` is the word's silhouette blurred wide (tinted live for the halo and the dark backing), `glowScale` its
+-- size relative to the word; `family` picks the live tints.
+Assets.Title =
+	{
+		LastStand = {
+			id = "rbxassetid://79751976720156",
+			mask = "rbxassetid://119596485660670",
+			glow = "rbxassetid://93512086039215",
+			glowScale = Vector2.new(1.149, 1.817),
+			size = Vector2.new(1046, 191),
+			family = "Gold",
+		},
+		Bomber = {
+			id = "rbxassetid://137455419319381",
+			mask = "rbxassetid://112872289674515",
+			glow = "rbxassetid://104281324374981",
+			glowScale = Vector2.new(1.209, 1.818),
+			size = Vector2.new(1067, 272),
+			family = "Red",
+		},
+		Boom = {
+			id = "rbxassetid://80619794716441",
+			mask = "rbxassetid://124487976229171",
+			glow = "rbxassetid://124248644730864",
+			glowScale = Vector2.new(1.282, 1.826),
+			size = Vector2.new(1092, 373),
+			family = "Fire",
+		},
+	} :: { [string]: { id: string, mask: string, glow: string, glowScale: Vector2, size: Vector2, family: string } }
+
+-- The live layers behind a title (art/titles/fx.py): white, tinted per family in game.
+Assets.TitleFx = {
+	Glow = "rbxassetid://129578054124525",
+	Streak = "rbxassetid://129842641617198",
+	Sparkle = "rbxassetid://83291190481928",
+}
+
 return Assets

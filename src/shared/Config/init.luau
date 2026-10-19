@@ -16,6 +16,7 @@ local Config = {
 	Loading = require(script.Loading),
 	Bots = require(script.Bots),
 	Callouts = require(script.Callouts),
+	Titles = require(script.Titles),
 	Economy = require(script.Economy),
 	Daily = require(script.Daily),
 	Strings = require(script.Strings),
