@@ -104,6 +104,35 @@ function SlapController.playClip(model: Model, name: string, from: number)
 	play(model, name, from)
 end
 
+local grips: { [Instance]: boolean } = {} -- THROW MODE: a Carrier winding up holds their own bomb in the hand
+
+-- Stop a clip (THROW MODE: the hold loop when the throw comes), and set a playing clip's speed.
+local function trackOf(model: Model, name: string): AnimationTrack?
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	local set = animator and tracks[animator]
+	return set and set[name]
+end
+
+function SlapController.stopClip(model: Model, name: string, fade: number?)
+	local track = trackOf(model, name)
+	if track and track.IsPlaying then
+		track:Stop(fade or 0.05)
+	end
+end
+
+function SlapController.setSpeed(model: Model, name: string, speed: number)
+	local track = trackOf(model, name)
+	if track and track.IsPlaying then
+		track:AdjustSpeed(speed)
+	end
+end
+
+-- THROW MODE: a Carrier's own bomb in the throwing hand while they wind up (the back bomb hides meanwhile).
+function SlapController.grip(host: Instance, on: boolean)
+	grips[host] = if on then true else nil
+end
+
 -- Hold a clip on one frame (THROW MODE's wind-up: the arm drawn back) until playClip plays it on.
 function SlapController.holdClip(model: Model, name: string, at: number)
 	play(model, name, at)
@@ -124,6 +153,7 @@ type Hand = {
 	shown: boolean,
 	popAt: number, -- os.clock() the current pop-in started
 	skin: string?,
+	scale: number,
 }
 local hands: { [Instance]: Hand } = {}
 local slappedAt: { [Instance]: number } = {} -- a hand is empty from its slap until the cooldown ends
@@ -134,7 +164,8 @@ local function template(): Model?
 	return if t and t:IsA("Model") then t else nil
 end
 
-local function buildHand(arm: BasePart, skin: string?): Hand?
+local function buildHand(arm: BasePart, skin: string?, scale: number?): Hand?
+	local size = scale or F.HAND_BOMB_SCALE
 	local tpl = template()
 	if not tpl then
 		return nil
@@ -165,8 +196,8 @@ local function buildHand(arm: BasePart, skin: string?): Hand?
 	}) :: BasePart
 	model.PrimaryPart = mount
 	mount.CFrame = CFrame.new(centre)
-	model:ScaleTo(F.HAND_BOMB_SCALE)
-	local face = BombFace.attach(model, mount, F.HAND_BOMB_SCALE)
+	model:ScaleTo(size)
+	local face = BombFace.attach(model, mount, size)
 	local grip = arm.CFrame
 		* F.HAND_BOMB_GRIP
 		* CFrame.Angles(0, 0, -math.rad(F.HAND_BOMB_TILT)) -- the fuse leans out to the Bomber's right
@@ -211,7 +242,7 @@ local function buildHand(arm: BasePart, skin: string?): Hand?
 		})
 	end
 	model.Parent = arm.Parent
-	return { model = model, mount = mount, face = face, shown = true, popAt = os.clock(), skin = skin }
+	return { model = model, mount = mount, face = face, shown = true, popAt = os.clock(), skin = skin, scale = size }
 end
 
 local function dropHand(host: Instance)
@@ -247,6 +278,9 @@ local LIVE = { [Ph.Intro] = true, [Ph.Ready] = true, [Ph.Crossing] = true, [Ph.R
 
 -- Should this host hold a bomb right now (a Bomber in play), and is the tag ready?
 local function wants(host: Instance, t: number): (boolean, boolean)
+	if grips[host] and LIVE[ClientState.phase()] then
+		return true, true -- THROW MODE: a Carrier's own bomb, in the hand for the wind-up
+	end
 	if not LIVE[ClientState.phase()] or host:GetAttribute("Role") ~= "Bomber" or host:GetAttribute("Mega") then
 		return false, false
 	end
@@ -293,12 +327,13 @@ local function step(dt: number)
 			local skin = host:GetAttribute("Eq_BombSkin")
 			local skinId = if type(skin) == "string" then skin else nil
 			local h = hands[host]
-			if h and (h.model.Parent ~= char or h.skin ~= skinId) then
+			local size = if grips[host] then F.CARRY_HAND_SCALE else F.HAND_BOMB_SCALE
+			if h and (h.model.Parent ~= char or h.skin ~= skinId or h.scale ~= size) then
 				dropHand(host)
 				h = nil
 			end
 			if not h and ready then
-				h = buildHand(arm, skinId)
+				h = buildHand(arm, skinId, size)
 				hands[host] = h
 			end
 			if h then
@@ -314,8 +349,8 @@ local function step(dt: number)
 					-- pop in: a quick swell that settles (the fresh bomb "grows back")
 					local k = math.clamp((clock - h.popAt) / F.HAND_REGROW, 0, 1)
 					local s = if k < 1 then 0.2 + 0.8 * math.sin(k * math.pi * 0.62) / math.sin(math.pi * 0.62) else 1
-					if k < 1 or h.model:GetScale() ~= F.HAND_BOMB_SCALE then
-						h.model:ScaleTo(F.HAND_BOMB_SCALE * (if k < 1 then s else 1))
+					if k < 1 or h.model:GetScale() ~= h.scale then
+						h.model:ScaleTo(h.scale * (if k < 1 then s else 1))
 					end
 					if h.face then
 						local target = if regaze then nearestRunner(h.mount.Position, char) else nil

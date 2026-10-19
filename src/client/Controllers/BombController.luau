@@ -823,12 +823,18 @@ function BombController.deferAttach(host: Instance, untilClock: number)
 	deferred[host] = untilClock
 end
 
+-- THROW MODE: a Carrier winding up holds the bomb in the hand (SlapController draws it there).
+local inHand: { [Instance]: boolean } = {}
+function BombController.setInHand(host: Instance, on: boolean)
+	inHand[host] = if on then true else nil
+end
+
 local function step(dt: number)
 	local t = now()
 	local seen = {}
 	for _, host in ipairs(hosts()) do
 		local id = host:GetAttribute("BombId")
-		if id ~= nil and host:GetAttribute("BombThrown") then
+		if id ~= nil and (host:GetAttribute("BombThrown") or inHand[host]) then
 			seen[host] = true -- THROW MODE: it's in the air (ThrowController draws it); back on the back when it returns
 			if visuals[host] then
 				remove(host)

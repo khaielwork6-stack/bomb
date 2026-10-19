@@ -44,6 +44,14 @@ return {
 	KICK_FOV = 3, -- degrees of FOV punch when a bomb lands on you
 
 	-- The pass flight (§7.4, §10.3): the real bomb (the giver's skin) flies back to back with a motion trail.
+	-- THROW MODE's body (tools/anim ThrowCoil / ThrowHold / Throw, GDD §7.4c)
+	THROW_COIL_TIME = 0.26, -- ThrowCoil's length (less a blend): then ThrowHold loops
+	THROW_HOLD_SPEED = { 1, 2.6 }, -- ThrowHold plays faster as the power builds (the strain trembles harder)
+	THROW_CLIP_FROM = 0.05, -- Throw starts here on release…
+	THROW_RELEASE_AT = 0.105, -- …and the bomb leaves the hand on this frame (the whip's `hit`)
+	THROW_RELEASE_FREEZE = 0.05, -- the thrower holds the release pose for a beat
+	THROW_REMOTE_FROM = 0.09, -- other players' Throw starts here (the server already let it go)
+	CARRY_HAND_SCALE = 0.62, -- a Carrier's own bomb in the hand while winding up (a Bomber's hand bomb is HAND_BOMB_SCALE)
 	PASS_TIME = 0.26, -- D-PASS-02: long enough to see it fly (0.18 was a blur between two touching bodies)
 	PASS_ARC = 3.2, -- studs of lift at the middle of the arc
 	PASS_SPINS = 1.5, -- full turns in flight

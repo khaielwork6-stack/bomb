@@ -400,24 +400,37 @@ end
 -- ── THROW MODE (GDD §7.4c F-THROW-08): bots throw and dodge ────────────────────────────────────────────────────
 -- Throw at a body: the same aim solve the player's aim assist uses, led by the target's motion (weaker tiers lead
 -- less), with aim and power error by tier; one decision per reaction time.
-local function botThrow(p: Participant, brain: Brain, root: BasePart, target: Seen): boolean
+local function botThrow(p: Participant, brain: Brain, _root: BasePart, target: Seen): boolean
 	local clock = os.clock()
 	if clock < (brain.throwNext or 0) then
 		return false
 	end
-	brain.throwNext = clock + rng:NextNumber(TH.BOT_REACT[1], TH.BOT_REACT[2]) / brain.tier.pace
-	local origin = root.Position + Vector3.new(0, TH.RELEASE_UP, 0)
-	-- the throw inherits some of the bot's own motion: aim at the target relative to that
-	local rel = (target.vel - root.AssemblyLinearVelocity * TH.INHERIT) * (1 - brain.tier.error)
-	local aim, power = ThrowPhysics.solve(origin, target.pos, rel)
-	if not aim or not power then
-		return false
-	end
-	local err = math.rad(rng:NextNumber(-1, 1) * TH.BOT_AIM_ERROR * (1 - brain.tier.dash * 0.8))
-	local a = aim :: Vector3
-	a = Vector3.new(a.X * math.cos(err) - a.Z * math.sin(err), 0, a.X * math.sin(err) + a.Z * math.cos(err))
-	local pw = math.clamp((power :: number) + rng:NextNumber(-0.06, 0.06) * (1 - brain.tier.dash), 0, 1)
-	return BombService.throw(p, a, pw)
+	local wind = rng:NextNumber(TH.BOT_WINDUP[1], TH.BOT_WINDUP[2]) / brain.tier.pace
+	brain.throwNext = clock + wind + rng:NextNumber(TH.BOT_REACT[1], TH.BOT_REACT[2]) / brain.tier.pace
+	-- the wind-up everyone can see (and dodge), then the throw aimed at where the target is by then
+	Net.fireAll("BombFx", { kind = "Windup", who = p.id, on = true })
+	local victim = target.p
+	task.delay(wind, function()
+		local r, tr = p.root, victim.root
+		local thrown = false
+		if r and tr and p.state == S.Active and BombService.live then
+			local origin = r.Position + Vector3.new(0, TH.RELEASE_UP, 0)
+			-- the throw inherits some of the bot's own motion: aim at the target relative to that
+			local rel = (tr.AssemblyLinearVelocity - r.AssemblyLinearVelocity * TH.INHERIT) * (1 - brain.tier.error)
+			local aim, power = ThrowPhysics.solve(origin, tr.Position, rel)
+			if aim and power then
+				local err = math.rad(rng:NextNumber(-1, 1) * TH.BOT_AIM_ERROR * (1 - brain.tier.dash * 0.8))
+				local a = aim :: Vector3
+				a = Vector3.new(a.X * math.cos(err) - a.Z * math.sin(err), 0, a.X * math.sin(err) + a.Z * math.cos(err))
+				local pw = math.clamp((power :: number) + rng:NextNumber(-0.06, 0.06) * (1 - brain.tier.dash), 0, 1)
+				thrown = BombService.throw(p, a, pw)
+			end
+		end
+		if not thrown then
+			Net.fireAll("BombFx", { kind = "Windup", who = p.id, on = false })
+		end
+	end)
+	return true
 end
 
 -- Dodge what's coming: once per flight a bot picks how (by tier): a parry timed to the arrival, a dash across the

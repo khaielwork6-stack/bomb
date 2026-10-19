@@ -55,6 +55,7 @@ return {
 	-- Bots (F-THROW-08)
 	BOT_RANGE = 34, -- throw at targets within this
 	BOT_REACT = { 0.35, 0.9 }, -- seconds between throw decisions (÷ the tier's pace)
+	BOT_WINDUP = { 0.28, 0.5 }, -- a bot's visible wind-up before it lets go (÷ pace): players can read it
 	BOT_AIM_ERROR = 14, -- degrees of aim error for the weakest tier (Pro ≈ a quarter of it)
 	BOT_DODGE_LOOK = 0.45, -- a throw that will reach a bot within this many seconds…
 	BOT_DODGE_MISS = 3.0, -- …and pass this close is dodged

@@ -1,5 +1,10 @@
 --!strict
 -- THROW MODE on every client (GDD §7.4c, D-THROW-01: "the bomb is a ball").
+--   The body (tools/anim, 60 fps): ThrowCoil the moment you press (a dip, then a pitcher's wind-up: the torso turns
+--   away, the arm flies up behind the head, the free arm points at the target), ThrowHold while you hold (the strain
+--   trembles faster as the power builds), Throw on release (a last squeeze, the whip cracks over the top, the bomb
+--   leaves on the whip's frame with a freeze, a huge follow-through). A Carrier's bomb moves from the back into the
+--   hand for the wind-up. Everyone else sees your wind-up too (ThrowWindup relay), so a throw can be read and dodged.
 --   Your throw (F-THROW-01): hold click / R2 / THROW to wind up (the arm draws back and holds, the power ticks up),
 --   aim with the camera, let go. A tap throws at once. While you hold, a dotted arc shows exactly where it will come
 --   down (the same physics the server runs, Shared/ThrowPhysics), and a white outline marks who the aim bends toward.
@@ -24,7 +29,9 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Sfx = require(script.Parent.Parent.Sfx)
 local SkinApply = require(script.Parent.Parent.SkinApply)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local BombController = require(script.Parent.BombController)
 local CameraController = require(script.Parent.CameraController)
+local FxController = require(script.Parent.FxController)
 local ImpactController = require(script.Parent.ImpactController)
 local InputController = require(script.Parent.InputController)
 local SlapController = require(script.Parent.SlapController)
@@ -254,6 +261,94 @@ local function step(dt: number)
 	end
 end
 
+-- ── The body: coil → hold → throw (tools/anim) ──────────────────────────────────────────────────────────────────
+local windToken: { [Instance]: number } = {}
+
+local function modelOf(host: Instance): Model?
+	if host:IsA("Player") then
+		return host.Character
+	end
+	return if host:IsA("Model") then host else nil
+end
+
+-- The wind-up: the coil, then the hold loop; a Carrier's bomb moves from the back into the hand.
+local function windUp(host: Instance)
+	local model = modelOf(host)
+	if not model then
+		return
+	end
+	local token = (windToken[host] or 0) + 1
+	windToken[host] = token
+	if host:GetAttribute("BombId") ~= nil and host:GetAttribute("Role") == "Runner" then
+		SlapController.grip(host, true)
+		BombController.setInHand(host, true)
+	end
+	SlapController.playClip(model, "ThrowCoil", 0)
+	task.delay(F.THROW_COIL_TIME, function()
+		if windToken[host] == token then
+			SlapController.playClip(model, "ThrowHold", 0)
+			SlapController.stopClip(model, "ThrowCoil", 0.06)
+		end
+	end)
+end
+
+-- The release (or a cancel): the hold stops, Throw plays from `from`; the bomb leaves the hand.
+local function letGo(host: Instance, from: number?)
+	windToken[host] = (windToken[host] or 0) + 1
+	local model = modelOf(host)
+	if model then
+		SlapController.stopClip(model, "ThrowCoil", 0.04)
+		SlapController.stopClip(model, "ThrowHold", 0.04)
+		if from then
+			SlapController.playClip(model, "Throw", from)
+		end
+	end
+	SlapController.grip(host, false)
+	-- the back bomb comes back only if it didn't fly (BombThrown takes over once the server says it did)
+	task.delay(0.45, function()
+		BombController.setInHand(host, false)
+	end)
+end
+
+-- The release burst at the hand: a flash and a spray of speed streaks along the throw.
+local function releaseBurst(pos: Vector3, dir: Vector3, power: number)
+	local att = new("Attachment", { WorldPosition = pos, Parent = workspace.Terrain }) :: Attachment
+	if dir.Magnitude > 1e-3 then
+		att.CFrame = CFrame.lookAt(pos, pos + dir)
+	end
+	task.delay(1, function()
+		att:Destroy()
+	end)
+	local flash = new("ParticleEmitter", {
+		Texture = Assets.Vfx.Flash,
+		Lifetime = NumberRange.new(0.08),
+		Size = NumberSequence.new(1.6 + 1.6 * power, 0.3),
+		Transparency = NumberSequence.new(0.1, 1),
+		Color = ColorSequence.new(Color3.fromRGB(255, 240, 200)),
+		LightEmission = 1,
+		LightInfluence = 0,
+		ZOffset = 1,
+		Rate = 0,
+		Parent = att,
+	}) :: ParticleEmitter
+	flash:Emit(1)
+	local streaks = new("ParticleEmitter", {
+		Texture = Assets.Vfx.Streak,
+		Lifetime = NumberRange.new(0.1, 0.2),
+		Speed = NumberRange.new(30 + 30 * power, 55 + 45 * power),
+		SpreadAngle = Vector2.new(14, 14),
+		EmissionDirection = Enum.NormalId.Front,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		Size = NumberSequence.new(0.3, 0),
+		Color = ColorSequence.new(Color3.new(1, 1, 1), P.Spark),
+		LightEmission = 1,
+		LightInfluence = 0,
+		Rate = 0,
+		Parent = att,
+	}) :: ParticleEmitter
+	streaks:Emit(math.floor(6 + 8 * power))
+end
+
 -- ── Your throw: charge, aim, preview ────────────────────────────────────────────────────────────────────────────
 local charging = false
 local chargeAt = 0
@@ -397,8 +492,9 @@ local function startCharge(): boolean
 		return false
 	end
 	charging, chargeAt, ticks = true, os.clock(), 0
-	SlapController.holdClip(char, "Slap", 0.02) -- the arm draws back and holds
-	Sfx.play("SlapSwing", 0.35, 0.7)
+	windUp(player)
+	Net.send("ThrowWindup", true)
+	Sfx.play("SlapSwing", 0.45, 0.6)
 	return true
 end
 
@@ -410,11 +506,9 @@ local function release()
 	hidePreview()
 	local kind = throwKind()
 	local root = myRoot()
-	local char = player.Character
-	if char then
-		SlapController.playClip(char, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
-	end
+	letGo(player, if kind and root then F.THROW_CLIP_FROM else nil)
 	if not kind or not root then
+		Net.send("ThrowWindup", false)
 		return
 	end
 	local held = os.clock() - chargeAt
@@ -425,28 +519,39 @@ local function release()
 		pw = autoPower -- a phone throw takes the power for the distance
 	end
 	nextThrow = os.clock() + TH.COOLDOWN
-	Net.send("Throw", aim, pw)
-	-- drawn at once; the server's flight takes over when it arrives
-	local origin = root.Position + Vector3.new(0, TH.RELEASE_UP, 0) + aim * TH.RELEASE_FORWARD
-	local vel = ThrowPhysics.launch(aim, pw) + root.AssemblyLinearVelocity * FLAT * TH.INHERIT
-	local model = buildModel(ClientState.myId(), kind == "Tag")
-	if model then
-		drop("mine")
-		flights["mine"] = {
-			model = model,
-			state = ThrowPhysics.new(origin, vel),
-			owner = ClientState.myId(),
-			bombId = player:GetAttribute("BombId"),
-			tag = kind == "Tag",
-			turn = CFrame.identity,
-			predicted = true,
-			bornAt = os.clock(),
-		}
-	end
-	Sfx.play("PassWhoosh", 0.9, 0.85 + 0.45 * pw)
-	if not ImpactController.calm() then
-		CameraController.punch(F.KICK_FOV * (0.4 + 0.6 * pw))
-	end
+	-- the bomb leaves the hand on the whip's frame (the clip's `hit`), not on the click: the body sells the throw
+	task.delay(F.THROW_RELEASE_AT - F.THROW_CLIP_FROM, function()
+		local r = myRoot()
+		if not r or throwKind() ~= kind then
+			return
+		end
+		Net.send("Throw", aim, pw)
+		-- drawn at once; the server's flight takes over when it arrives
+		local origin = r.Position + Vector3.new(0, TH.RELEASE_UP, 0) + aim * TH.RELEASE_FORWARD
+		local vel = ThrowPhysics.launch(aim, pw) + r.AssemblyLinearVelocity * FLAT * TH.INHERIT
+		local model = buildModel(ClientState.myId(), kind == "Tag")
+		if model then
+			drop("mine")
+			flights["mine"] = {
+				model = model,
+				state = ThrowPhysics.new(origin, vel),
+				owner = ClientState.myId(),
+				bombId = player:GetAttribute("BombId"),
+				tag = kind == "Tag",
+				turn = CFrame.identity,
+				predicted = true,
+				bornAt = os.clock(),
+			}
+		end
+		releaseBurst(origin, vel, pw)
+		ImpactController.hitStop(ClientState.myId(), F.THROW_RELEASE_FREEZE) -- the release pose holds a beat
+		Sfx.play("PassWhoosh", 1, 0.8 + 0.5 * pw)
+		Sfx.play("SlapSwing", 0.7, 0.75 + 0.35 * pw)
+		if not ImpactController.calm() then
+			CameraController.punch(F.KICK_FOV * (0.6 + 0.9 * pw))
+			FxController.shake(F.KICK_SHAKE * (0.3 + 0.5 * pw))
+		end
+	end)
 end
 
 local function onSwing(state: Enum.UserInputState): boolean
@@ -474,13 +579,16 @@ local function chargeStep()
 		-- it was passed / defused / the round ended while winding up
 		charging = false
 		hidePreview()
-		local char = player.Character
-		if char then
-			SlapController.playClip(char, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
-		end
+		letGo(player, nil)
+		Net.send("ThrowWindup", false)
 		return
 	end
 	showPreview(root, kind)
+	local char = player.Character
+	if char then
+		local sp = F.THROW_HOLD_SPEED
+		SlapController.setSpeed(char, "ThrowHold", sp[1] + (sp[2] - sp[1]) * power())
+	end
 end
 
 -- ── The server's beats ──────────────────────────────────────────────────────────────────────────────────────────
@@ -522,13 +630,24 @@ local function onBomb(p: any)
 			predicted = false,
 			bornAt = os.clock(),
 		}
-		-- the thrower's arm comes through, and the whoosh
-		local _, thrower = ClientState.byId(p.who)
-		if thrower then
-			SlapController.playClip(thrower, "Slap", math.max(0, F.SLAP_CONTACT - F.SLAP_LEAD))
+		-- the thrower's arm cracks through (from the wind-up if we saw it, straight into the throw if not)
+		local throwerHost = ClientState.byId(p.who)
+		if throwerHost then
+			letGo(throwerHost, F.THROW_REMOTE_FROM)
 		end
 		local pw = if type(p.power) == "number" then p.power else 0.5
-		Sfx.at("PassWhoosh", p.pos, 0.8, 0.85 + 0.45 * pw)
+		releaseBurst(p.pos, p.vel, pw)
+		Sfx.at("PassWhoosh", p.pos, 0.9, 0.8 + 0.5 * pw)
+	elseif p.kind == "Windup" and type(p.who) == "string" and p.who ~= myId then
+		-- someone is winding up: you see it coming
+		local host = ClientState.byId(p.who)
+		if host then
+			if p.on then
+				windUp(host)
+			else
+				letGo(host, nil)
+			end
+		end
 	elseif p.kind == "Bounce" and type(p.flight) == "number" and typeof(p.pos) == "Vector3" then
 		local v = flights[tostring(p.flight)]
 		if v and not v.reel and not v.knocked then

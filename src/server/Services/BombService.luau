@@ -967,6 +967,13 @@ function BombService.start()
 			BombService.throw(p, aim :: Vector3, power :: number)
 		end
 	end)
+	-- others see a throw coming (the relay is presentation only: nothing here changes the rules)
+	Net.on("ThrowWindup", function(player: Player, on: any)
+		local p = Participants.fromPlayer(player)
+		if p and throwMode() and BombService.live and p.state == S.Active and type(on) == "boolean" then
+			Net.fireExcept(player, "BombFx", { kind = "Windup", who = p.id, on = on })
+		end
+	end)
 	AdminService.register("throwmode", function(args)
 		-- throwmode on|off: switch THROW MODE live (A/B the old contact game in one session)
 		local on = args[1] ~= "off" and args[1] ~= false
