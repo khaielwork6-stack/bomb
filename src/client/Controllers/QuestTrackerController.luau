@@ -38,6 +38,7 @@ type Row = {
 	frame: Frame,
 	ringDots: { Frame },
 	ringLabel: TextLabel,
+	pip: Frame,
 	text: TextLabel,
 	count: TextLabel,
 	setBar: (number, boolean?) -> (),
@@ -58,6 +59,7 @@ local function roomy(): boolean
 	return not Screen.touch() and not Screen.compact()
 end
 
+local tickPill: (text: string, progress: number, target: number, color: Color3, done: boolean) -> ()
 local function questText(id: string, target: number): string
 	local t = (S.Quests :: any)[id] or id
 	return if string.find(t, "%%d") then string.format(t, target) else t
@@ -181,6 +183,20 @@ local function build()
 			new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
 			table.insert(dots, dot)
 		end
+		for _, dot in ipairs(dots) do
+			dot.Visible = false -- the segment ring read as an unlabelled dial: a tier pip and the bar say it plainly
+		end
+		local pip = new("Frame", {
+			Name = "Pip",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(18, 18),
+			BackgroundColor3 = P.Safe,
+			ZIndex = 5,
+			Parent = ring,
+		})
+		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = pip })
+		new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2.5, Parent = pip })
 		local ringLabel = Widgets.label(ring, {
 			Size = UDim2.fromScale(1, 1),
 			TextSize = 12,
@@ -233,6 +249,7 @@ local function build()
 			frame = row :: any,
 			ringDots = dots,
 			ringLabel = ringLabel,
+			pip = pip,
 			text = text,
 			count = count,
 			setBar = setBar,
@@ -241,6 +258,92 @@ local function build()
 			progress = -1,
 		})
 	end
+end
+
+local function inLobby(): boolean
+	local ph = ClientState.phase()
+	return ph == Types.Phase.Intermission or ph == Types.Phase.Results or ph == Types.Phase.Boot or ph == ""
+end
+
+-- In a round the tracker is away (the field is the game); a quest ticking up slides in ONE small pill at the left —
+-- the quest, its count, a tick — and slides it out again.
+local pillBusy: Frame? = nil
+tickPill = function(text: string, progress: number, target: number, color: Color3, done: boolean)
+	if pillBusy then
+		pillBusy:Destroy()
+	end
+	local pill = new("Frame", {
+		Name = "QuestTick",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -380, 0.4, 0),
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = P.Ink2,
+		BackgroundTransparency = 0.1,
+		ZIndex = 10,
+		Parent = gui,
+	})
+	pillBusy = pill
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = pill })
+	new("UIStroke", { Color = color, Thickness = 2.5, Parent = pill })
+	new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 14), Parent = pill })
+	new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = pill,
+	})
+	if done then
+		Widgets.icon(pill, "Check", 26, { LayoutOrder = 1, ZIndex = 11 })
+	else
+		local pip = new("Frame", {
+			Size = UDim2.fromOffset(14, 14),
+			BackgroundColor3 = color,
+			LayoutOrder = 1,
+			ZIndex = 11,
+			Parent = pill,
+		})
+		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = pip })
+		new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2, Parent = pip })
+	end
+	local label = Widgets.label(pill, {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 24),
+		TextSize = 16,
+		Text = text,
+		LayoutOrder = 2,
+		ZIndex = 11,
+		stroke = 1.5,
+	})
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	Widgets.label(pill, {
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 24),
+		TextSize = 18,
+		font = Theme.Font.Display,
+		color = color,
+		Text = ("%d/%d"):format(progress, target),
+		LayoutOrder = 3,
+		ZIndex = 11,
+		stroke = 2,
+	})
+	local x = UDim2.new(0, 14 + Screen.safe().left, 0.4, 0)
+	TweenService:Create(pill, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = x })
+		:Play()
+	task.delay(2.4, function()
+		if pill.Parent then
+			TweenService:Create(pill, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(0, -380, 0.4, 0),
+			}):Play()
+			task.delay(0.27, function()
+				pill:Destroy()
+				if pillBusy == pill then
+					pillBusy = nil
+				end
+			end)
+		end
+	end)
 end
 
 -- just right of the dock (one or two columns, at its scale)
@@ -257,9 +360,11 @@ local function apply(s: { [string]: any })
 	local should = (d.flags and d.flags.questsIntro) or (s.rounds or 0) >= 2
 	if should and not revealed then
 		revealed = true
-		TweenService:Create(root, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Position = besideDock(),
-		}):Play()
+		if inLobby() then
+			TweenService:Create(root, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Position = besideDock(),
+			}):Play()
+		end
 	end
 	for i, r in ipairs(rows) do
 		local q = d.quests[i]
@@ -267,13 +372,11 @@ local function apply(s: { [string]: any })
 		if q then
 			local color = TIER_COLOR[q.tier] or P.Paper
 			local frac = q.progress / math.max(1, q.target)
-			local lit = math.floor(frac * SEG + 0.5)
-			for k, dot in ipairs(r.ringDots) do
-				dot.BackgroundColor3 = if k <= lit then color else UNLIT
-			end
+			r.pip.BackgroundColor3 = color
+			r.pip.Visible = not q.done
 			r.text.Text = questText(q.id, q.target)
 			r.count.Text = ("%d/%d"):format(q.progress, q.target)
-			r.ringLabel.Text = if q.done then "" else tostring(q.progress)
+			r.ringLabel.Text = ""
 			r.check.Visible = q.done
 			local fill = r.frame:FindFirstChild("Bar") and (r.frame :: any).Bar:FindFirstChild("Fill")
 			if fill then
@@ -282,8 +385,12 @@ local function apply(s: { [string]: any })
 			local ticked = r.id == q.id and q.progress > r.progress and r.progress >= 0
 			r.setBar(frac, r.id ~= q.id)
 			if ticked then
-				pop(r)
 				Sfx.play("CoinTick")
+				if inLobby() then
+					pop(r)
+				else
+					tickPill(questText(q.id, q.target), q.progress, q.target, color, q.done)
+				end
 			end
 			r.id, r.progress = q.id, q.progress
 		end
@@ -296,18 +403,22 @@ function QuestTrackerController.start()
 	-- the rows stay out of the field during a round (§21.1): collapsed to the rings while playing, expanded between
 	-- rounds on PC (a tap still toggles them until the next phase change)
 	local function auto()
-		local ph = ClientState.phase()
-		local lobby = ph == Types.Phase.Intermission or ph == Types.Phase.Results or ph == Types.Phase.Boot or ph == ""
-		expanded = lobby and roomy()
+		local lobby = inLobby()
+		expanded = true
 		layout()
+		-- the rows only between rounds; during a round the tracker is off-screen (a tick shows as a pill instead)
+		if revealed then
+			local goal = if lobby then besideDock() else UDim2.new(0, -300, 0.4, 0)
+			TweenService:Create(root, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Position = goal }):Play()
+		end
+		local sc = root:FindFirstChild("Fit") :: UIScale?
+		if not sc then
+			sc = new("UIScale", { Name = "Fit", Parent = root })
+		end
+		(sc :: UIScale).Scale = if roomy() then 1 else 0.82
 	end
 	auto()
-	Screen.Changed:Connect(function()
-		auto()
-		if revealed then
-			root.Position = besideDock()
-		end
-	end)
+	Screen.Changed:Connect(auto)
 	local gs = ReplicatedStorage:WaitForChild("GameState") :: Configuration
 	gs:GetAttributeChangedSignal("Phase"):Connect(auto)
 	Progress.Changed:Connect(apply)

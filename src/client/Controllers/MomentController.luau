@@ -29,6 +29,7 @@ local HEAD = 58 -- the title + name rows above the view
 local PAD = 10
 local MARGIN = 16 -- from the screen corner
 local REF_H = 720 -- screens shorter than this scale the card down
+local MAX_W = 0.34 -- the card's widest share of the screen
 local FLAG_BOMB, FLAG_TUMBLED = 1, 2
 
 type Puppet = {
@@ -138,8 +139,18 @@ function MomentController.show(parent: Instance, m: any): () -> ()
 		border2 = P.Ember,
 	})
 	local holder = face.Parent :: Frame
+	-- inside the device's safe area (our screens are edge to edge), and never wider than a third of the screen
+	local function place()
+		local safe = Screen.safe()
+		holder.Position = UDim2.new(1, -(MARGIN + safe.right), 1, -(MARGIN + safe.bottom))
+	end
+	place()
+	local placeConn = Screen.Changed:Connect(place)
+	holder.Destroying:Connect(function()
+		placeConn:Disconnect()
+	end)
 	Screen.fit(holder, function(v)
-		return math.min(1, v.Y / REF_H)
+		return math.min(1, v.Y / REF_H, v.X * MAX_W / CARD_W)
 	end)
 	Widgets.springIn(holder)
 	Widgets.label(face, {

@@ -663,7 +663,7 @@ return function(ctx)
 		billboard(
 			wheel:FindFirstChild("Hub") :: BasePart,
 			"SPIN THE WHEEL",
-			"free spin every 12 hours",
+			"free spin every 8 hours",
 			rgb(255, 214, 46),
 			8.5
 		)
@@ -698,7 +698,7 @@ return function(ctx)
 		billboard(
 			wheel:FindFirstChild("Hub") :: BasePart,
 			"SPIN THE WHEEL",
-			"free spin every 12 hours",
+			"free spin every 8 hours",
 			rgb(255, 214, 46),
 			8
 		)

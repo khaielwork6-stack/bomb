@@ -53,3 +53,13 @@ rr = np.sqrt(x * x + y * y)
 diag = (np.exp(-((d1 / 0.025) ** 2)) + np.exp(-((d2 / 0.025) ** 2))) * np.clip(1 - rr / 0.55, 0, 1) ** 2 * 0.6
 core = np.exp(-((rr / 0.09) ** 2))
 save("fx_sparkle", np.clip(ray_v + ray_h + diag + core, 0, 1))
+
+# ring: a clean anti-aliased band (the carrier badge's fuse countdown fills it radially in game)
+x, y = grid(256, 256)
+r = np.sqrt(x * x + y * y)
+px = 2.0 / 256
+band = np.clip((0.98 - r) / px, 0, 1) * np.clip((r - 0.74) / px, 0, 1)
+save("fx_ring", band)
+
+# disc: a soft-edged dark backing for small badges
+save("fx_disc", np.clip((1.0 - r) / 0.14, 0, 1) ** 1.4)

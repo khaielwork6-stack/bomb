@@ -1,8 +1,8 @@
 --!strict
 -- The loading screen (GDD §20 F-ONB-01, Asset Bible §7.1), in the reference video's join screen: a bright sky with
 -- drifting clouds over the studded ground, the 3D FUSE VALLEY logo in the middle (it breathes), a braided fuse under
--- it that burns down as the game loads (a spark at the burn point), a rotating tip — then the big green PLAY! button
--- and "PRESS PLAY TO JOIN". Pressing it pops the logo and wipes into the game.
+-- it that burns down as the game loads (a spark at the burn point), a rotating tip — then the big green PLAY! button.
+-- Pressing it pops the logo and wipes into the game.
 -- Runs from ReplicatedFirst (before the rest of the client); waits for ReplicatedStorage.Shared only for the asset
 -- ids and strings, drawing the sky and studs straight away.
 -- Implements: F-ONB-01.
@@ -421,19 +421,6 @@ local playText = new("TextLabel", {
 	Parent = play,
 })
 new("UIStroke", { Color = INK, Thickness = 6, Parent = playText })
-local press = new("TextLabel", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0.74, 82),
-	Size = UDim2.fromOffset(600, 40),
-	BackgroundTransparency = 1,
-	FontFace = FONT,
-	TextSize = 36,
-	TextColor3 = Color3.new(1, 1, 1),
-	Text = "PRESS PLAY TO JOIN",
-	ZIndex = 10,
-	Parent = gui,
-})
-new("UIStroke", { Color = INK, Thickness = 4, Parent = press })
 local ps = new("UIScale", { Scale = 0.2, Parent = play })
 TweenService:Create(ps, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 -- the house button feel (the same as UI/Motion, which isn't loaded yet this early): it breathes while idle, springs

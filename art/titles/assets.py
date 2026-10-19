@@ -10,7 +10,8 @@ T = os.path.join(ROOT, "art", "out", "Titles")
 meta = json.load(open(os.path.join(T, "meta.json")))
 ids = json.load(open(os.path.join(T, "ids.json")))
 lines = ["Assets.Title = {"]
-for key in sorted(meta):
+glyphs = sorted(k for k in meta if meta[k].get("glyph"))
+for key in sorted(k for k in meta if not meta[k].get("glyph")):
     if key not in ids or key + "_mask" not in ids or key + "_glow" not in ids:
         print("not uploaded yet:", key)
         continue
@@ -26,6 +27,17 @@ for key in sorted(meta):
         "\t},",
     ]
 lines.append("} :: { [string]: { id: string, mask: string, glow: string, glowScale: Vector2, size: Vector2, family: string } }")
+# the number glyphs (Client/UI/NumberArt): no mask / glow, just the art and its pixel size
+lines += ["", "-- Number glyphs (art/titles strip: same scale and baseline), neutral white, tinted live by Client/UI/NumberArt.",
+          "Assets.Glyph = {"]
+for key in glyphs:
+    if key not in ids:
+        print("glyph not uploaded yet:", key)
+        continue
+    m = meta[key]
+    name = key[len("Glyph_"):]
+    lines.append(f'	["{name}"] = {{ id = "rbxassetid://{ids[key]}", size = Vector2.new({m["size"][0]}, {m["size"][1]}) }},')
+lines.append("} :: { [string]: { id: string, size: Vector2 } }")
 p = os.path.join(ROOT, "src", "shared", "Assets.luau")
 s = open(p, encoding="utf-8").read()
 start = s.index("Assets.Title =")

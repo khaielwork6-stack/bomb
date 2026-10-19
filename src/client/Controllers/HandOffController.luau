@@ -18,7 +18,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -293,45 +292,14 @@ local function chainNote(n: number, pos: Vector3?, mine: boolean)
 	end
 end
 
-local function tagColor(n: number): Color3
-	return if n >= 5 then P.Detonate elseif n >= 3 then P.Ember else P.Spark
-end
-
 local function setTag(host: Instance, n: number)
+	-- the ×N lives on the Carrier's badge now (BombController: one element over their head, never two)
 	local old = HandOffController.tags[host]
 	if old then
 		old:Destroy()
 		HandOffController.tags[host] = nil
 	end
 	BombController.setChain(host, n)
-	if n < 2 then
-		return
-	end
-	local char = characterOf(host)
-	local head = char and char:FindFirstChild("Head") :: BasePart?
-	if not head then
-		return
-	end
-	local gui = new("BillboardGui", {
-		Name = "FV_ChainTag",
-		Size = UDim2.fromOffset(110, 48),
-		StudsOffsetWorldSpace = Vector3.new(0, F.CHAIN_TAG_HEIGHT, 0),
-		AlwaysOnTop = true,
-		MaxDistance = 70,
-		LightInfluence = 0,
-		Adornee = head,
-		Parent = head,
-	}) :: BillboardGui
-	local label = Theme.display(gui, {
-		Size = UDim2.fromScale(1, 1),
-		Text = "×" .. n,
-		TextSize = 34 + math.min(n, 8) * 2,
-		color = tagColor(n),
-	})
-	local scale = new("UIScale", { Scale = 1.7, Parent = label }) :: UIScale
-	TweenService:Create(scale, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
-	HandOffController.tags[host] = gui
 end
 
 -- ── Beats ───────────────────────────────────────────────────────────────────────────────────────────────────────

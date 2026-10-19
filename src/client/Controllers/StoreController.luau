@@ -1086,6 +1086,12 @@ local function nextToast()
 	if toastBusy or #toastQueue == 0 then
 		return
 	end
+	-- one voice, and nothing extra mid-round: a toast waits for the lobby and for any blocking card (the rules) to go
+	local ph = ClientState.phase()
+	if (ph ~= Ph.Intermission and ph ~= Ph.Results and ph ~= Ph.Boot and ph ~= "") or Modal.blocking() then
+		task.delay(1, nextToast)
+		return
+	end
 	toastBusy = true
 	local t = table.remove(toastQueue, 1) :: { icon: string, title: string, line: string }
 	if not toastGui then

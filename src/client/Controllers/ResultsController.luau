@@ -75,16 +75,63 @@ local function close()
 	end
 end
 
-local function nameOf(id: string): (string, number?)
+local function nameOf(id: string): (string, number?, Model?)
 	local host, model = ClientState.byId(id)
 	if host and host:IsA("Player") then
-		return host.DisplayName, host.UserId
+		return host.DisplayName, host.UserId, model
 	end
-	return if model then model.Name else id, nil
+	return ClientState.nameOf(id), nil, model
+end
+
+-- A live 3D headshot of a character (bots have no Roblox thumbnail): a still clone in a ViewportFrame, framed on the
+-- head, lit warm from the front.
+local function headshot(parent: GuiObject, model: Model)
+	local was = model.Archivable
+	model.Archivable = true
+	local ok, copy = pcall(function()
+		return model:Clone()
+	end)
+	model.Archivable = was
+	if not ok or not copy then
+		return
+	end
+	for _, d in ipairs(copy:GetDescendants()) do
+		if
+			d:IsA("Script")
+			or d:IsA("LocalScript")
+			or d:IsA("Sound")
+			or d:IsA("BillboardGui")
+			or d:IsA("ParticleEmitter")
+		then
+			d:Destroy()
+		elseif d:IsA("BasePart") then
+			d.Anchored = true
+		end
+	end
+	local head = copy:FindFirstChild("Head") :: BasePart?
+	if not head then
+		copy:Destroy()
+		return
+	end
+	local vf = new("ViewportFrame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(150, 140, 160),
+		LightColor = Color3.fromRGB(255, 240, 220),
+		LightDirection = Vector3.new(-0.4, -0.6, -1),
+		ZIndex = 4,
+		Parent = parent,
+	}) :: ViewportFrame
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = vf })
+	copy.Parent = vf
+	local cam = new("Camera", { FieldOfView = 30, Parent = vf }) :: Camera
+	local look = head.CFrame
+	cam.CFrame = CFrame.lookAt((look * CFrame.new(0, 0.15, -4.4)).Position, look.Position + Vector3.new(0, 0.05, 0))
+	vf.CurrentCamera = cam
 end
 
 local function winnerChip(parent: Instance, id: string, order: number, mvp: boolean)
-	local name, userId = nameOf(id)
+	local name, userId, model = nameOf(id)
 	local chip = new("Frame", {
 		Name = "Winner",
 		Size = UDim2.fromOffset(94, 120),
@@ -115,15 +162,37 @@ local function winnerChip(parent: Instance, id: string, order: number, mvp: bool
 				avatar.Image = img
 			end
 		end)
-	else
-		Theme.display(avatar, { Text = string.upper(string.sub(name, 1, 1)), TextSize = 40, color = P.Paper })
+	elseif model then
+		headshot(avatar, model)
+	end
+	if mvp then
+		-- a gold MVP tag riding the top of the portrait
+		local tag = new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, 2),
+			Size = UDim2.fromOffset(46, 20),
+			BackgroundColor3 = P.Gold,
+			ZIndex = 6,
+			Parent = chip,
+		})
+		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = tag })
+		new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = tag })
+		Widgets.label(tag, {
+			Size = UDim2.fromScale(1, 1),
+			TextSize = 13,
+			font = Theme.Font.Display,
+			color = P.Ink,
+			stroke = false,
+			Text = S.Round.MVP,
+			ZIndex = 7,
+		})
 	end
 	local label = Widgets.label(chip, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 86),
-		Size = UDim2.new(1, 8, 0, 20),
+		Size = UDim2.new(1, 24, 0, 20),
 		TextSize = 15,
-		Text = if mvp then "MVP · " .. name else name,
+		Text = name,
 		color = if mvp then P.Gold else P.Paper,
 		stroke = 1.5,
 	})
@@ -467,7 +536,7 @@ local function show(payload: any)
 	local top = topThree(payload)
 	if #top > 0 then
 		holder.Position =
-			UDim2.new(0.5, 0, 0.5, (Podium.HEIGHT / 2 + 20) * (holder:FindFirstChild("Fit") :: UIScale).Scale)
+			UDim2.new(0.5, 0, 0.5, (Podium.HEIGHT / 2 + 36) * (holder:FindFirstChild("Fit") :: UIScale).Scale)
 		Podium.build(holder, top, payload.outcome == "Bombers" and type(payload.mvp) == "string")
 	end
 	Widgets.springIn(holder)

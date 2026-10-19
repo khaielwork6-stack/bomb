@@ -359,7 +359,7 @@ return function(ctx)
 			prompt(stand, "Spin", "Spin Wheel", "Wheel")
 		end
 		if hub then
-			billboard(hub, "SPIN THE WHEEL", "free spin every 12 hours", C.Yellow, 8.5)
+			billboard(hub, "SPIN THE WHEEL", "free spin every 8 hours", C.Yellow, 8.5)
 		end
 	end
 

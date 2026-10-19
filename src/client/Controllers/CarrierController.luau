@@ -45,25 +45,53 @@ local function build()
 	-- BUMP! arrow over the nearest target.
 	arrow = new("BillboardGui", {
 		Name = "FV_BumpArrow",
-		Size = UDim2.fromOffset(120, 70),
+		Size = UDim2.fromOffset(160, 80),
 		StudsOffsetWorldSpace = Vector3.new(0, 4.6, 0),
 		AlwaysOnTop = true,
 		LightInfluence = 0,
 		Enabled = false,
 		Parent = gui,
 	})
-	Theme.display(arrow, {
-		Text = "BUMP!",
-		TextSize = 26,
-		color = P.Spark,
-		Position = UDim2.new(0.5, 0, 0, 14),
-		Size = UDim2.new(1, 0, 0, 28),
-	})
+	-- the baked 3D title word (art/titles), its glow behind; the drawn word only until the art is uploaded
+	local art = (Assets.Title :: any).Bump
+	if art then
+		local h = 38
+		local w = math.floor(h * art.size.X / art.size.Y)
+		new("ImageLabel", {
+			Name = "Glow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, 20),
+			Size = UDim2.fromOffset(math.floor(w * art.glowScale.X), math.floor(h * art.glowScale.Y)),
+			BackgroundTransparency = 1,
+			Image = art.glow,
+			ImageColor3 = P.Spark,
+			ImageTransparency = 0.45,
+			Parent = arrow,
+		})
+		new("ImageLabel", {
+			Name = "Word",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, 20),
+			Size = UDim2.fromOffset(w, h),
+			BackgroundTransparency = 1,
+			Image = art.id,
+			ScaleType = Enum.ScaleType.Fit,
+			Parent = arrow,
+		})
+	else
+		Theme.display(arrow, {
+			Text = "BUMP!",
+			TextSize = 26,
+			color = P.Spark,
+			Position = UDim2.new(0.5, 0, 0, 14),
+			Size = UDim2.new(1, 0, 0, 28),
+		})
+	end
 	-- the chunky 3D arrow (art/icons), pointing down at the target
 	new("ImageLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 52),
-		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.new(0.5, 0, 0, 60),
+		Size = UDim2.fromOffset(36, 36),
 		Rotation = 90,
 		BackgroundTransparency = 1,
 		Image = Assets.Icon.Arrow or "",

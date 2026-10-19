@@ -25,6 +25,7 @@ local Dock = require(script.Parent.Parent.UI.Dock)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Unlocks = require(script.Parent.Parent.UI.Unlocks)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local CameraController = require(script.Parent.CameraController)
 local InputController = require(script.Parent.InputController)
@@ -438,20 +439,21 @@ function EmoteController.start()
 		Parent = gui,
 	})
 	new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, Parent = side })
-	Dock.tile(
-		side,
-		"Emotes",
-		"Wave",
-		openWheel,
-		{ color = "pink", key = Enum.KeyCode.G, label = S.Ui.Emotes, order = 1 }
-	)
-	Dock.tile(
-		side,
-		"Taunt",
-		"Flame",
-		openTaunts,
-		{ color = "orange", key = Enum.KeyCode.T, label = S.Ui.Taunt, order = 2 }
-	)
+	-- both arrive after the first round (Config.Onboarding), springing in when they unlock
+	Unlocks.start()
+	for _, spec in ipairs({
+		{ "Emotes", "Wave", openWheel, { color = "pink", key = Enum.KeyCode.G, label = S.Ui.Emotes, order = 1 } },
+		{ "Taunt", "Flame", openTaunts, { color = "orange", key = Enum.KeyCode.T, label = S.Ui.Taunt, order = 2 } },
+	}) do
+		local tile = Dock.tile(side, spec[1], spec[2], spec[3], spec[4])
+		tile.button.Visible = Unlocks.has(spec[1])
+		Unlocks.Unlocked:Connect(function(n)
+			if n == spec[1] then
+				tile.button.Visible = true
+				Widgets.springIn(tile.button, 0.3)
+			end
+		end)
+	end
 	place()
 	Screen.Changed:Connect(place)
 	Net.listen("TauntFx", showTaunt)

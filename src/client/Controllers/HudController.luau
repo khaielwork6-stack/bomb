@@ -16,10 +16,12 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Announcer = require(script.Parent.Parent.UI.Announcer)
+local NumberArt = require(script.Parent.Parent.UI.NumberArt)
 local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 local P = Theme.Palette
+local S = Config.Strings
 local new = Theme.new
 local Ph = Types.Phase
 local player = Players.LocalPlayer
@@ -43,6 +45,11 @@ local runnersLabel: TextLabel
 local bombersLabel: TextLabel
 local roleChip: Frame
 local roleLabel: TextLabel
+local crossNum: NumberArt.Number? -- "1/8" (and the lobby countdown) in baked number art
+local runnersNum: NumberArt.Number?
+local bombersNum: NumberArt.Number?
+local roleArt: { [string]: ImageLabel } = {}
+local fuseGlow: ImageLabel
 local headline: TextLabel
 local headlineScale: UIScale
 local subline: TextLabel
@@ -97,13 +104,13 @@ local function build()
 		Parent = gui,
 	})
 	-- The crossing chip: "CROSSING 3/8" over 8 fuse dots (lit = crossed, the current one pulses).
-	local chip = pill(top, "Crossing", UDim2.fromOffset(210, 44))
+	local chip = pill(top, "Crossing", UDim2.fromOffset(220, 48))
 	local chipHolder = chip.Parent :: Frame
 	chipHolder.AnchorPoint = Vector2.new(0.5, 0)
 	chipHolder.Position = UDim2.fromScale(0.5, 0)
 	crossingLabel = new("TextLabel", {
-		Position = UDim2.fromOffset(0, 1),
-		Size = UDim2.new(1, 0, 0, 26),
+		Position = UDim2.fromOffset(0, 2),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundTransparency = 1,
 		FontFace = Theme.Font.Display,
 		TextSize = 22,
@@ -113,6 +120,16 @@ local function build()
 		Parent = chip,
 	})
 	new("UIStroke", { Color = P.Ink, Thickness = 2.5, Parent = crossingLabel })
+	if NumberArt.has() then
+		crossNum = NumberArt.new(chip, {
+			height = 30,
+			anchor = Vector2.new(0, 0.5),
+			position = UDim2.new(0.5, 8, 0, 17),
+			align = Enum.HorizontalAlignment.Left,
+			zIndex = 4,
+			name = "Num",
+		})
+	end
 	local dotRow = new("Frame", {
 		Name = "Dots",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -146,7 +163,7 @@ local function build()
 	-- hazard stripes sweep the frame from 5 s left.
 	fuseFace = Theme.panel(top, {
 		Name = "Fuse",
-		Size = UDim2.fromOffset(300, 30),
+		Size = UDim2.fromOffset(320, 34),
 		radius = 999,
 		color = Color3.fromRGB(196, 204, 218),
 		color2 = Color3.fromRGB(104, 112, 128),
@@ -156,7 +173,7 @@ local function build()
 	})
 	fuseHolder = fuseFace.Parent :: Frame
 	fuseHolder.AnchorPoint = Vector2.new(0.5, 0)
-	fuseHolder.Position = UDim2.new(0.5, 0, 0, 52)
+	fuseHolder.Position = UDim2.new(0.5, 0, 0, 56)
 	local hazard = new("ImageLabel", {
 		Name = "Hazard",
 		Size = UDim2.fromScale(1, 1),
@@ -174,7 +191,7 @@ local function build()
 		Name = "Gutter",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -14, 0, 14),
+		Size = UDim2.new(1, -14, 0, 18),
 		BackgroundColor3 = Color3.fromRGB(34, 30, 40),
 		ZIndex = 2,
 		Parent = fuseFace,
@@ -195,23 +212,35 @@ local function build()
 		Name = "Cord",
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromOffset(300, 14),
+		Size = UDim2.fromOffset(320, 18),
 		BackgroundTransparency = 1,
 		Image = Assets.Ui.Braid,
 		ScaleType = Enum.ScaleType.Tile,
-		TileSize = UDim2.fromOffset(56, 14),
+		TileSize = UDim2.fromOffset(72, 18),
 		ZIndex = 3,
 		Parent = fuseFill,
 	})
 	fuseCord = cord
+	fuseGlow = new("ImageLabel", {
+		Name = "SparkGlow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromOffset(64, 40),
+		BackgroundTransparency = 1,
+		Image = Assets.TitleFx.Glow,
+		ImageColor3 = P.Fuse,
+		ImageTransparency = 0.25,
+		ZIndex = 4,
+		Parent = fuseFace,
+	}) :: ImageLabel
 	fuseSpark = new("ImageLabel", {
 		Name = "Spark",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
 		Size = UDim2.fromOffset(30, 30),
 		BackgroundTransparency = 1,
-		Image = Assets.Vfx.Flash,
-		ImageColor3 = P.Spark,
+		Image = Assets.TitleFx.Sparkle,
+		ImageColor3 = Color3.fromRGB(255, 240, 190),
 		ZIndex = 5,
 		Parent = fuseFace,
 	}) :: any
@@ -219,7 +248,25 @@ local function build()
 	roleChip = pill(top, "Role", UDim2.fromOffset(120, 24))
 	local roleHolder = roleChip.Parent :: Frame
 	roleHolder.AnchorPoint = Vector2.new(0.5, 0)
-	roleHolder.Position = UDim2.new(0.5, 0, 0, 70)
+	roleHolder.Position = UDim2.new(0.5, 0, 0, 98)
+	for role, key in pairs({ Runner = "RoleRunner", Bomber = "RoleBomber" }) do
+		local art = (Assets.Title :: any)[key]
+		if art then
+			local h = 30
+			roleArt[role] = new("ImageLabel", {
+				Name = key,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 96),
+				Size = UDim2.fromOffset(math.floor(h * art.size.X / art.size.Y), h),
+				BackgroundTransparency = 1,
+				Image = art.id,
+				ScaleType = Enum.ScaleType.Fit,
+				Visible = false,
+				ZIndex = 4,
+				Parent = top,
+			}) :: ImageLabel
+		end
+	end
 	roleLabel = new("TextLabel", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
@@ -261,6 +308,11 @@ local function build()
 	end
 	teamIcon("Runner", 1)
 	runnersLabel = numberLabel(row, P.Runner, 2)
+	if NumberArt.has() then
+		runnersLabel.Visible = false
+		runnersNum = NumberArt.new(row, { height = 36, color = P.Runner, zIndex = 4, name = "Runners" });
+		(runnersNum :: NumberArt.Number).frame.LayoutOrder = 2
+	end
 	new("Frame", {
 		Size = UDim2.fromOffset(3, 26),
 		BackgroundColor3 = P.Ink,
@@ -270,6 +322,11 @@ local function build()
 	})
 	teamIcon("Bomber", 4)
 	bombersLabel = numberLabel(row, P.Bomber, 5)
+	if NumberArt.has() then
+		bombersLabel.Visible = false
+		bombersNum = NumberArt.new(row, { height = 36, color = P.Bomber, zIndex = 4, name = "Bombers" });
+		(bombersNum :: NumberArt.Number).frame.LayoutOrder = 5
+	end
 	-- The status line: only a lasting state (AFK, up next) — every one-off moment is title art through the
 	-- announcer (UI/Announcer), one at a time, in the middle of the screen below this.
 	headline = Theme.display(gui, {
@@ -314,7 +371,7 @@ local function place()
 		holder.AnchorPoint = Vector2.new(1, 0)
 		holder.Position = UDim2.new(1, -18, 0, inset.Max.Y + 12)
 	end
-	fuseHolder.Size = UDim2.fromOffset(if touch() then 220 else 300, 30)
+	fuseHolder.Size = UDim2.fromOffset(if touch() then 240 else 320, 34)
 	-- the big centre lines shrink with the screen's width, so they never run edge to edge on a small phone
 	local k = math.clamp(Screen.size().X / HEADLINE_REF_W, HEADLINE_MIN, 1)
 	headline.TextSize = math.floor(HEADLINE_SIZE * k)
@@ -390,15 +447,37 @@ local function step()
 		or phase == Ph.Intro
 	-- Crossing chip / intermission countdown.
 	local left = math.max(0, math.ceil((gs:GetAttribute("PhaseEndsAt") or 0) - t))
+	-- a label with the number beside it in number art (or one line of text when the art isn't there)
+	local function chipText(label: string, num: string?)
+		local cn = crossNum
+		if cn and num then
+			crossingLabel.Text = label
+			crossingLabel.TextSize = 16
+			crossingLabel.TextXAlignment = Enum.TextXAlignment.Right
+			crossingLabel.Size = UDim2.new(0.5, 0, 0, 28)
+			cn.frame.Visible = true
+			cn:set(num, true)
+		else
+			if cn then
+				cn.frame.Visible = false
+			end
+			crossingLabel.Text = if num then label .. " " .. num else label
+			crossingLabel.TextSize = 22
+			crossingLabel.TextXAlignment = Enum.TextXAlignment.Center
+			crossingLabel.Size = UDim2.new(1, 0, 0, 28)
+		end
+	end
 	if phase == Ph.Intermission then
-		crossingLabel.Text = `NEXT ROUND {left}`
+		chipText(S.Ui.NextRound, tostring(left))
 	elseif phase == Ph.Results then
-		crossingLabel.Text = "RESULTS"
+		chipText(S.Ui.ResultsChip, nil)
 	elseif phase == Ph.LastStand then
-		crossingLabel.Text = "LAST STAND"
+		chipText(S.Ui.LastStandChip, nil)
 	else
-		crossingLabel.Text =
-			`CROSSING {math.max(1, gs:GetAttribute("Crossing") or 0)}/{gs:GetAttribute("MaxCrossings") or 8}`
+		chipText(
+			S.Ui.CrossingChip,
+			`{math.max(1, gs:GetAttribute("Crossing") or 0)}/{gs:GetAttribute("MaxCrossings") or 8}`
+		)
 	end
 	-- The HUD Field Fuse.
 	local fuseLive = phase == Ph.Crossing or (phase == Ph.LastStand and ClientState.sub() == Types.Sub.Run)
@@ -407,11 +486,17 @@ local function step()
 	local ends = gs:GetAttribute("FuseEndsAt") or 0
 	local frac = if fuseLive and total > 0 then math.clamp((ends - t) / total, 0, 1) else 1
 	fuseFill.Size = UDim2.fromScale(frac, 1)
-	fuseCord.Size = UDim2.fromOffset(fuseFill.Parent and (fuseFill.Parent :: Frame).AbsoluteSize.X or 300, 14)
+	fuseCord.Size = UDim2.fromOffset(fuseFill.Parent and (fuseFill.Parent :: Frame).AbsoluteSize.X or 320, 18)
 	fuseSpark.Visible = fuseLive and frac > 0
-	-- the spark sits at the burn point (the fill's left end), in the face's space
-	fuseSpark.Position = UDim2.new(0, 7 + (1 - frac) * (fuseFill.Parent :: Frame).AbsoluteSize.X, 0.5, 0)
-	fuseSpark.Rotation = (t * 360) % 360
+	fuseGlow.Visible = fuseSpark.Visible
+	-- the spark sits at the burn point (the fill's left end), in the face's space; it spins and flickers (rotation and
+	-- transparency draw smoothly — a size pulse would step a pixel at a time)
+	local sparkAt = UDim2.new(0, 7 + (1 - frac) * (fuseFill.Parent :: Frame).AbsoluteSize.X, 0.5, 0)
+	fuseSpark.Position = sparkAt
+	fuseGlow.Position = sparkAt
+	fuseSpark.Rotation = (t * 300) % 360
+	fuseSpark.ImageTransparency = 0.1 * math.random()
+	fuseGlow.ImageTransparency = 0.2 + 0.15 * math.random()
 	-- crossing dots: crossed = Spark, current = pulsing Fuse, the rest dark
 	local crossing = gs:GetAttribute("Crossing") or 0
 	local maxC = gs:GetAttribute("MaxCrossings") or 8
@@ -443,11 +528,15 @@ local function step()
 		fuseHazard.ImageTransparency = 1
 	end
 	fuseHolder.Rotation = if remaining <= 3 then (math.random() - 0.5) * 3 else 0
-	fuseSpark.Size = UDim2.fromOffset(14 + pulse * 6, 14 + pulse * 6)
+	fuseGlow.ImageColor3 = if remaining <= 5 then P.Detonate else P.Fuse
 	-- Role chip.
 	local role = ClientState.role()
 	local roleHolder = roleChip.Parent :: Frame
-	roleHolder.Visible = inRound and role ~= Types.Role.None
+	local art = roleArt[role]
+	roleHolder.Visible = inRound and role ~= Types.Role.None and art == nil
+	for r, img in pairs(roleArt) do
+		img.Visible = inRound and r == role
+	end
 	roleLabel.Text = string.upper(role)
 	if role ~= lastRole then
 		lastRole = role
@@ -457,8 +546,14 @@ local function step()
 	-- Counter.
 	local counterHolder = counter.Parent :: Frame
 	counterHolder.Visible = inRound
-	flip(runnersLabel, tostring(gs:GetAttribute("RunnersLeft") or 0))
-	flip(bombersLabel, tostring(gs:GetAttribute("BombersCount") or 0))
+	local rn, bn = runnersNum, bombersNum
+	if rn and bn then
+		rn:set(tostring(gs:GetAttribute("RunnersLeft") or 0), true)
+		bn:set(tostring(gs:GetAttribute("BombersCount") or 0), true)
+	else
+		flip(runnersLabel, tostring(gs:GetAttribute("RunnersLeft") or 0))
+		flip(bombersLabel, tostring(gs:GetAttribute("BombersCount") or 0))
+	end
 	-- The Carrier vignette (no MOVE! / BUMP SOMEONE! text: the BUMP! marker and the safe-side chevron already say it).
 	-- (a READ THE FACE bomb has no time while LIT: the vignette keeps its LIT beat, F-MOD-02)
 	local explodeAt = player:GetAttribute("BombExplodeAt")
@@ -496,7 +591,7 @@ local function step()
 				key = "LastStand",
 				tier = "Moment",
 				priority = 3,
-				sub = if model then model.Name else nil,
+				sub = if model then ClientState.nameOf(id) else nil,
 				icon = "Crown",
 				hold = Config.Round.LAST_STAND_INTRO,
 			})

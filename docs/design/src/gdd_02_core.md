@@ -224,7 +224,7 @@ Contact still passes (F-BOMB-03): the accidents stay part of the comedy, and nob
 | F-LAST-05 | Spectating players (every Bomber) get a **picture-in-picture** of the Runner's face cam on mobile. On PC the camera auto-follows the Runner if the player stops giving input for 2 s. |
 
 ### 8.3 The WINNER crown (F-WIN-04)
-- **Anyone who wins** (any of the three ways) wears a **gold crown with a lit sparkler** above their head for the whole next round.
+- **One crown per server:** the round's champion wears a **gold crown with a lit sparkler** above their head for the whole next round. The champion is the Last Stand Runner; if the Bombers win, their MVP; otherwise the winner with the best round (booms ×3, clutches ×3, defuses ×2, crossings ×2, tags, passes).
 - It's visible to everyone, which brings social status and earns the "Dethrone" quest (§14).
 
 ### 8.4 Results screen (F-RES-01..04)

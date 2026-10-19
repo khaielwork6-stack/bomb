@@ -19,6 +19,7 @@ local MovementCore = require(ReplicatedStorage.Shared.MovementCore)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BombBrain = require(ServerScriptService.Server.Logic.BombBrain)
+local BotNames = require(ServerScriptService.Server.Logic.BotNames)
 local LookShare = require(ServerScriptService.Server.Logic.LookShare)
 local AdminService = require(script.Parent.AdminService)
 local Arena = require(script.Parent.Arena)
@@ -139,20 +140,12 @@ local function newbiePresent(): boolean
 end
 
 local function uniqueName(): string
-	local taken = {}
+	-- a name that reads like a real Roblox username (Logic/BotNames), unique in the server (case-insensitive)
+	local taken: { [string]: boolean } = {}
 	for _, p in ipairs(Participants.all()) do
-		taken[p.name] = true
+		taken[string.lower(p.name)] = true
 	end
-	for _ = 1, 40 do
-		local name = BC.NAME_A[rng:NextInteger(1, #BC.NAME_A)] .. BC.NAME_B[rng:NextInteger(1, #BC.NAME_B)]
-		if rng:NextNumber() < 0.4 then
-			name ..= tostring(rng:NextInteger(1, 99))
-		end
-		if not taken[name] then
-			return name
-		end
-	end
-	return "Player" .. tostring(rng:NextInteger(100, 999))
+	return BotNames.generate(rng, taken)
 end
 
 local function spawnBot(prefer: number?): Participant?

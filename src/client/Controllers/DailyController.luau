@@ -22,6 +22,7 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Skin = require(script.Parent.Parent.UI.Skin)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Modal = require(script.Parent.Parent.UI.Modal)
+local Unlocks = require(script.Parent.Parent.UI.Unlocks)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local StreakScreen = require(script.Parent.Parent.UI.StreakScreen)
 local ProgressController = require(script.Parent.ProgressController)
@@ -476,6 +477,19 @@ end
 -- ── The dock ────────────────────────────────────────────────────────────────────────────────────────────────────
 -- The left-side stack of square tiles (UI/Dock, the owner's reference video): the Shop and Items (StoreController),
 -- Quests, the Calendar, the playtime Gift (its countdown is its label), and AFK / Spectate (LobbyController).
+-- A tile appears only once it's unlocked (Config.Onboarding: a new player gets the dock a few tiles at a time); the
+-- moment it unlocks it springs in with a chime.
+local function gate(button: GuiButton, name: string)
+	button.Visible = Unlocks.has(name)
+	Unlocks.Unlocked:Connect(function(n)
+		if n == name then
+			button.Visible = true
+			Widgets.springIn(button, 0.3)
+			Sfx.play("Notify")
+		end
+	end)
+end
+
 local function dockButton(
 	name: string,
 	icon: string,
@@ -486,6 +500,7 @@ local function dockButton(
 	local o: Dock.TileOpts = table.clone(opts or {})
 	o.order = order
 	local t = Dock.tile(dock, name, icon, onClick, o)
+	gate(t.button, name)
 	return t.button, t.badge
 end
 
@@ -517,6 +532,7 @@ local function buildDock()
 			Sfx.play("UiDeny")
 		end
 	end, { color = "pink", order = 5, label = "" })
+	gate(gt.button, "Gift")
 	giftButton = gt.button
 	giftLabel = gt.label
 	giftLabel.TextSize = 22
@@ -608,8 +624,15 @@ local function applyDock(s: { [string]: any })
 		buildCalendar(s, true)
 		slamStamp(d.login.day)
 	end
-	-- first visit of the day: open the calendar once (after the rules card, OnboardingController)
-	if claimable and not autoCalendarDone and d.flags and d.flags.tutorial then
+	-- first visit of the day: open the calendar once (after the rules card, OnboardingController) — and on the very
+	-- first day only once a round is played (Config.Onboarding: the rules, then the game, then the extras)
+	if
+		claimable
+		and not autoCalendarDone
+		and d.flags
+		and d.flags.tutorial
+		and (s.rounds or 0) >= Config.Onboarding.CALENDAR_AUTO_AFTER
+	then
 		autoCalendarDone = true
 		-- wait for a calm lobby moment: intermission (never over the results card) with nothing else up
 		task.spawn(function()
@@ -713,10 +736,14 @@ function DailyController.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
+	Unlocks.start()
 	buildDock()
 	shown = dockWanted()
 	placeDock()
 	Screen.Changed:Connect(placeDock)
+	Unlocks.Unlocked:Connect(function()
+		task.defer(placeDock) -- after the tile's own handler made it visible
+	end)
 	Progress.Changed:Connect(applyDock)
 	local s = Progress.get()
 	if s then

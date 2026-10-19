@@ -25,6 +25,7 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Settings = require(script.Parent.Parent.Settings)
 local Sfx = require(script.Parent.Parent.Sfx)
 local SkinApply = require(script.Parent.Parent.SkinApply)
+local NumberArt = require(script.Parent.Parent.UI.NumberArt)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local VfxCosmetic = require(script.Parent.Parent.VfxCosmetic)
 
@@ -41,7 +42,6 @@ local FUSE_SEGMENTS = 12
 local HEAT_SMOKE_HOT, HEAT_SMOKE_CRIT = 4, 9 -- wisps / s off a hot bomb
 local HEAT_SPRAY, HEAT_HAZE = 22, 6 -- seam sparks and haze puffs / s at CRITICAL
 local FUSE_LEN = 1.25
-local RING_SEGMENTS = 20
 -- Where the bomb hangs, in Torso space (R6 Torso: +Z is the back).
 local MOUNT = CFrame.new(0, 0.15, 0.5 + 0.4 + RADIUS)
 
@@ -60,7 +60,7 @@ type Visual = {
 	cosmetic: VfxCosmetic.SparkRig?, -- the Carrier's equipped fuse spark (nil: Classic)
 	light: PointLight,
 	ring: BillboardGui,
-	ringDots: { Frame },
+	badge: Badge,
 	explodeAt: number?, -- nil while a READ THE FACE bomb is LIT (its time is hidden)
 	masked: boolean,
 	wobble: Vector3, -- spring state (rad): x pitch, z roll
@@ -311,54 +311,149 @@ local function buildFromArt(
 	local sparkAtt = new("Attachment", { Name = "Spark", Parent = mount })
 	return model, mount, segments, lamps, seams, sparkAtt, face
 end
-local function buildRing(adornee: BasePart): (BillboardGui, { Frame })
+-- The Carrier's badge, floating over them (Asset Bible §3.7): ONE clean element — a soft dark disc, a smooth radial
+-- fuse countdown in the stage colour (gold → orange → pulsing red) with a spark riding its burning end, the 3D bomb
+-- icon in the middle, and the chain count (×N, baked number art) beside it. Rotation and transparency only: both
+-- draw smoothly at any frame rate.
+export type Badge = {
+	root: Frame,
+	scale: UIScale,
+	right: UIGradient,
+	left: UIGradient,
+	fills: { ImageLabel },
+	head: Frame,
+	chain: NumberArt.Number?,
+	chainN: number,
+}
+local BADGE_PX = 88
+local function buildRing(adornee: BasePart): (BillboardGui, Badge)
 	local gui = new("BillboardGui", {
 		Name = "FV_FuseRing",
-		Size = UDim2.fromOffset(64, 64),
-		StudsOffsetWorldSpace = Vector3.new(0, 3.4, 0),
+		Size = UDim2.fromOffset(BADGE_PX * 2.4, BADGE_PX),
+		StudsOffsetWorldSpace = Vector3.new(0, 4.8, 0), -- its bottom edge just over the nametag (head + 2.35, 1.6 tall)
+		SizeOffset = Vector2.new(0, 0.5),
 		AlwaysOnTop = true,
 		MaxDistance = 60,
 		LightInfluence = 0,
 		Adornee = adornee,
 		ResetOnSpawn = false,
 	})
-	local back = new("Frame", {
+	-- the badge itself sits in the middle of a wider billboard (room for the ×N on its right)
+	local root = new("Frame", {
+		Name = "Badge",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.62, 0.62),
-		BackgroundColor3 = P.Ink2,
-		BackgroundTransparency = 0.15,
+		Size = UDim2.fromOffset(BADGE_PX, BADGE_PX),
+		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = back })
-	new("UIStroke", { Color = P.Ink, Thickness = 2, Parent = back })
-	-- a tiny bomb glyph in the middle (drawn, no image asset)
-	local glyph = new("Frame", {
+	local scale = new("UIScale", { Parent = root }) :: UIScale
+	new("ImageLabel", {
+		Name = "Disc",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.56),
-		Size = UDim2.fromScale(0.42, 0.42),
-		BackgroundColor3 = P.Iron,
-		Parent = back,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = Assets.TitleFx.Disc,
+		ImageColor3 = P.Ink,
+		ImageTransparency = 0.22,
+		ZIndex = 1,
+		Parent = root,
 	})
-	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = glyph })
-	new("UIStroke", { Color = P.Brass, Thickness = 1.5, Parent = glyph })
-	local dots = {}
-	for i = 1, RING_SEGMENTS do
-		local a = (i - 1) / RING_SEGMENTS * math.pi * 2
-		local dot = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5 + math.sin(a) * 0.42, 0.5 - math.cos(a) * 0.42),
-			Size = UDim2.fromScale(0.09, 0.17),
-			Rotation = math.deg(a),
-			BackgroundColor3 = P.Spark,
-			BorderSizePixel = 0,
-			Parent = gui,
+	local box = new("Frame", {
+		Name = "Ring",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.86, 0.86),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+		Parent = root,
+	})
+	new("ImageLabel", {
+		Name = "Track",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = Assets.TitleFx.Ring,
+		ImageColor3 = P.Smoke,
+		ImageTransparency = 0.35,
+		ZIndex = 2,
+		Parent = box,
+	})
+	-- the radial fill: each half clips a full ring; a hard-edged gradient on each turns with the time left
+	local function half(x: number): (UIGradient, ImageLabel)
+		local clip = new("Frame", {
+			Position = UDim2.fromScale(x, 0),
+			Size = UDim2.fromScale(0.5, 1),
+			BackgroundTransparency = 1,
+			ClipsDescendants = true,
+			ZIndex = 3,
+			Parent = box,
 		})
-		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
-		new("UIStroke", { Color = P.Ink, Thickness = 1, Parent = dot })
-		table.insert(dots, dot)
+		local img = new("ImageLabel", {
+			Position = UDim2.fromScale(-x * 2, 0),
+			Size = UDim2.fromScale(2, 1),
+			BackgroundTransparency = 1,
+			Image = Assets.TitleFx.Ring,
+			ImageColor3 = P.Spark,
+			ZIndex = 3,
+			Parent = clip,
+		}) :: ImageLabel
+		local g = new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.499, 0),
+				NumberSequenceKeypoint.new(0.501, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Parent = img,
+		}) :: UIGradient
+		return g, img
 	end
-	return gui, dots
+	local right, rImg = half(0.5)
+	local left, lImg = half(0)
+	-- the spark at the burning end: a pivot turned to the angle, the sparkle at its top
+	local head = new("Frame", {
+		Name = "Head",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 5,
+		Parent = box,
+	})
+	new("ImageLabel", {
+		Name = "Spark",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.07),
+		Size = UDim2.fromScale(0.42, 0.42),
+		BackgroundTransparency = 1,
+		Image = Assets.TitleFx.Sparkle,
+		ImageColor3 = Color3.fromRGB(255, 244, 200),
+		ZIndex = 5,
+		Parent = head,
+	})
+	new("ImageLabel", {
+		Name = "Bomb",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.52),
+		Size = UDim2.fromScale(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = Assets.Icon.Bomb,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 4,
+		Parent = root,
+	})
+	return gui,
+		{
+			root = root,
+			scale = scale,
+			right = right,
+			left = left,
+			fills = { rImg, lImg },
+			head = head,
+			chain = nil,
+			chainN = 0,
+		}
 end
 
 -- ── Lifecycle ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -493,7 +588,7 @@ local function attach(host: Instance): Visual?
 	local cosmetic = VfxCosmetic.spark(host:GetAttribute("Eq_FuseSpark"), sparkAtt, mount, spark, core, light)
 	Sfx.loop("FuseHiss", sparkAtt) -- the burning cord, 3D on the Carrier's back (destroyed with the bomb)
 	model.Parent = char
-	local ring, dots = buildRing(torso)
+	local ring, badge = buildRing(torso)
 	ring.Parent = player:WaitForChild("PlayerGui")
 	local v: Visual = {
 		host = host,
@@ -510,7 +605,7 @@ local function attach(host: Instance): Visual?
 		cosmetic = cosmetic,
 		light = light,
 		ring = ring,
-		ringDots = dots,
+		badge = badge,
 		explodeAt = host:GetAttribute("BombExplodeAt"),
 		masked = host:GetAttribute("BombMasked") == true,
 		wobble = Vector3.zero,
@@ -654,17 +749,40 @@ local function update(v: Visual, dt: number, t: number)
 	if os.clock() - v.stuckAt > 0.24 then
 		v.weld.C0 = MOUNT * CFrame.Angles(v.wobble.X, 0, v.wobble.Z) * shake
 	end
-	-- The overhead ring: remaining dots lit in the stage colour, spent ones dark.
-	local lit = math.ceil(frac * RING_SEGMENTS)
-	for i, dot in ipairs(v.ringDots) do
-		local on = i <= lit
-		dot.BackgroundColor3 = if on then stageColor else P.Ink2
-		dot.BackgroundTransparency = if on then 0 else 0.35
+	-- The overhead badge: the radial countdown (the time left, clockwise from the top) in the stage colour, the spark
+	-- on its burning end, a heartbeat swell at CRITICAL; the chain count beside it.
+	local bd = v.badge
+	bd.right.Rotation = math.min(frac, 0.5) * 360
+	bd.left.Rotation = 180 + math.max(frac - 0.5, 0) * 360
+	bd.head.Rotation = frac * 360
+	for _, img in ipairs(bd.fills) do
+		img.ImageColor3 = stageColor
 	end
-	v.ring.Size = UDim2.fromOffset(64, 64)
-	if stage == "CRITICAL" then
-		local s = 64 * (1 + pulse * 0.12)
-		v.ring.Size = UDim2.fromOffset(s, s)
+	bd.scale.Scale = if stage == "CRITICAL" then 1 + pulse * 0.1 else 1
+	local n = chainHeat[v.host] or 0
+	if n ~= bd.chainN then
+		bd.chainN = n
+		if n >= 2 and NumberArt.has() then
+			local num = bd.chain
+			if not num then
+				num = NumberArt.new(v.ring, {
+					height = math.floor(BADGE_PX * 0.5),
+					anchor = Vector2.new(0, 0.5),
+					position = UDim2.new(0.5, math.floor(BADGE_PX * 0.48), 0.5, 0),
+					align = Enum.HorizontalAlignment.Left,
+					zIndex = 6,
+					name = "Chain",
+				})
+				bd.chain = num
+			end
+			local col = if n >= 5 then P.Detonate elseif n >= 3 then P.Ember else P.Spark
+			local nn = num :: NumberArt.Number
+			nn:tint(col)
+			nn:set("x" .. n, true)
+			nn.frame.Visible = true
+		elseif bd.chain then
+			(bd.chain :: NumberArt.Number).frame.Visible = false
+		end
 	end
 	-- The face (Asset Bible §3.8): smug while LIT, nervous at HOT, panicking at CRITICAL, a grin when it just stuck,
 	-- blinking while LIT and staring at the nearest player.

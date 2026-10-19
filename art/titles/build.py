@@ -65,6 +65,8 @@ FAMILIES = {
     "Blue": dict(face=("#B8F1FF", "#3DB6FF", "#1A55E0"), side=("#13378F", "#0A1B52"), ink="#09143A"),
     "Green": dict(face=("#D9FF9E", "#6CDB3A", "#16932E"), side=("#126424", "#083312"), ink="#09260E"),
     "Purple": dict(face=("#E9C7FF", "#A95CFF", "#5E1FDB"), side=("#421794", "#1E0848"), ink="#190937"),
+    # neutral: the game tints it (ImageColor3 multiplies, so the dark outline stays dark) — the number glyphs
+    "White": dict(face=("#FFFFFF", "#F4F4F8", "#CFD1DC"), side=("#8A8DA3", "#45475A"), ink="#141220"),
 }
 
 # key -> (text, family). The three test words first; the rest follow once the look is approved.
@@ -103,7 +105,16 @@ WORDS = {
     "Hurry": ("HURRY!", "Red"),
     "AllClear": ("ALL CLEAR!", "Green"),
     "Safe": ("SAFE!", "Green"),
+    # small words the HUD uses
+    "Bump": ("BUMP!", "Gold"),
+    "RoleRunner": ("RUNNER", "Blue"),
+    "RoleBomber": ("BOMBER", "Red"),
+    # the number glyphs, rendered as ONE strip (same scale and baseline) and cut apart: Glyph_0 … Glyph_9, Glyph_X,
+    # Glyph_Slash — Client/UI/NumberArt composes any number from them
+    "Glyphs": ("0123456789x/", "White"),
 }
+GLYPH_STRIPS = {"Glyphs"}
+GLYPH_NAMES = {"x": "X", "/": "Slash"}
 
 SIZE = 1.0  # letter size (Blender units)
 WORD_PX = 2000  # a long word's width in the render; the PNG is halved (≈1000 px plus outline) for clean edges
@@ -244,7 +255,7 @@ def to_mesh(o):
     return bpy.context.active_object
 
 
-def build_word(text, fam, font, seed):
+def build_word(text, fam, font, seed, strip=False):
     rng = random.Random(seed)
     ref = bpy.data.objects.new("Ref", None)
     bpy.context.scene.collection.objects.link(ref)
@@ -257,7 +268,7 @@ def build_word(text, fam, font, seed):
     bpy.context.view_layer.update()
     # lay out: each letter's own width, overlapping a touch (chunky titles sit tight), a space = 0.32 em
     widths = [(o.dimensions.x if o else SIZE * 0.2) for o in letters]
-    gap = SIZE * 0.012
+    gap = SIZE * (0.5 if strip else 0.012)
     total = sum(widths) + gap * (len(widths) - 1)
     x = -total / 2
     half_h = SIZE * 0.42
@@ -271,10 +282,10 @@ def build_word(text, fam, font, seed):
         if not o:
             continue
         # letters stand up facing the camera (-Y); a small bounce and tilt each, alternating so it reads lively
-        tilt = rng.uniform(1.0, 2.6) * (1 if i % 2 == 0 else -1)
+        tilt = 0.0 if strip else rng.uniform(1.0, 2.6) * (1 if i % 2 == 0 else -1)
         o.rotation_euler = (math.radians(90), math.radians(tilt), 0)
-        o.location = Vector((cx, 0, rng.uniform(-0.018, 0.018) * SIZE))
-        s = 1 + rng.uniform(-0.02, 0.05)
+        o.location = Vector((cx, 0, 0.0 if strip else rng.uniform(-0.018, 0.018) * SIZE))
+        s = 1.0 if strip else 1 + rng.uniform(-0.02, 0.05)
         o.scale = (s, s, 1)
         m = to_mesh(o)
         m.data.materials.clear()
@@ -296,7 +307,7 @@ def render_word(key, text, fam_name, seed):
         raise SystemExit(f"title font not loaded ({FONT!r}): refusing to bake in Blender's built-in font")
     print("FONT", key, font.name, os.path.basename(FONT), flush=True)
     fam = FAMILIES[fam_name]
-    meshes = build_word(text, fam, font, seed)
+    meshes = build_word(text, fam, font, seed, strip=key in GLYPH_STRIPS)
     sc = bpy.context.scene
     bpy.context.view_layer.update()
     pts = [m.matrix_world @ Vector(c) for m in meshes for c in m.bound_box]
@@ -319,7 +330,7 @@ def render_word(key, text, fam_name, seed):
     sc.camera = cam
     # pixels per unit: as sharp as the letter height allows (LETTER_PX tall), but a long word never wider than
     # WORD_PX (it's halved to ~1000 px) — every word gets the same letter sharpness, no huge renders for short ones
-    ppu = min(WORD_PX / W, LETTER_PX / H)
+    ppu = LETTER_PX / H if key in GLYPH_STRIPS else min(WORD_PX / W, LETTER_PX / H)
     res_x = int(W * margin * ppu) // 4 * 4
     sc.render.resolution_x = res_x
     sc.render.resolution_y = int(res_x * aspect_h) // 4 * 4
@@ -470,6 +481,32 @@ def finish(key, raw_path, fam):
         sm = (pm[0::2, 0::2] + pm[1::2, 0::2] + pm[0::2, 1::2] + pm[1::2, 1::2]) / 4
         sm[..., :3] /= np.maximum(sm[..., 3:4], 1e-6)
         return sm
+
+    if key in GLYPH_STRIPS:
+        text = WORDS[key][0]
+        cols = canvas[..., 3].max(axis=0) > 0.01
+        runs, start = [], None
+        for x in range(w):
+            if cols[x] and start is None:
+                start = x
+            elif not cols[x] and start is not None:
+                runs.append((start, x))
+                start = None
+        if start is not None:
+            runs.append((start, w))
+        if len(runs) != len(text):
+            raise SystemExit(f"glyph strip {key}: found {len(runs)} glyphs, expected {len(text)}")
+        meta_path = os.path.join(OUT, "meta.json")
+        meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+        for ch, (xa, xb) in zip(text, runs):
+            name = "Glyph_" + GLYPH_NAMES.get(ch, ch)
+            img = halve(canvas, (y0, y1, max(0, xa - 4), min(w, xb + 4)))
+            save_rgba(os.path.join(OUT, f"{name}.png"), img)
+            meta[name] = {"text": ch, "family": WORDS[key][1], "size": [int(img.shape[1]), int(img.shape[0])], "glyph": True}
+            print("GLYPH", name, img.shape[1], "x", img.shape[0], flush=True)
+        json.dump(meta, open(meta_path, "w"), indent=1, sort_keys=True)
+        os.remove(raw_path)
+        return None
 
     small = halve(canvas)
     out = os.path.join(OUT, f"{key}.png")

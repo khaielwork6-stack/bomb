@@ -10,7 +10,6 @@
 -- Implements: F-UI-01, Asset Bible §6.2 / §6.5.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Assets)
@@ -203,16 +202,13 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 			fadeable(shadow, "ImageTransparency", 0.55)
 		end
 		if not reduce then
-			task.spawn(function()
-				local base = iconHolder.Position
-				local t0 = os.clock()
-				while alive and iconHolder.Parent do
-					local t = os.clock() - t0
-					iconHolder.Position = base + UDim2.fromOffset(0, math.sin(t * 3) * h * 0.035)
-					iconHolder.Rotation = -6 + math.sin(t * 1.7) * 3
-					RunService.RenderStepped:Wait()
-				end
-			end)
+			-- a slow sway (an engine tween, and rotation draws sub-pixel smooth — a few-pixel bob would step)
+			iconHolder.Rotation = -9
+			TweenService:Create(
+				iconHolder,
+				TweenInfo.new(1.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+				{ Rotation = -3 }
+			):Play()
 		end
 	end
 
@@ -324,23 +320,38 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 	else
 		scale.Scale = tier.slam
 		holder.Rotation = -T.SLAM_TILT
-		local land = tween(scale, T.IN_TIME, { Scale = 0.94 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		local land = tween(scale, T.IN_TIME, { Scale = 0.95 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		tween(holder, T.IN_TIME, { Rotation = 1.5 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		land.Completed:Connect(function()
 			tween(scale, T.SETTLE_TIME, { Scale = 1 }, Enum.EasingStyle.Back)
 			tween(holder, T.SETTLE_TIME, { Rotation = 0 }, Enum.EasingStyle.Back)
 			-- the impact: the glow flashes and settles, the streaks shoot out
-			glow.ImageTransparency = 0.05
-			tween(glow, 0.5, { ImageTransparency = T.GLOW_REST })
+			local flash = tween(glow, 0.07, { ImageTransparency = 0.02 })
+			flash.Completed:Connect(function()
+				local settle = tween(glow, 0.5, { ImageTransparency = T.GLOW_REST })
+				settle.Completed:Connect(function(state)
+					-- the idle breath: the glow swells and eases while it holds (transparency fades smoothly at
+					-- any frame rate; a pixel float would step)
+					if state == Enum.PlaybackState.Completed and alive and glow.Parent then
+						TweenService:Create(
+							glow,
+							TweenInfo.new(1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+							{ ImageTransparency = T.GLOW_REST + T.GLOW_BREATH }
+						):Play()
+					end
+				end)
+			end)
 			for _, s in ipairs(streaks) do
-				s.ImageTransparency = 0
+				tween(s, 0.05, { ImageTransparency = 0 })
 				tween(
 					s,
 					0.45,
 					{ Size = UDim2.fromScale(s:GetAttribute("Width") :: number, s.Size.Y.Scale) },
 					Enum.EasingStyle.Quint
 				)
-				tween(s, 0.9, { ImageTransparency = s:GetAttribute("Rest") :: number })
+				task.delay(0.05, function()
+					tween(s, 0.9, { ImageTransparency = s:GetAttribute("Rest") :: number })
+				end)
 			end
 		end)
 		task.delay(T.SHINE_DELAY, function()
@@ -353,20 +364,6 @@ function TitleArt.show(gui: Instance, key: string, opts: Opts?): Handle?
 					Enum.EasingStyle.Quad,
 					Enum.EasingDirection.InOut
 				)
-			end
-		end)
-		-- the idle breath: a slow float and a glow pulse while it holds
-		local t0 = os.clock()
-		local base = holder.Position
-		local conn: RBXScriptConnection
-		conn = RunService.RenderStepped:Connect(function()
-			if not alive or not holder.Parent then
-				conn:Disconnect()
-				return
-			end
-			local t = os.clock() - t0
-			if t > T.IN_TIME + T.SETTLE_TIME then
-				holder.Position = base + UDim2.fromOffset(0, math.sin(t * 2.2) * T.FLOAT_PX)
 			end
 		end)
 	end

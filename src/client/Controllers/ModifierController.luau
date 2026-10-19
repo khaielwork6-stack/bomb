@@ -439,7 +439,7 @@ function ModifierController.start()
 			key = "TheMole",
 			tier = "Moment",
 			priority = 3,
-			sub = if model then model.Name else nil,
+			sub = if model then ClientState.nameOf(p.who) else nil,
 			hold = 2,
 		})
 		revealFlash(p.who)

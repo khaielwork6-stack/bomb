@@ -59,6 +59,18 @@
   ],
   "text": "BOOM!"
  },
+ "Bump": {
+  "family": "Gold",
+  "glowScale": [
+   1.385,
+   1.843
+  ],
+  "size": [
+   815,
+   372
+  ],
+  "text": "BUMP!"
+ },
  "Chain": {
   "family": "Gold",
   "glowScale": [
@@ -130,6 +142,114 @@
    222
   ],
   "text": "DOUBLE BOOM!"
+ },
+ "Glyph_0": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   236,
+   381
+  ],
+  "text": "0"
+ },
+ "Glyph_1": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   184,
+   381
+  ],
+  "text": "1"
+ },
+ "Glyph_2": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   241,
+   381
+  ],
+  "text": "2"
+ },
+ "Glyph_3": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   239,
+   381
+  ],
+  "text": "3"
+ },
+ "Glyph_4": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   236,
+   381
+  ],
+  "text": "4"
+ },
+ "Glyph_5": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   232,
+   381
+  ],
+  "text": "5"
+ },
+ "Glyph_6": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   237,
+   381
+  ],
+  "text": "6"
+ },
+ "Glyph_7": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   243,
+   381
+  ],
+  "text": "7"
+ },
+ "Glyph_8": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   240,
+   381
+  ],
+  "text": "8"
+ },
+ "Glyph_9": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   240,
+   381
+  ],
+  "text": "9"
+ },
+ "Glyph_Slash": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   217,
+   381
+  ],
+  "text": "/"
+ },
+ "Glyph_X": {
+  "family": "White",
+  "glyph": true,
+  "size": [
+   231,
+   381
+  ],
+  "text": "x"
  },
  "Go": {
   "family": "Green",
@@ -262,6 +382,30 @@
    353
   ],
   "text": "REVIVED!"
+ },
+ "RoleBomber": {
+  "family": "Red",
+  "glowScale": [
+   1.305,
+   1.839
+  ],
+  "size": [
+   1032,
+   375
+  ],
+  "text": "BOMBER"
+ },
+ "RoleRunner": {
+  "family": "Blue",
+  "glowScale": [
+   1.311,
+   1.839
+  ],
+  "size": [
+   1014,
+   375
+  ],
+  "text": "RUNNER"
  },
  "Safe": {
   "family": "Green",

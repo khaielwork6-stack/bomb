@@ -1,9 +1,9 @@
 --!strict
--- The lobby dock's AFK toggle and Spectate camera (the owner's reference video, DECISIONS 2026-10-17 "extras").
--- AFK: a red tile showing ON / OFF; it sets the player's AFK wish and, once the partner's server remote exists
--- (docs/PARTNER_REQUESTS.md #4, "SetAfk"), tells the server, which then keeps AFK players out of the next rounds.
--- Spectate: a purple camera tile that points CameraController.spectate at a live participant; a bar at the bottom
--- shows who you're watching with ◀ ▶ (or Q / E) to switch and EXIT (or V again) to come back.
+-- AFK and Spectate (the owner's reference video, DECISIONS 2026-10-17 "extras"; moved off the dock into Settings on
+-- 2026-10-19 — two fewer tiles for a new player). AFK sets the player's AFK wish and tells the server (SetAfk), which
+-- keeps AFK players out of the next rounds. Spectate points CameraController.spectate at a live participant; a bar at
+-- the bottom shows who you're watching with ◀ ▶ (or Q / E) to switch and EXIT to come back. Shortcuts: K (AFK) and
+-- V (Spectate) still work from anywhere.
 -- Implements: F-UI-03 (dock); client side only.
 
 local Players = game:GetService("Players")
@@ -17,7 +17,6 @@ local Sfx = require(script.Parent.Parent.Sfx)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local CameraController = require(script.Parent.CameraController)
-local DailyController = require(script.Parent.DailyController)
 
 local S = Config.Strings
 local new = Theme.new
@@ -26,7 +25,6 @@ local player = Players.LocalPlayer
 local LobbyController = {}
 
 local afk = false
-local afkText: TextLabel
 local gui: ScreenGui
 local bar: Frame
 local nameLabel: TextLabel
@@ -35,7 +33,6 @@ local watching: number = 0 -- index into the current candidate list, 0 = not spe
 local function setAfk(on: boolean)
 	afk = on
 	player:SetAttribute("AfkWish", on)
-	afkText.Text = if on then S.Ui.On else S.Ui.Off
 	local net = ReplicatedStorage:FindFirstChild("Net")
 	local remote = net and net:FindFirstChild("SetAfk")
 	if remote and remote:IsA("RemoteEvent") then
@@ -142,32 +139,20 @@ end
 
 function LobbyController.start()
 	buildBar()
-	-- AFK: a red tile with ON / OFF in big type instead of an icon
-	local afkButton = DailyController.addDockButton("AFK", "Sleep", 6, function()
-		setAfk(not afk)
-	end, { color = "red", key = Enum.KeyCode.K, label = "AFK" })
-	local face = afkButton:FindFirstChild("Face")
-	local icon = face and face:FindFirstChild("Icon_Sleep")
-	if icon and icon:IsA("GuiObject") then
-		icon.Visible = false
-	end
-	afkText = Widgets.label(face or afkButton, {
-		Name = "State",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.4),
-		Size = UDim2.fromScale(1, 0.5),
-		Text = S.Ui.Off,
-		TextSize = 34,
-		font = Theme.Font.Display,
-		stroke = 3,
-		ZIndex = 6,
-	})
-	DailyController.addDockButton("Spectate", "Camera", 7, toggleSpectate, {
-		color = "purple",
-		key = Enum.KeyCode.V,
-	})
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed or watching == 0 or UserInputService:GetFocusedTextBox() then
+		if processed or UserInputService:GetFocusedTextBox() then
+			return
+		end
+		-- the shortcuts (the controls themselves live in Settings now)
+		if input.KeyCode == Enum.KeyCode.K then
+			setAfk(not afk)
+			Sfx.play(if afk then "ToggleOn" else "ToggleOff")
+			return
+		elseif input.KeyCode == Enum.KeyCode.V and not ClientState.activeInRun() then
+			toggleSpectate()
+			return
+		end
+		if watching == 0 then
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.Q then
@@ -189,6 +174,19 @@ function LobbyController.start()
 			show(0)
 		end
 	end)
+end
+
+-- For the Settings panel.
+function LobbyController.isAfk(): boolean
+	return afk
+end
+
+function LobbyController.setAfk(on: boolean)
+	setAfk(on)
+end
+
+function LobbyController.spectate()
+	toggleSpectate()
 end
 
 return LobbyController

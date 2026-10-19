@@ -101,7 +101,7 @@ local function step(dt: number)
 		local left = if type(ends) == "number" then ends - t else MG.FUSE
 		chipLabel.Text = S.MegaLeft:format(clock(left))
 		chip.Visible = true
-	elseif phase == Ph.Intermission or phase == Ph.Results or phase == "" then
+	elseif phase == Ph.Intermission or phase == "" then -- (not over the results podium)
 		local nextAt = gs:GetAttribute("MegaNextAt")
 		chip.Visible = type(nextAt) == "number"
 		if type(nextAt) == "number" then

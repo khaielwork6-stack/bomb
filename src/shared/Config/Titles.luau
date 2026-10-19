@@ -12,13 +12,14 @@ return {
 		Moment = { height = 0.15, maxWidth = 0.84, hold = 2.6, sparkles = 7, streaks = true, slam = 1.75 },
 		Callout = { height = 0.105, maxWidth = 0.7, hold = 1.35, sparkles = 3, streaks = false, slam = 1.45 },
 	},
-	IN_TIME = 0.12, -- the slam: big → a little under size
-	SETTLE_TIME = 0.26, -- then a soft overshoot to rest
+	IN_TIME = 0.17, -- the slam: big → a little under size
+	SETTLE_TIME = 0.32, -- then a soft overshoot to rest
 	OUT_TIME = 0.24, -- lift + fade away
 	SLAM_TILT = 7, -- degrees it lands from
 	SHINE_DELAY = 0.22,
 	SHINE_TIME = 0.6,
-	FLOAT_PX = 2.5, -- the idle breath while it holds (0 under Reduce Motion)
+	GLOW_BREATH = 0.16, -- the idle breath while it holds: the glow eases this much fainter and back (no pixel float: it
+	-- would step a pixel at a time and read as a low frame rate)
 	GLOW_REST = 0.04, -- glow transparency at rest (it flashes brighter on the slam)
 	BACKING = 0.66, -- a dark soft halo under the glow, so a title pops on a bright, busy frame (transparency)
 	-- The announcer (Client/UI/Announcer): one title in the middle of the screen at a time.

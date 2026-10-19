@@ -45,7 +45,10 @@ local pack: Frame
 local revive: Frame
 local PICK_BAR = 0.11 -- the pick camera's letterbox bar height, a fraction of the screen (PickController BAR)
 local LEAD_LIFT = 46 -- px from the bottom to the Lead Bomber button (its price line sits under it)
-local packClosed = false -- closed for this round
+local packClosed = false -- closed (or bought) this session: it doesn't come back until the next session
+local lastRole = "Runner" -- the role I played last round (the lobby pack card offers that team's pack)
+local revivesOffered = 0 -- this session (Config.Onboarding.REVIVE_PER_SESSION)
+local reviveWasUp = false
 local revivedRound = false -- a Revive already worked this round
 
 local function preview(): boolean
@@ -72,7 +75,13 @@ local function buy(key: string)
 end
 
 local function packKey(): string
-	return if ClientState.role() == R.Bomber then "BomberPack" else "RunnerPack"
+	return if lastRole == R.Bomber then "BomberPack" else "RunnerPack"
+end
+
+-- Lifetime rounds played (Config.Onboarding gates the offers on it).
+local function roundsPlayed(): number
+	local s = Progress.get()
+	return if s and type(s.rounds) == "number" then s.rounds else 0
 end
 
 local function itemName(id: string): string
@@ -99,19 +108,19 @@ local function build()
 	lead = new("Frame", {
 		Name = "LeadBomber",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.fromOffset(300, 64),
+		Size = UDim2.fromOffset(240, 46),
 		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = gui,
 	}) :: Frame
-	Widgets.button(lead, S.Ui.LeadBomber, "red", UDim2.fromOffset(300, 64), function()
+	Widgets.button(lead, S.Ui.LeadBomber, "red", UDim2.fromOffset(240, 46), function()
 		buy("LeadBomber")
-	end, { TextSize = 24 })
+	end, { TextSize = 18 })
 	local price = Widgets.label(lead, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 1, 2),
-		Size = UDim2.fromOffset(200, 22),
-		TextSize = 18,
+		Size = UDim2.fromOffset(200, 20),
+		TextSize = 15,
 		font = Theme.Font.Display,
 		color = P.Gold,
 		Text = S.Ui.Robux:format(St.PRODUCTS.LeadBomber.robux) .. "  ·  [R]",
@@ -120,7 +129,7 @@ local function build()
 	local chipFace = Theme.panel(gui, {
 		Name = "LeadChip",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Size = UDim2.fromOffset(300, 46),
+		Size = UDim2.fromOffset(240, 40),
 		radius = 999,
 		color = P.Gold,
 		color2 = P.Ember,
@@ -253,16 +262,18 @@ local function step()
 
 	local phase = ClientState.phase()
 	local calm = not Modal.busy()
-	-- Lead Bomber: between rounds, not AFK
+	-- Nothing for sale while a round is live (DECISIONS 2026-10-19): every offer is a lobby thing, and a new player
+	-- meets them only after a few rounds (Config.Onboarding).
+	local O = Config.Onboarding
+	local played = roundsPlayed()
+	-- Lead Bomber: between rounds, not AFK, from round LEAD_FROM_ROUND
 	local lobby = phase == Ph.Intermission and player:GetAttribute("Afk") ~= true and calm
 	local bought = perks().leadBomber == true
-	lead.Visible = lobby and not bought and sellable("LeadBomber")
+	lead.Visible = lobby and not bought and played >= O.LEAD_FROM_ROUND and sellable("LeadBomber")
 	leadChip.Visible = lobby and bought
-	-- the pack card: the pick and the first crossing, for whoever plays
-	local inPick = phase == Ph.Intro
-		or ((phase == Ph.Ready or phase == Ph.Crossing) and (gs:GetAttribute("Crossing") or 1) <= 1)
+	-- the pack card: in the lobby, from round PACK_FROM_ROUND, once per session (closing it ends it for the session)
 	local key = packKey()
-	local showPack = inPick and ClientState.role() ~= R.None and not packClosed and sellable(key)
+	local showPack = lobby and played >= O.PACK_FROM_ROUND and not packClosed and sellable(key)
 	if showPack and not pack.Visible then
 		local prod = St.PRODUCTS[key]
 		packIcon.Image = (Assets.Icon :: any)[if key == "BomberPack" then "Bomber" else "Runner"] or ""
@@ -278,11 +289,20 @@ local function step()
 	local recent = type(boomedAt) == "number" and workspace:GetServerTimeNow() - boomedAt <= Config.Round.REVIVE_GRACE
 	local downed = ClientState.role() == R.Runner and ClientState.state() == State.Tumbled
 	local justBomber = ClientState.role() == R.Bomber and recent and ClientState.activeInRun()
-	revive.Visible = (downed or justBomber)
+	-- (the one offer that rides a live moment — your own boom — so it's capped: from REVIVE_FROM_ROUND, and only
+	-- REVIVE_PER_SESSION times a session)
+	local reviveUp = (downed or justBomber)
 		and recent
 		and not revivedRound
 		and (perks().revives or 0) == 0
+		and played >= O.REVIVE_FROM_ROUND
+		and (reviveWasUp or revivesOffered < O.REVIVE_PER_SESSION)
 		and sellable("Revive")
+	if reviveUp and not reviveWasUp then
+		revivesOffered += 1
+	end
+	reviveWasUp = reviveUp
+	revive.Visible = reviveUp
 end
 
 function PerkController.start()
@@ -314,8 +334,9 @@ function PerkController.start()
 	-- a new round: the pack card and the Revive come back
 	gs:GetAttributeChangedSignal("Phase"):Connect(function()
 		if ClientState.phase() == Ph.Intermission then
-			packClosed = false
 			revivedRound = false
+		elseif ClientState.role() == R.Runner or ClientState.role() == R.Bomber then
+			lastRole = ClientState.role()
 		end
 	end)
 end

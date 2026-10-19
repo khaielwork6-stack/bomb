@@ -867,6 +867,14 @@ Assets.Title =
 			size = Vector2.new(833, 376),
 			family = "Fire",
 		},
+		Bump = { -- BUMP!
+			id = "rbxassetid://73217395405149",
+			mask = "rbxassetid://125152496512576",
+			glow = "rbxassetid://101708941724314",
+			glowScale = Vector2.new(1.385, 1.843),
+			size = Vector2.new(815, 372),
+			family = "Gold",
+		},
 		Chain = { -- CHAIN!
 			id = "rbxassetid://94069436359763",
 			mask = "rbxassetid://127286028108970",
@@ -1003,6 +1011,22 @@ Assets.Title =
 			size = Vector2.new(1071, 353),
 			family = "Green",
 		},
+		RoleBomber = { -- BOMBER
+			id = "rbxassetid://95239322782057",
+			mask = "rbxassetid://115567786037490",
+			glow = "rbxassetid://122434968926560",
+			glowScale = Vector2.new(1.305, 1.839),
+			size = Vector2.new(1032, 375),
+			family = "Red",
+		},
+		RoleRunner = { -- RUNNER
+			id = "rbxassetid://136968984666129",
+			mask = "rbxassetid://85712705476305",
+			glow = "rbxassetid://108518136183749",
+			glowScale = Vector2.new(1.311, 1.839),
+			size = Vector2.new(1014, 375),
+			family = "Blue",
+		},
 		Safe = { -- SAFE!
 			id = "rbxassetid://129795733028755",
 			mask = "rbxassetid://80603078921981",
@@ -1077,11 +1101,29 @@ Assets.Title =
 		},
 	} :: { [string]: { id: string, mask: string, glow: string, glowScale: Vector2, size: Vector2, family: string } }
 
+-- Number glyphs (art/titles strip: same scale and baseline), neutral white, tinted live by Client/UI/NumberArt.
+Assets.Glyph = {
+	["0"] = { id = "rbxassetid://70687600778049", size = Vector2.new(236, 381) },
+	["1"] = { id = "rbxassetid://88974632133373", size = Vector2.new(184, 381) },
+	["2"] = { id = "rbxassetid://113522838009463", size = Vector2.new(241, 381) },
+	["3"] = { id = "rbxassetid://100757663804454", size = Vector2.new(239, 381) },
+	["4"] = { id = "rbxassetid://109025235198748", size = Vector2.new(236, 381) },
+	["5"] = { id = "rbxassetid://127134410984857", size = Vector2.new(232, 381) },
+	["6"] = { id = "rbxassetid://115996826072868", size = Vector2.new(237, 381) },
+	["7"] = { id = "rbxassetid://130427986171931", size = Vector2.new(243, 381) },
+	["8"] = { id = "rbxassetid://93737493775017", size = Vector2.new(240, 381) },
+	["9"] = { id = "rbxassetid://113797382136522", size = Vector2.new(240, 381) },
+	["Slash"] = { id = "rbxassetid://103233357120316", size = Vector2.new(217, 381) },
+	["X"] = { id = "rbxassetid://121996446602493", size = Vector2.new(231, 381) },
+} :: { [string]: { id: string, size: Vector2 } }
+
 -- The live layers behind a title (art/titles/fx.py): white, tinted per family in game.
 Assets.TitleFx = {
 	Glow = "rbxassetid://129578054124525",
 	Streak = "rbxassetid://129842641617198",
 	Sparkle = "rbxassetid://83291190481928",
+	Ring = "rbxassetid://89906206297043", -- art/titles/fx.py fx_ring
+	Disc = "rbxassetid://138945973853511", -- art/titles/fx.py fx_disc
 }
 
 return Assets

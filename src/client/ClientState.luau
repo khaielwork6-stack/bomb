@@ -99,9 +99,12 @@ function ClientState.byId(id: string): (Instance?, Model?)
 	return nil, nil
 end
 
+-- The name everyone sees for a participant: a player's display name (never their username), a bot's generated one.
 function ClientState.nameOf(id: string): string
 	local host = ClientState.byId(id)
-	if host then
+	if host and host:IsA("Player") then
+		return host.DisplayName
+	elseif host then
 		return host:GetAttribute("DisplayName") or host.Name
 	end
 	return "?"

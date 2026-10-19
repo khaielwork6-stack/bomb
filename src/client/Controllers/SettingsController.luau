@@ -20,6 +20,7 @@ local Screen = require(script.Parent.Parent.UI.Screen)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local DailyController = require(script.Parent.DailyController)
+local LobbyController = require(script.Parent.LobbyController)
 local OnboardingController = require(script.Parent.OnboardingController)
 
 local S = Config.Strings
@@ -159,7 +160,8 @@ local function slider(face: Frame, key: string, lo: number, hi: number, fmt: (nu
 end
 
 -- An ON / OFF switch in the arcade style: green ON, grey OFF, the knob slides.
-local function toggle(face: Frame, key: string)
+-- An ON / OFF switch for a Settings key, or for anything else via `get` / `set` (AFK).
+local function toggle(face: Frame, key: string, get: (() -> boolean)?, set: ((boolean) -> ())?)
 	local holder = new("TextButton", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -14, 0.5, 0),
@@ -197,7 +199,7 @@ local function toggle(face: Frame, key: string)
 	new("UIStroke", { Color = P.Ink, Thickness = 2.5, Parent = knob })
 	local function show(on: boolean, animate: boolean)
 		track.BackgroundColor3 = if on then Color3.fromRGB(56, 204, 32) else Color3.fromRGB(104, 100, 118)
-		label.Text = if on then "ON" else "OFF"
+		label.Text = if on then S.Ui.On else S.Ui.Off
 		label.Position = UDim2.fromOffset(if on then -12 else 12, 0)
 		local goal = UDim2.fromScale(if on then 0.8 else 0.2, 0.5)
 		if animate and not Widgets.reduced() then
@@ -206,10 +208,17 @@ local function toggle(face: Frame, key: string)
 			knob.Position = goal
 		end
 	end
-	show(Settings.get(key) == true, false)
+	local function read(): boolean
+		return if get then get() else Settings.get(key) == true
+	end
+	show(read(), false)
 	holder.Activated:Connect(function()
-		local on = not (Settings.get(key) == true)
-		Settings.set(key, on)
+		local on = not read()
+		if set then
+			set(on)
+		else
+			Settings.set(key, on)
+		end
 		show(on, true)
 		Sfx.play(if on then "ToggleOn" else "ToggleOff")
 	end)
@@ -282,18 +291,24 @@ local function open()
 	toggle(row(list, S.Ui.SetTips, 5), "showTips")
 	toggle(row(list, S.Ui.SetColourBlind, 6), "colourBlindOutlines")
 	segmented(row(list, S.Ui.SetButtons, 7), "mobileButtonSize", { "S", "M", "L" })
+	-- AFK and Spectate live here (off the dock: DECISIONS 2026-10-19)
+	toggle(row(list, S.Ui.SetAfk, 0), "afk", LobbyController.isAfk, LobbyController.setAfk)
 	local howRow = new("Frame", {
 		Size = UDim2.new(1, 0, 0, 60),
 		BackgroundTransparency = 1,
 		LayoutOrder = 8,
 		Parent = list,
 	})
+	Widgets.button(howRow, S.Ui.Spectate, "purple", UDim2.fromOffset(200, 50), function()
+		DailyController.close()
+		task.delay(0.15, LobbyController.spectate)
+	end, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0.5, -8, 0.5, 0), TextSize = 22 })
 	Widgets.button(howRow, S.Ui.HowToPlay, "orange", UDim2.fromOffset(240, 50), function()
 		DailyController.close()
 		task.delay(0.15, function()
 			OnboardingController.showRules()
 		end)
-	end, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), TextSize = 24 })
+	end, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0.5, 8, 0.5, 0), TextSize = 22 })
 end
 
 local function place()

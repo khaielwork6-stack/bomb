@@ -13,6 +13,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Types = require(ReplicatedStorage.Shared.Types)
+local ClientState = require(script.Parent.Parent.ClientState)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Progress = require(script.Parent.Parent.Progress)
 local SkinApply = require(script.Parent.Parent.SkinApply)
@@ -365,6 +367,13 @@ function OfferController.start()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	Progress.start()
+	-- a round starting closes it (GDD §19.2: an open menu closes gracefully at round start)
+	local gs = ReplicatedStorage:WaitForChild("GameState")
+	gs:GetAttributeChangedSignal("Phase"):Connect(function()
+		if open and closeCard and ClientState.phase() == Types.Phase.Intro then
+			closeCard()
+		end
+	end)
 	Progress.Changed:Connect(function(st)
 		if open and not (st and st.store and st.store.starter) and closeCard then
 			closeCard()

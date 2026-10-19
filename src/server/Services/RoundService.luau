@@ -366,7 +366,27 @@ local function finish(outcome: string, winners: { Participant })
 	local ids = {}
 	for _, p in ipairs(winners) do
 		table.insert(ids, p.id)
-		p.data.wonLast = true
+	end
+	-- ONE crown in the server (the owner, 2026-10-19, replacing F-WIN-04's "every winner"): the round's champion —
+	-- the Last Stand Runner, the Bombers' MVP, or the survivor with the best round — wears it next round.
+	local champion = mvp
+	if outcome ~= "Bombers" or not champion then
+		local best = -1
+		for _, p in ipairs(winners) do
+			local st = p.stats
+			local score = (st.booms or 0) * 3
+				+ (st.clutches or 0) * 3
+				+ (st.defuses or 0) * 2
+				+ (st.crossings or 0) * 2
+				+ (st.tags or 0)
+				+ (st.passes or 0)
+			if score > best then
+				best, champion = score, p
+			end
+		end
+	end
+	if champion then
+		(champion :: Participant).data.wonLast = true
 	end
 	GameState.set("Outcome", outcome)
 	setPhase(Ph.Results, RC.RESULTS)

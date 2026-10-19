@@ -96,7 +96,7 @@ function Podium.build(parent: GuiObject, entries: { Entry }, soot: boolean?): Fr
 	local root = new("Frame", {
 		Name = "Podium",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -38), -- the names clear the results ribbon
+		Position = UDim2.new(0.5, 0, 0, -70), -- the names clear the results title art (it sits on the card's edge)
 		Size = UDim2.fromOffset(SIZE.X, SIZE.Y),
 		BackgroundTransparency = 1,
 		ZIndex = 2,

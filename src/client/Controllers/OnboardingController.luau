@@ -307,7 +307,8 @@ function OnboardingController.start()
 		if not d.flags.tutorial and not rulesOpen then
 			OnboardingController.showRules()
 		end
-		if not d.flags.questsIntro and (s.rounds or 0) >= 2 and ClientState.phase() ~= Ph.Crossing then
+		local ph = ClientState.phase()
+		if not d.flags.questsIntro and (s.rounds or 0) >= 2 and (ph == Ph.Intermission or ph == Ph.Results) then
 			questIntro()
 		end
 	end
