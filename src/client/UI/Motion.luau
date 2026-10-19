@@ -31,7 +31,15 @@ function Motion.reduced(): boolean
 end
 
 -- ── Channels ────────────────────────────────────────────────────────────────────────────────────────────────────
-type State = { sc: UIScale, ch: { [string]: number }, tweens: { [string]: Tween } }
+type State = {
+	target: GuiObject,
+	sc: UIScale,
+	ch: { [string]: number },
+	tweens: { [string]: Tween },
+	pad: UIPadding?,
+	padBase: { UDim }?,
+	rest: UDim2?, -- Position at rest, while a self-drawn frame is shifted (see centre)
+}
 local states: { [Instance]: State } = setmetatable({}, { __mode = "k" }) :: any
 
 local function state(target: GuiObject): State
@@ -51,9 +59,116 @@ local function state(target: GuiObject): State
 	end
 	local s = sc :: UIScale
 	s:SetAttribute("Motion", true)
-	st = { sc = s, ch = { Base = base }, tweens = {} }
+	st = { target = target, sc = s, ch = { Base = base }, tweens = {} }
 	states[target] = st
 	return st
+end
+
+-- Where Roblox pivots this frame's UIScale (measured in Studio): a free frame scales out of its AnchorPoint, a
+-- UIListLayout child out of the list's alignment corner (Left/Top lists grow it down-right), a UIGridLayout child
+-- from its centre. nil = already the centre.
+local ALIGN_X = {
+	[Enum.HorizontalAlignment.Left] = 0,
+	[Enum.HorizontalAlignment.Center] = 0.5,
+	[Enum.HorizontalAlignment.Right] = 1,
+}
+local ALIGN_Y = {
+	[Enum.VerticalAlignment.Top] = 0,
+	[Enum.VerticalAlignment.Center] = 0.5,
+	[Enum.VerticalAlignment.Bottom] = 1,
+}
+local function pivotOf(target: GuiObject): Vector2?
+	local parent = target.Parent
+	local p = target.AnchorPoint
+	if parent then
+		if parent:FindFirstChildOfClass("UIGridLayout") then
+			return nil
+		end
+		local list = parent:FindFirstChildOfClass("UIListLayout")
+		if list then
+			p = Vector2.new(ALIGN_X[list.HorizontalAlignment] or 0, ALIGN_Y[list.VerticalAlignment] or 0)
+		end
+	end
+	return if p.X == 0.5 and p.Y == 0.5 then nil else p
+end
+
+-- Hover and Pulse must grow a button from its centre wherever Roblox pivots it. Its Position can't be the fix (a list
+-- owns it, and other code moves buttons), so the contents are shifted instead with a UIPadding: everything drawn
+-- inside the button (skin layers, label, icon, its own text) moves by exactly the opposite of the drift. At rest the
+-- padding is back to what it was. Open keeps its own Position-based pivot (panels are free frames).
+-- Does the frame draw anything itself (a background or its own image)? Padding can't move that.
+local function selfDrawn(o: GuiObject): boolean
+	if o.BackgroundTransparency < 0.99 then
+		return true
+	end
+	if o:IsA("ImageButton") or o:IsA("ImageLabel") then
+		local i = o :: any
+		return i.Image ~= "" and i.ImageTransparency < 0.99
+	end
+	return false
+end
+
+local function laidOutIn(o: GuiObject): boolean
+	local parent = o.Parent
+	return parent ~= nil and parent:FindFirstChildWhichIsA("UIGridStyleLayout") ~= nil
+end
+
+local function centre(st: State)
+	local h = (st.ch.Hover or 1) * (st.ch.Pulse or 1)
+	local target = st.target
+	-- a free frame that draws its own background: move the frame itself (nothing else positions it)
+	if st.rest or (h ~= 1 and selfDrawn(target) and not laidOutIn(target)) then
+		local p = pivotOf(target)
+		local parent = target.Parent
+		if not st.rest then
+			if not p or not parent or not parent:IsA("GuiBase2d") then
+				return
+			end
+			st.rest = target.Position
+		end
+		local rest = st.rest :: UDim2
+		if h == 1 or not p or not parent or not parent:IsA("GuiBase2d") then
+			target.Position = rest
+			st.rest = nil
+			return
+		end
+		local ps = (parent :: GuiBase2d).AbsoluteSize
+		local full = target.AbsoluteSize / h
+		if ps.X > 0 and ps.Y > 0 then
+			target.Position = rest
+				+ UDim2.fromScale(-(0.5 - p.X) * full.X * (h - 1) / ps.X, -(0.5 - p.Y) * full.Y * (h - 1) / ps.Y)
+		end
+		return
+	end
+	if h == 1 and not st.pad then
+		return
+	end
+	local p = if h ~= 1 then pivotOf(target) else nil
+	if not p and not st.pad then
+		return
+	end
+	if not st.pad then
+		local existing = target:FindFirstChildOfClass("UIPadding")
+		if existing then
+			st.pad = existing
+			st.padBase = { existing.PaddingLeft, existing.PaddingRight, existing.PaddingTop, existing.PaddingBottom }
+		else
+			local pad = Instance.new("UIPadding")
+			pad.Name = "MotionPad"
+			pad.Parent = target
+			st.pad = pad
+			st.padBase = { UDim.new(), UDim.new(), UDim.new(), UDim.new() }
+		end
+	end
+	local pad = st.pad :: UIPadding
+	local base = st.padBase :: { UDim }
+	-- the centre drifts by (0.5 − p)·W·(h − 1); content padded by u·W moves u·W·h, so u = −(0.5 − p)(h − 1)/h
+	local ux = if p then -(0.5 - p.X) * (h - 1) / h else 0
+	local uy = if p then -(0.5 - p.Y) * (h - 1) / h else 0
+	pad.PaddingLeft = base[1] + UDim.new(ux, 0)
+	pad.PaddingRight = base[2] - UDim.new(ux, 0)
+	pad.PaddingTop = base[3] + UDim.new(uy, 0)
+	pad.PaddingBottom = base[4] - UDim.new(uy, 0)
 end
 
 local function apply(st: State)
@@ -62,6 +177,7 @@ local function apply(st: State)
 		v *= x
 	end
 	st.sc.Scale = v
+	centre(st)
 end
 
 -- Set a channel now.
